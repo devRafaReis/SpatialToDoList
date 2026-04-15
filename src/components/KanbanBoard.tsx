@@ -6,6 +6,7 @@ import KanbanColumn from "@/components/KanbanColumn";
 import TaskDialog from "@/components/TaskDialog";
 import Header from "@/components/Header";
 import StarParticles from "@/components/StarParticles";
+import NyanCatEasterEgg from "@/components/NyanCatEasterEgg";
 
 const KanbanBoard = () => {
   const { tasksByStatus, addTask, updateTask, deleteTask, moveTask, reorderTasks, moveTaskBetweenColumns } = useTasks();
@@ -68,6 +69,7 @@ const KanbanBoard = () => {
   return (
     <div className="relative flex min-h-screen flex-col">
       <StarParticles />
+      <NyanCatEasterEgg />
       <div className="relative z-10 flex flex-1 flex-col">
         <Header onAddTask={handleAddTask} />
         <DragDropContext onDragEnd={handleDragEnd}>
