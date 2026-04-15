@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 25% 9%;
+    --foreground: 220 20% 90%;
+
+    --card: 230 20% 14%;
+    --card-foreground: 220 20% 90%;
+
+    --popover: 230 20% 12%;
+    --popover-foreground: 220 20% 90%;
+
+    --primary: 260 50% 60%;
+    --primary-foreground: 220 20% 95%;
+
+    --secondary: 230 20% 18%;
+    --secondary-foreground: 220 20% 85%;
+
+    --muted: 230 18% 16%;
+    --muted-foreground: 220 15% 55%;
+
+    --accent: 280 30% 22%;
+    --accent-foreground: 270 30% 85%;
+
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 0 0% 95%;
+
+    --border: 230 15% 20%;
+    --input: 230 15% 20%;
+    --ring: 260 50% 55%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 230 25% 8%;
+    --sidebar-foreground: 220 20% 85%;
+    --sidebar-primary: 260 50% 60%;
+    --sidebar-primary-foreground: 220 20% 95%;
+    --sidebar-accent: 280 20% 18%;
+    --sidebar-accent-foreground: 270 30% 85%;
+    --sidebar-border: 230 15% 18%;
+    --sidebar-ring: 260 50% 55%;
+
+    --glass-bg: 230 25% 14%;
+    --glass-border: 230 15% 25%;
+    --galaxy-glow: 270 60% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, hsl(270 60% 20% / 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, hsl(240 50% 20% / 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, hsl(300 40% 15% / 0.1) 0%, transparent 50%);
+    min-height: 100vh;
+  }
+}
+
+@keyframes card-portal-out {
+  0%   { transform: scale(1)    rotate(0deg);   opacity: 1;   filter: blur(0)    hue-rotate(0deg)   brightness(1); }
+  25%  { transform: scale(0.88) rotate(6deg);   opacity: 0.9; filter: blur(1px)  hue-rotate(40deg)  brightness(1.1); }
+  55%  { transform: scale(0.46) rotate(16deg);  opacity: 0.6; filter: blur(3px)  hue-rotate(100deg) brightness(0.6); }
+  80%  { transform: scale(0.14) rotate(26deg);  opacity: 0.2; filter: blur(7px)  hue-rotate(160deg) brightness(0.2); }
+  100% { transform: scale(0)    rotate(32deg);  opacity: 0;   filter: blur(10px) hue-rotate(200deg) brightness(0); }
+}
+
+@keyframes card-portal-in {
+  0%   { transform: scale(0)    rotate(-32deg); opacity: 0;   filter: blur(10px) hue-rotate(200deg) brightness(3); }
+  20%  { transform: scale(0.18) rotate(-20deg); opacity: 0.4; filter: blur(6px)  hue-rotate(120deg) brightness(2.5); }
+  50%  { transform: scale(0.88) rotate(-8deg);  opacity: 0.85;filter: blur(2px)  hue-rotate(40deg)  brightness(1.4); }
+  75%  { transform: scale(1.06) rotate(-2deg);  opacity: 1;   filter: blur(0)    hue-rotate(8deg)   brightness(1.1); }
+  100% { transform: scale(1)    rotate(0deg);   opacity: 1;   filter: blur(0)    hue-rotate(0deg)   brightness(1); }
+}
+
+@keyframes card-suck-in {
+  0%   { transform: scale(1);    opacity: 1;    filter: blur(0px)  brightness(1); }
+  18%  { transform: scale(0.92); opacity: 1;    filter: blur(0px)  brightness(0.85); }
+  40%  { transform: scale(0.58); opacity: 0.8;  filter: blur(2px)  brightness(0.5); }
+  62%  { transform: scale(0.24); opacity: 0.4;  filter: blur(5px)  brightness(0.2); }
+  80%  { transform: scale(0.06); opacity: 0.12; filter: blur(8px)  brightness(0.05); }
+  100% { transform: scale(0);    opacity: 0;    filter: blur(12px) brightness(0); }
+}
+
+@keyframes card-big-bang-in {
+  0%   { transform: scale(0);    opacity: 0;   filter: brightness(6) blur(5px); }
+  12%  { transform: scale(0.12); opacity: 0.8; filter: brightness(6) blur(2px); }
+  35%  { transform: scale(1.08); opacity: 1;   filter: brightness(1.5) blur(0); }
+  55%  { transform: scale(0.96); opacity: 1;   filter: brightness(1) blur(0); }
+  75%  { transform: scale(1.02); opacity: 1;   filter: brightness(1) blur(0); }
+  100% { transform: scale(1);    opacity: 1;   filter: brightness(1) blur(0); }
+}
+
+@layer utilities {
+  .glass {
+    background: hsl(var(--glass-bg) / 0.6);
+    border: 1px solid hsl(var(--glass-border) / 0.3);
+    box-shadow:
+      0 4px 30px hsl(var(--galaxy-glow) / 0.06),
+      inset 0 1px 0 hsl(0 0% 100% / 0.04);
+  }
+
+  .glass-column {
+    background: hsl(var(--glass-bg) / 0.45);
+    border: 1px solid hsl(var(--glass-border) / 0.2);
+  }
+
+  .card-suck-in {
+    animation: card-suck-in 680ms 190ms ease-in forwards;
+    pointer-events: none;
+    transform-origin: center center;
+  }
+
+  .card-big-bang-in {
+    animation: card-big-bang-in 850ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    transform-origin: center center;
+  }
+
+  .card-portal-out {
+    animation: card-portal-out 720ms ease-in forwards;
+    pointer-events: none;
+    transform-origin: center center;
+  }
+
+  .card-portal-in {
+    animation: card-portal-in 750ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    transform-origin: center center;
+  }
+
+  .glass-drag {
+    background: hsl(var(--glass-bg) / 0.85);
+    border: 1px solid hsl(var(--glass-border) / 0.4);
+    box-shadow: 0 8px 32px hsl(var(--galaxy-glow) / 0.15);
+  }
+}

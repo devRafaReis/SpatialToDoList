@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <!-- Planet radial gradient -->
+    <radialGradient id="planet-fill" cx="38%" cy="32%" r="65%">
+      <stop offset="0%"   stop-color="#a07fe0"/>
+      <stop offset="50%"  stop-color="#4a2d8c"/>
+      <stop offset="100%" stop-color="#1a0d40"/>
+    </radialGradient>
+    <!-- Clip to reveal only the front (lower) arc of the ring -->
+    <clipPath id="ring-front-clip">
+      <rect x="0" y="16" width="32" height="16"/>
+    </clipPath>
+  </defs>
+
+  <!-- Back ring (behind the planet, dimmer) -->
+  <ellipse cx="16" cy="16" rx="14" ry="4"
+    fill="none"
+    stroke="#9b78e4"
+    stroke-width="2.2"
+    transform="rotate(-13, 16, 16)"
+    opacity="0.38"/>
+
+  <!-- Planet body -->
+  <circle cx="16" cy="16" r="9" fill="url(#planet-fill)"/>
+
+  <!-- Subtle atmosphere highlight -->
+  <ellipse cx="13.5" cy="12.5" rx="4.5" ry="2.8"
+    fill="white" opacity="0.07"
+    transform="rotate(-20, 13.5, 12.5)"/>
+
+  <!-- Front ring (in front of planet, brighter) -->
+  <ellipse cx="16" cy="16" rx="14" ry="4"
+    fill="none"
+    stroke="#c9aaf7"
+    stroke-width="2.6"
+    transform="rotate(-13, 16, 16)"
+    clip-path="url(#ring-front-clip)"
+    opacity="0.92"/>
+
+  <!-- Stars -->
+  <circle cx="3.5" cy="3.5" r="0.9" fill="#e8deff" opacity="0.90"/>
+  <circle cx="28"  cy="5"   r="0.7" fill="#ffffff"  opacity="0.80"/>
+  <circle cx="29"  cy="27"  r="0.6" fill="#e8deff" opacity="0.70"/>
+  <circle cx="3"   cy="27"  r="0.8" fill="#e8deff" opacity="0.85"/>
+  <circle cx="26"  cy="26"  r="0.5" fill="#ffffff"  opacity="0.65"/>
+</svg>
