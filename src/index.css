@@ -90,12 +90,11 @@
 }
 
 @keyframes card-big-bang-in {
-  0%   { transform: scale(0);    opacity: 0;   filter: brightness(6) blur(5px); }
-  12%  { transform: scale(0.12); opacity: 0.8; filter: brightness(6) blur(2px); }
-  35%  { transform: scale(1.08); opacity: 1;   filter: brightness(1.5) blur(0); }
-  55%  { transform: scale(0.96); opacity: 1;   filter: brightness(1) blur(0); }
-  75%  { transform: scale(1.02); opacity: 1;   filter: brightness(1) blur(0); }
-  100% { transform: scale(1);    opacity: 1;   filter: brightness(1) blur(0); }
+  0%   { transform: scale(0);    opacity: 0; }
+  30%  { transform: scale(1.08); opacity: 1;  filter: brightness(1.4); }
+  55%  { transform: scale(0.96); opacity: 1;  filter: brightness(1); }
+  75%  { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
 }
 
 @layer utilities {
@@ -119,7 +118,7 @@
   }
 
   .card-big-bang-in {
-    animation: card-big-bang-in 850ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: card-big-bang-in 850ms 210ms cubic-bezier(0.22, 1, 0.36, 1) both;
     transform-origin: center center;
   }
 

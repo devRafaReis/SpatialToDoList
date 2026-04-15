@@ -343,100 +343,108 @@ const BigBangCanvas = () => {
     const H = canvas.height;
     const cx = W / 2;
     const cy = H / 2;
-    const DURATION = 1000;
+    const DURATION = 950;
+    // Friction decay rate equivalent to multiplying velocity by 0.952 each frame at 60fps
+    const DECAY = 2.95; // per second
 
     type Particle = {
-      x: number; y: number;
-      vx: number; vy: number;
-      life: number; maxLife: number;
-      size: number; hue: number;
+      angle: number;
+      speed: number;  // px/s
+      endP: number;   // progress (0..1) at which particle fully fades
+      size: number;
+      hue: number;
     };
 
-    const particles: Particle[] = Array.from({ length: 72 }, () => {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 1.2 + Math.random() * 5.5;
-      const life = 28 + Math.random() * 40;
-      return {
-        x: cx, y: cy,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life, maxLife: life,
-        size: 0.8 + Math.random() * 2.5,
-        hue: 215 + Math.floor(Math.random() * 115),
-      };
-    });
+    // Pre-generate particles with time-based parameters
+    const particles: Particle[] = Array.from({ length: 55 }, () => ({
+      angle: Math.random() * Math.PI * 2,
+      speed: 72 + Math.random() * 330, // px/s (equivalent to original 1.2–6.7 px/frame at 60fps)
+      endP:  0.40 + Math.random() * 0.60,
+      size:  0.8 + Math.random() * 2.5,
+      hue:   215 + Math.floor(Math.random() * 115),
+    }));
 
-    const start = performance.now();
     let animId: number;
 
-    const draw = (now: number) => {
-      const elapsed = now - start;
-      const p = Math.min(1, elapsed / DURATION);
-      ctx.clearRect(0, 0, W, H);
+    // Delay matches the Dialog close animation (~200ms) so the canvas starts
+    // only after the overlay has fully faded — otherwise the flash and rings
+    // play hidden behind the dialog's black backdrop (z-50 > canvas z-30).
+    const delayId = setTimeout(() => {
+      const start = performance.now();
 
-      // Bright flash at center (0–20%)
-      if (p < 0.20) {
-        const t = p / 0.20;
-        const flashA = 1 - t;
-        const flashR = 6 + t * cx * 0.9;
-        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, flashR);
-        g.addColorStop(0,    `rgba(255, 255, 255, ${flashA})`);
-        g.addColorStop(0.15, `rgba(220, 180, 255, ${flashA * 0.9})`);
-        g.addColorStop(0.50, `rgba(130, 60, 220, ${flashA * 0.5})`);
-        g.addColorStop(1,    `rgba(70, 20, 160, 0)`);
-        ctx.beginPath();
-        ctx.arc(cx, cy, flashR, 0, Math.PI * 2);
-        ctx.fillStyle = g;
-        ctx.fill();
-      }
+      const draw = (now: number) => {
+        const elapsed = now - start;
+        const p = Math.min(1, elapsed / DURATION);
 
-      // Two expanding shockwave rings
-      for (let ri = 0; ri < 2; ri++) {
-        const rp = p - ri * 0.08;
-        if (rp > 0 && rp < 0.70) {
-          const t = rp / 0.70;
-          const ringR = t * Math.max(W, H) * 0.62;
-          const ringA = (1 - t) * (ri === 0 ? 0.75 : 0.45);
+        // Reset shadow state at start of each frame
+        ctx.shadowBlur = 0;
+        ctx.clearRect(0, 0, W, H);
+
+        // Bright flash at center (0–18%)
+        if (p < 0.18) {
+          const t = p / 0.18;
+          const flashA = 1 - t;
+          const flashR = 6 + t * cx * 0.9;
+          const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, flashR);
+          g.addColorStop(0,    `rgba(255,255,255,${flashA})`);
+          g.addColorStop(0.15, `rgba(220,180,255,${flashA * 0.9})`);
+          g.addColorStop(0.50, `rgba(130,60,220,${flashA * 0.5})`);
+          g.addColorStop(1,    `rgba(70,20,160,0)`);
           ctx.beginPath();
-          ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
-          ctx.strokeStyle = `hsla(275, 100%, 85%, ${ringA})`;
-          ctx.lineWidth = (2.5 - ri * 0.8) * (1 - t * 0.65);
-          ctx.stroke();
+          ctx.arc(cx, cy, flashR, 0, Math.PI * 2);
+          ctx.fillStyle = g;
+          ctx.fill();
         }
-      }
 
-      // Burst particles
-      for (const pt of particles) {
-        if (pt.life <= 0) continue;
-        pt.x += pt.vx;
-        pt.y += pt.vy;
-        pt.vx *= 0.952;
-        pt.vy *= 0.952;
-        pt.life--;
-        const a = pt.life / pt.maxLife;
-        const size = Math.max(0.1, pt.size * Math.sqrt(a));
+        // Two expanding shockwave rings
+        for (let ri = 0; ri < 2; ri++) {
+          const rp = p - ri * 0.08;
+          if (rp > 0 && rp < 0.70) {
+            const t = rp / 0.70;
+            const ringR = t * Math.max(W, H) * 0.62;
+            const ringA = (1 - t) * (ri === 0 ? 0.75 : 0.45);
+            ctx.beginPath();
+            ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+            ctx.strokeStyle = `hsla(275,100%,85%,${ringA})`;
+            ctx.lineWidth = (2.5 - ri * 0.8) * (1 - t * 0.65);
+            ctx.stroke();
+          }
+        }
 
-        // Soft glow
-        const glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, size * 3.5);
-        glow.addColorStop(0, `hsla(${pt.hue}, 95%, 88%, ${a * 0.6})`);
-        glow.addColorStop(1, `hsla(${pt.hue}, 90%, 65%, 0)`);
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, size * 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = glow;
-        ctx.fill();
+        // Time-based burst particles — position derived from elapsed time, not frame count
+        const elapsedSec = elapsed / 1000;
+        for (const pt of particles) {
+          const localP = p / pt.endP;
+          if (localP <= 0 || localP >= 1) continue;
 
-        // Core
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${pt.hue}, 95%, 92%, ${a})`;
-        ctx.fill();
-      }
+          // Decelerated distance: integral of v0*e^(-DECAY*t) = (v0/DECAY)*(1 - e^(-DECAY*t))
+          const dist = (pt.speed / DECAY) * (1 - Math.exp(-DECAY * elapsedSec));
+          const x = cx + Math.cos(pt.angle) * dist;
+          const y = cy + Math.sin(pt.angle) * dist * 0.88;
 
-      if (p < 1) animId = requestAnimationFrame(draw);
+          const a = Math.max(0, 1 - localP);
+          const size = Math.max(0.1, pt.size * (1 - localP * 0.35));
+
+          // Use shadowBlur for glow — one draw call per particle instead of createRadialGradient
+          ctx.shadowBlur = size * 9;
+          ctx.shadowColor = `hsla(${pt.hue},90%,78%,${a * 0.75})`;
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${pt.hue},95%,92%,${a})`;
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+
+        if (p < 1) animId = requestAnimationFrame(draw);
+      };
+
+      animId = requestAnimationFrame(draw);
+    }, 210);
+
+    return () => {
+      clearTimeout(delayId);
+      cancelAnimationFrame(animId);
     };
-
-    animId = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animId);
   }, []);
 
   return (

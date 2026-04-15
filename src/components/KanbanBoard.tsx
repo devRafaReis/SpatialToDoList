@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { Task, TaskStatus, COLUMNS } from "@/types/task";
 import { useTasks } from "@/hooks/useTasks";
@@ -13,6 +13,7 @@ const KanbanBoard = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
   const [teleportedTaskId, setTeleportedTaskId] = useState<string | null>(null);
+  const newTaskTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {
@@ -55,8 +56,12 @@ const KanbanBoard = () => {
       updateTask(editingTask.id, { title, description, priority });
     } else {
       const id = addTask(title, description, status, priority);
+      if (newTaskTimerRef.current) clearTimeout(newTaskTimerRef.current);
       setNewTaskId(id);
-      setTimeout(() => setNewTaskId(null), 1200);
+      newTaskTimerRef.current = setTimeout(() => {
+        setNewTaskId(null);
+        newTaskTimerRef.current = null;
+      }, 1200);
     }
   };
 
