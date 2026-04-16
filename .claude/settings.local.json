@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(npm install *)",
-      "Bash(bun run *)"
+      "Bash(bun run *)",
+      "Bash(cmd /c \"bun run prepare-context\")",
+      "Bash(cmd /c \"bun run index\")",
+      "Bash(cmd /c \"cd /d C:\\\\\\\\Users\\\\\\\\rafael.reis\\\\\\\\Desktop\\\\\\\\projects\\\\\\\\SpatialToDoList && bun run scripts/indexer.ts\")",
+      "Bash(powershell -Command \"cd 'C:\\\\\\\\Users\\\\\\\\rafael.reis\\\\\\\\Desktop\\\\\\\\projects\\\\\\\\SpatialToDoList'; bun run scripts/indexer.ts\")",
+      "Bash(powershell -Command \"where.exe bun; & 'C:/Users/rafael.reis/.bun/bin/bun.exe' --version\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\\\\\Users\\\\\\\\rafael.reis' -Filter 'bun*' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 5 FullName\")",
+      "Bash(powershell -Command '$env:PATH -split '\\\\'';'\\\\'' | Where-Object { $_ -like '\\\\''*bun*'\\\\'' -or $_ -like '\\\\''*npm*'\\\\'' -or $_ -like '\\\\''*node*'\\\\'' }')",
+      "Bash(powershell -Command \"Get-Command bun -ErrorAction SilentlyContinue; Get-Command bunx -ErrorAction SilentlyContinue; Test-Path 'C:\\\\\\\\Users\\\\\\\\rafael.reis\\\\\\\\.bun'; Test-Path 'C:\\\\\\\\ProgramData\\\\\\\\chocolatey\\\\\\\\bin\\\\\\\\bun.exe'\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\\\\\' -Filter 'bun.exe' -Recurse -Depth 5 -ErrorAction SilentlyContinue | Select-Object FullName\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\\\\\Users\\\\\\\\rafael.reis\\\\\\\\AppData' -Filter 'bun.exe' -Recurse -Depth 6 -ErrorAction SilentlyContinue | Select-Object FullName\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\\\\\Users\\\\\\\\rafael.reis\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Programs' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(powershell -Command \"[System.Environment]::GetEnvironmentVariable\\('PATH', 'User'\\) -split ';' | Select-String -Pattern 'bun|node|npm'\")",
+      "Bash(powershell -Command \"node --version; npx --version\")",
+      "Bash(powershell -Command \"npx --yes tsx --version\")",
+      "Bash(powershell -Command \"npx tsx scripts/indexer.ts\")",
+      "Bash(powershell -Command \"npx tsx scripts/context-builder.ts\")",
+      "Bash(powershell -Command 'Get-ChildItem '\\\\''C:\\\\Users\\\\rafael.reis\\\\Desktop\\\\projects\\\\SpatialToDoList'\\\\'' -Filter '\\\\''project-map.json'\\\\'','\\\\''claude-context.txt'\\\\'' | Select-Object Name,@{N='\\\\''KB'\\\\'';E={[math]::Round\\($_.Length/1KB,1\\)}}')",
+      "Bash(powershell -Command 'Get-Item '\\\\''C:\\\\Users\\\\rafael.reis\\\\Desktop\\\\projects\\\\SpatialToDoList\\\\project-map.json'\\\\'','\\\\''C:\\\\Users\\\\rafael.reis\\\\Desktop\\\\projects\\\\SpatialToDoList\\\\claude-context.txt'\\\\'' | Select-Object Name,@{N='\\\\''KB'\\\\'';E={[math]::Round\\($_.Length/1KB,1\\)}}')",
+      "Bash(awk -F'\"' '{print $2}')",
+      "Bash(~/.bun/bin/bun run *)"
     ]
   }
 }

@@ -1,0 +1,557 @@
+{
+  "generatedAt": "2026-04-16T22:34:49.281Z",
+  "totalFiles": 47,
+  "files": [
+    {
+      "path": "src/App.tsx",
+      "exports": [
+        "default:App"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 31
+    },
+    {
+      "path": "src/components/CometTrail.tsx",
+      "exports": [
+        "default:CometTrail"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 153
+    },
+    {
+      "path": "src/components/Header.tsx",
+      "exports": [
+        "default:Header"
+      ],
+      "hooks": [
+        "useSettings"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 29
+    },
+    {
+      "path": "src/components/KanbanBoard.tsx",
+      "exports": [
+        "default:KanbanBoard"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect",
+        "useTasks",
+        "useSettings",
+        "useState",
+        "useCallback"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 293
+    },
+    {
+      "path": "src/components/KanbanColumn.tsx",
+      "exports": [
+        "default:KanbanColumn"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 44
+    },
+    {
+      "path": "src/components/SettingsDialog.tsx",
+      "exports": [
+        "default:SettingsDialog"
+      ],
+      "hooks": [
+        "useSettings"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 74
+    },
+    {
+      "path": "src/components/StarParticles.tsx",
+      "exports": [
+        "default:StarParticles"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 207
+    },
+    {
+      "path": "src/components/StarWarsShip.tsx",
+      "exports": [
+        "default:StarWarsShip"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 190
+    },
+    {
+      "path": "src/components/TaskCard.tsx",
+      "exports": [
+        "default:TaskCard"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect",
+        "useSettings",
+        "useTaskContext",
+        "useState"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 1067
+    },
+    {
+      "path": "src/components/TaskDialog.tsx",
+      "exports": [
+        "default:TaskDialog"
+      ],
+      "hooks": [
+        "useState",
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 406
+    },
+    {
+      "path": "src/components/ui/alert-dialog.tsx",
+      "exports": [
+        "AlertDialog",
+        "AlertDialogPortal",
+        "AlertDialogOverlay",
+        "AlertDialogTrigger",
+        "AlertDialogContent",
+        "AlertDialogHeader",
+        "AlertDialogFooter",
+        "AlertDialogTitle",
+        "AlertDialogDescription",
+        "AlertDialogAction",
+        "AlertDialogCancel"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 105
+    },
+    {
+      "path": "src/components/ui/badge.tsx",
+      "exports": [
+        "Badge",
+        "badgeVariants"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 30
+    },
+    {
+      "path": "src/components/ui/button.tsx",
+      "exports": [
+        "Button",
+        "buttonVariants"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 48
+    },
+    {
+      "path": "src/components/ui/calendar.tsx",
+      "exports": [
+        "Calendar"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 55
+    },
+    {
+      "path": "src/components/ui/card.tsx",
+      "exports": [
+        "Card",
+        "CardHeader",
+        "CardFooter",
+        "CardTitle",
+        "CardDescription",
+        "CardContent"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 44
+    },
+    {
+      "path": "src/components/ui/checkbox.tsx",
+      "exports": [
+        "Checkbox"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 27
+    },
+    {
+      "path": "src/components/ui/dialog.tsx",
+      "exports": [
+        "Dialog",
+        "DialogPortal",
+        "DialogOverlay",
+        "DialogClose",
+        "DialogTrigger",
+        "DialogContent",
+        "DialogHeader",
+        "DialogFooter",
+        "DialogTitle",
+        "DialogDescription"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 96
+    },
+    {
+      "path": "src/components/ui/dropdown-menu.tsx",
+      "exports": [
+        "DropdownMenu",
+        "DropdownMenuTrigger",
+        "DropdownMenuContent",
+        "DropdownMenuItem",
+        "DropdownMenuCheckboxItem",
+        "DropdownMenuRadioItem",
+        "DropdownMenuLabel",
+        "DropdownMenuSeparator",
+        "DropdownMenuShortcut",
+        "DropdownMenuGroup",
+        "DropdownMenuPortal",
+        "DropdownMenuSub",
+        "DropdownMenuSubContent",
+        "DropdownMenuSubTrigger",
+        "DropdownMenuRadioGroup"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 180
+    },
+    {
+      "path": "src/components/ui/input.tsx",
+      "exports": [
+        "Input"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 23
+    },
+    {
+      "path": "src/components/ui/label.tsx",
+      "exports": [
+        "Label"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 18
+    },
+    {
+      "path": "src/components/ui/popover.tsx",
+      "exports": [
+        "Popover",
+        "PopoverTrigger",
+        "PopoverContent"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 30
+    },
+    {
+      "path": "src/components/ui/select.tsx",
+      "exports": [
+        "Select",
+        "SelectGroup",
+        "SelectValue",
+        "SelectTrigger",
+        "SelectContent",
+        "SelectLabel",
+        "SelectItem",
+        "SelectSeparator",
+        "SelectScrollUpButton",
+        "SelectScrollDownButton"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 144
+    },
+    {
+      "path": "src/components/ui/separator.tsx",
+      "exports": [
+        "Separator"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 21
+    },
+    {
+      "path": "src/components/ui/sheet.tsx",
+      "exports": [
+        "Sheet",
+        "SheetClose",
+        "SheetContent",
+        "SheetDescription",
+        "SheetFooter",
+        "SheetHeader",
+        "SheetOverlay",
+        "SheetPortal",
+        "SheetTitle",
+        "SheetTrigger"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 108
+    },
+    {
+      "path": "src/components/ui/skeleton.tsx",
+      "exports": [
+        "Skeleton"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 8
+    },
+    {
+      "path": "src/components/ui/sonner.tsx",
+      "exports": [
+        "Toaster",
+        "toast"
+      ],
+      "hooks": [
+        "useTheme"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 28
+    },
+    {
+      "path": "src/components/ui/switch.tsx",
+      "exports": [
+        "Switch"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 28
+    },
+    {
+      "path": "src/components/ui/textarea.tsx",
+      "exports": [
+        "Textarea"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 22
+    },
+    {
+      "path": "src/components/ui/toast.tsx",
+      "exports": [
+        "type",
+        "ToastProvider",
+        "ToastViewport",
+        "Toast",
+        "ToastTitle",
+        "ToastDescription",
+        "ToastClose",
+        "ToastAction"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 112
+    },
+    {
+      "path": "src/components/ui/toaster.tsx",
+      "exports": [
+        "Toaster"
+      ],
+      "hooks": [
+        "useToast"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 25
+    },
+    {
+      "path": "src/components/ui/toggle.tsx",
+      "exports": [
+        "Toggle",
+        "toggleVariants"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 38
+    },
+    {
+      "path": "src/components/ui/tooltip.tsx",
+      "exports": [
+        "Tooltip",
+        "TooltipTrigger",
+        "TooltipContent",
+        "TooltipProvider"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 29
+    },
+    {
+      "path": "src/components/ui/use-toast.ts",
+      "exports": [
+        "useToast",
+        "toast"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 4
+    },
+    {
+      "path": "src/hooks/use-mobile.tsx",
+      "exports": [
+        "useIsMobile"
+      ],
+      "hooks": [
+        "useIsMobile",
+        "useState",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 20
+    },
+    {
+      "path": "src/hooks/use-toast.ts",
+      "exports": [
+        "reducer",
+        "useToast",
+        "toast"
+      ],
+      "hooks": [
+        "useToast",
+        "useState",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 187
+    },
+    {
+      "path": "src/hooks/useTasks.ts",
+      "exports": [
+        "useTasks"
+      ],
+      "hooks": [
+        "useTaskContext",
+        "useMemo"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 17
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "exports": [
+        "cn"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 7
+    },
+    {
+      "path": "src/main.tsx",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 6
+    },
+    {
+      "path": "src/pages/Index.tsx",
+      "exports": [
+        "default:Index"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 13
+    },
+    {
+      "path": "src/pages/NotFound.tsx",
+      "exports": [
+        "default:NotFound"
+      ],
+      "hooks": [
+        "useLocation",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 25
+    },
+    {
+      "path": "src/services/taskStorage.ts",
+      "exports": [
+        "localStorageService",
+        "taskStorage"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 28
+    },
+    {
+      "path": "src/store/settingsStore.tsx",
+      "exports": [
+        "SettingsProvider",
+        "useSettings"
+      ],
+      "hooks": [
+        "useState",
+        "useEffect",
+        "useContext"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 56
+    },
+    {
+      "path": "src/store/taskStore.tsx",
+      "exports": [
+        "useTaskContext",
+        "TaskProvider"
+      ],
+      "hooks": [
+        "useContext",
+        "useState",
+        "useEffect",
+        "useCallback"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 127
+    },
+    {
+      "path": "src/test/example.test.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 8
+    },
+    {
+      "path": "src/test/setup.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 17
+    },
+    {
+      "path": "src/types/task.ts",
+      "exports": [
+        "PRIORITIES",
+        "COLUMNS"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 52
+    },
+    {
+      "path": "src/vite-env.d.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 2
+    }
+  ]
+}

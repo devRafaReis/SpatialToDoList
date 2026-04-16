@@ -3,12 +3,24 @@ import { useEffect, useRef } from "react";
 type Comet = {
   x: number;
   y: number;
-  dx: number;       // normalized direction x
-  dy: number;       // normalized direction y
-  speed: number;    // px/ms
+  dx: number;
+  dy: number;
+  speed: number;
   tailLength: number;
+  lineWidth: number;
+  headRadius: number;
+  maxAlpha: number;
   startTime: number;
   duration: number;
+};
+
+// Each slot controls one independent comet lane with its own timing.
+type Slot = {
+  comet: Comet | null;
+  nextAt: number;      // timestamp when next comet should spawn
+  minGap: number;      // min ms between comets for this slot
+  maxGap: number;      // max ms
+  scale: number;       // visual size multiplier (1 = normal, <1 = small)
 };
 
 const StarParticles = () => {
@@ -17,97 +29,102 @@ const StarParticles = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     let animationId: number;
     const stars: { x: number; y: number; r: number; opacity: number; speed: number; phase: number }[] = [];
 
-    let activeComet: Comet | null = null;
-    let nextCometAt = -1;
+    // ── Slots ────────────────────────────────────────────────────────────────
+    // Two "normal" lanes (existing sizes) + three "small" lanes.
+    const slots: Slot[] = [
+      { comet: null, nextAt: -1, minGap: 26000, maxGap: 40000, scale: 1.00 },
+      { comet: null, nextAt: -1, minGap: 32000, maxGap: 50000, scale: 0.90 },
+      { comet: null, nextAt: -1, minGap: 10000, maxGap: 18000, scale: 0.55 },
+      { comet: null, nextAt: -1, minGap:  8000, maxGap: 14000, scale: 0.42 },
+      { comet: null, nextAt: -1, minGap: 12000, maxGap: 20000, scale: 0.48 },
+    ];
 
-    const spawnComet = (now: number) => {
+    // Stagger first-spawn so they don't all appear at once
+    const FIRST_OFFSETS = [28000, 38000, 6000, 3000, 14000];
+
+    const spawnComet = (slot: Slot, now: number) => {
       let x: number, y: number;
       if (Math.random() < 0.5) {
-        // Top edge
         x = Math.random() * canvas.width * 0.85;
         y = -20;
       } else {
-        // Left edge, upper half
         x = -20;
         y = Math.random() * canvas.height * 0.55;
       }
 
-      const angleDeg = 28 + Math.random() * 28; // 28°–56° from horizontal
-      const angle = (Math.PI / 180) * angleDeg;
+      const angleDeg = 28 + Math.random() * 28;
+      const angle    = (Math.PI / 180) * angleDeg;
+      const s        = slot.scale;
 
-      activeComet = {
-        x,
-        y,
+      // Speed: smaller comets are slightly faster (feel nimbler)
+      const baseSpeed  = 0.2 + Math.random() * 0.10;
+      const speedBoost = (1 - s) * 0.08; // tiny ones up to +0.08 px/ms
+
+      slot.comet = {
+        x, y,
         dx: Math.cos(angle),
         dy: Math.sin(angle),
-        speed: 0.2 + Math.random() * 0.1,       // 200–300 px/s
-        tailLength: 80 + Math.random() * 60,     // 80–140 px tail
-        startTime: now,
-        duration: 1800 + Math.random() * 700,    // 1.8–2.5 s
+        speed:      baseSpeed + speedBoost,
+        tailLength: (80 + Math.random() * 60) * s,
+        lineWidth:  Math.max(0.45, 1.2 * s),
+        headRadius: Math.max(1.2, 4 * s),
+        maxAlpha:   0.50 * (0.55 + s * 0.45),   // smaller = slightly dimmer
+        startTime:  now,
+        duration:   1800 + Math.random() * 700,
       };
     };
 
-    const drawComet = (time: number) => {
-      if (!activeComet) return;
+    const drawComet = (comet: Comet, time: number) => {
+      const elapsed  = time - comet.startTime;
+      const progress = elapsed / comet.duration;
+      if (progress >= 1) return false; // signal removal
 
-      const elapsed = time - activeComet.startTime;
-      const progress = elapsed / activeComet.duration;
-
-      if (progress >= 1) {
-        activeComet = null;
-        nextCometAt = time + 25000 + Math.random() * 12000; // next: 25–37 s
-        return;
-      }
-
-      // Opacity envelope: fade in quickly, linger, fade out in last 30%
       const fadeIn  = Math.min(1, progress * 10);
       const fadeOut = progress > 0.70 ? Math.max(0, 1 - (progress - 0.70) / 0.30) : 1;
-      const alpha   = fadeIn * fadeOut * 0.50; // max ~50% → subtle
+      const alpha   = fadeIn * fadeOut * comet.maxAlpha;
 
-      const cx = activeComet.x + activeComet.dx * activeComet.speed * elapsed;
-      const cy = activeComet.y + activeComet.dy * activeComet.speed * elapsed;
-      const tailX = cx - activeComet.dx * activeComet.tailLength;
-      const tailY = cy - activeComet.dy * activeComet.tailLength;
+      const cx = comet.x + comet.dx * comet.speed * elapsed;
+      const cy = comet.y + comet.dy * comet.speed * elapsed;
+      const tx = cx - comet.dx * comet.tailLength;
+      const ty = cy - comet.dy * comet.tailLength;
 
       ctx.save();
 
-      // Tail — gradient from transparent (back) to bright (head)
-      const tailGrad = ctx.createLinearGradient(tailX, tailY, cx, cy);
-      tailGrad.addColorStop(0, `hsla(255, 70%, 88%, 0)`);
+      const tailGrad = ctx.createLinearGradient(tx, ty, cx, cy);
+      tailGrad.addColorStop(0,   `hsla(255, 70%, 88%, 0)`);
       tailGrad.addColorStop(0.6, `hsla(255, 70%, 88%, ${alpha * 0.4})`);
-      tailGrad.addColorStop(1, `hsla(255, 70%, 92%, ${alpha})`);
+      tailGrad.addColorStop(1,   `hsla(255, 70%, 92%, ${alpha})`);
 
       ctx.beginPath();
-      ctx.moveTo(tailX, tailY);
+      ctx.moveTo(tx, ty);
       ctx.lineTo(cx, cy);
       ctx.strokeStyle = tailGrad;
-      ctx.lineWidth = 1.2;
-      ctx.lineCap = "round";
+      ctx.lineWidth   = comet.lineWidth;
+      ctx.lineCap     = "round";
       ctx.stroke();
 
-      // Head glow — small radial gradient
-      const headGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 4);
+      const headGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, comet.headRadius);
       headGrad.addColorStop(0,   `hsla(270, 100%, 98%, ${alpha * 1.6})`);
-      headGrad.addColorStop(0.5, `hsla(260, 80%,  88%, ${alpha * 0.7})`);
-      headGrad.addColorStop(1,   `hsla(250, 60%,  75%, 0)`);
+      headGrad.addColorStop(0.5, `hsla(260,  80%, 88%, ${alpha * 0.7})`);
+      headGrad.addColorStop(1,   `hsla(250,  60%, 75%, 0)`);
 
       ctx.beginPath();
-      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.arc(cx, cy, comet.headRadius, 0, Math.PI * 2);
       ctx.fillStyle = headGrad;
       ctx.fill();
 
       ctx.restore();
+      return true; // still alive
     };
 
     const resize = () => {
-      canvas.width = window.innerWidth;
+      canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
     };
 
@@ -116,38 +133,50 @@ const StarParticles = () => {
       const count = Math.floor((canvas.width * canvas.height) / 8000);
       for (let i = 0; i < count; i++) {
         stars.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          r: Math.random() * 1.5 + 0.3,
+          x:       Math.random() * canvas.width,
+          y:       Math.random() * canvas.height,
+          r:       Math.random() * 1.5 + 0.3,
           opacity: Math.random() * 0.6 + 0.1,
-          speed: Math.random() * 0.3 + 0.05,
-          phase: Math.random() * Math.PI * 2,
+          speed:   Math.random() * 0.3 + 0.05,
+          phase:   Math.random() * Math.PI * 2,
         });
       }
     };
 
+    let initialized = false;
+
     const draw = (time: number) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Stars
       for (const star of stars) {
         const twinkle = Math.sin(time * 0.001 * star.speed + star.phase) * 0.3 + 0.7;
-        const alpha = star.opacity * twinkle;
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(260, 40%, 85%, ${alpha})`;
+        ctx.fillStyle = `hsla(260, 40%, 85%, ${star.opacity * twinkle})`;
         ctx.fill();
       }
 
-      // Initialize schedule on first frame
-      if (nextCometAt === -1) {
-        nextCometAt = time + 28000 + Math.random() * 8000; // first: 28–36 s
+      // Init slot timers on first frame
+      if (!initialized) {
+        slots.forEach((slot, i) => {
+          slot.nextAt = time + FIRST_OFFSETS[i] + Math.random() * 4000;
+        });
+        initialized = true;
       }
 
-      if (!activeComet && time >= nextCometAt) {
-        spawnComet(time);
+      // Update each slot
+      for (const slot of slots) {
+        if (slot.comet) {
+          const alive = drawComet(slot.comet, time);
+          if (!alive) {
+            slot.comet  = null;
+            slot.nextAt = time + slot.minGap + Math.random() * (slot.maxGap - slot.minGap);
+          }
+        } else if (time >= slot.nextAt) {
+          spawnComet(slot, time);
+        }
       }
-
-      drawComet(time);
 
       animationId = requestAnimationFrame(draw);
     };
@@ -156,10 +185,7 @@ const StarParticles = () => {
     initStars();
     animationId = requestAnimationFrame(draw);
 
-    const handleResize = () => {
-      resize();
-      initStars();
-    };
+    const handleResize = () => { resize(); initStars(); };
     window.addEventListener("resize", handleResize);
 
     return () => {

@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from "react";
-import { Task, TaskPriority, TaskStatus } from "@/types/task";
+import { Task, TaskPriority, TaskStatus, ChecklistItem } from "@/types/task";
 import { taskStorage } from "@/services/taskStorage";
 
 interface TaskContextValue {
   tasks: Task[];
-  addTask: (title: string, description: string, status?: TaskStatus, priority?: TaskPriority) => string;
-  updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority">>) => void;
+  addTask: (title: string, description: string, status?: TaskStatus, priority?: TaskPriority, estimatedHours?: number, estimatedMinutes?: number, startDate?: string, endDate?: string, checklist?: ChecklistItem[]) => string;
+  updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "endDate" | "checklist">>) => void;
   deleteTask: (id: string) => void;
+  deleteAllTasks: () => void;
   moveTask: (taskId: string, newStatus: TaskStatus, newOrder: number) => void;
   reorderTasks: (status: TaskStatus, orderedIds: string[]) => void;
   moveTaskBetweenColumns: (taskId: string, sourceStatus: TaskStatus, destStatus: TaskStatus, destIndex: number, sourceIds: string[], destIds: string[]) => void;
@@ -27,7 +28,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     taskStorage.saveTasks(tasks);
   }, [tasks]);
 
-  const addTask = useCallback((title: string, description: string, status: TaskStatus = "todo", priority?: TaskPriority) => {
+  const addTask = useCallback((title: string, description: string, status: TaskStatus = "todo", priority?: TaskPriority, estimatedHours?: number, estimatedMinutes?: number, startDate?: string, endDate?: string, checklist?: ChecklistItem[]) => {
     const now = new Date().toISOString();
     const newTask: Task = {
       id: crypto.randomUUID(),
@@ -38,6 +39,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       order: Date.now(),
       createdAt: now,
       updatedAt: now,
+      estimatedHours,
+      estimatedMinutes,
+      startDate,
+      endDate,
+      checklist,
     };
     setTasks((prev) => [...prev, newTask]);
     return newTask.id;
@@ -51,6 +57,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteTask = useCallback((id: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const deleteAllTasks = useCallback(() => {
+    setTasks([]);
   }, []);
 
   const moveTask = useCallback((taskId: string, newStatus: TaskStatus, newOrder: number) => {
@@ -109,7 +119,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <TaskContext.Provider value={{ tasks, addTask, updateTask, deleteTask, moveTask, reorderTasks, moveTaskBetweenColumns }}>
+    <TaskContext.Provider value={{ tasks, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns }}>
       {children}
     </TaskContext.Provider>
   );

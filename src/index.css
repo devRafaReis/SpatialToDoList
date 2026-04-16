@@ -1,8 +1,66 @@
+@font-face {
+  font-family: "StarJedi";
+  src: url("/fonts/star_jedi/starjedi/Starjedi.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  /* ── Light mode overrides ──────────────────────────────────────────────── */
+  :root.light {
+    --background: 220 20% 97%;
+    --foreground: 230 30% 12%;
+
+    --card: 220 20% 100%;
+    --card-foreground: 230 30% 12%;
+
+    --popover: 220 20% 100%;
+    --popover-foreground: 230 30% 12%;
+
+    --primary: 260 50% 50%;
+    --primary-foreground: 220 20% 98%;
+
+    --secondary: 220 15% 91%;
+    --secondary-foreground: 230 25% 20%;
+
+    --muted: 220 15% 93%;
+    --muted-foreground: 220 15% 40%;
+
+    --accent: 260 30% 88%;
+    --accent-foreground: 260 40% 25%;
+
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 15% 82%;
+    --input: 220 15% 82%;
+    --ring: 260 50% 50%;
+
+    --sidebar-background: 220 20% 95%;
+    --sidebar-foreground: 230 25% 15%;
+    --sidebar-primary: 260 50% 50%;
+    --sidebar-primary-foreground: 220 20% 98%;
+    --sidebar-accent: 260 20% 88%;
+    --sidebar-accent-foreground: 260 35% 25%;
+    --sidebar-border: 220 15% 80%;
+    --sidebar-ring: 260 50% 50%;
+
+    --glass-bg: 220 20% 97%;
+    --glass-border: 220 15% 75%;
+    --galaxy-glow: 260 40% 60%;
+  }
+
+  :root.light body {
+    background-image:
+      radial-gradient(ellipse at 20% 50%, hsl(260 60% 80% / 0.18) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, hsl(240 50% 85% / 0.14) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, hsl(300 40% 85% / 0.10) 0%, transparent 50%);
+  }
+
   :root {
     --background: 230 25% 9%;
     --foreground: 220 20% 90%;
@@ -65,11 +123,13 @@
 }
 
 @keyframes card-portal-out {
-  0%   { transform: scale(1)    rotate(0deg);   opacity: 1;   filter: blur(0)    hue-rotate(0deg)   brightness(1); }
-  25%  { transform: scale(0.88) rotate(6deg);   opacity: 0.9; filter: blur(1px)  hue-rotate(40deg)  brightness(1.1); }
-  55%  { transform: scale(0.46) rotate(16deg);  opacity: 0.6; filter: blur(3px)  hue-rotate(100deg) brightness(0.6); }
-  80%  { transform: scale(0.14) rotate(26deg);  opacity: 0.2; filter: blur(7px)  hue-rotate(160deg) brightness(0.2); }
-  100% { transform: scale(0)    rotate(32deg);  opacity: 0;   filter: blur(10px) hue-rotate(200deg) brightness(0); }
+  0%   { transform: scale(1)    rotate(0deg);   opacity: 1;    filter: blur(0)      hue-rotate(0deg)   brightness(1);    }
+  12%  { transform: scale(0.94) rotate(4deg);   opacity: 0.96; filter: blur(0.4px)  hue-rotate(22deg)  brightness(1.06); }
+  30%  { transform: scale(0.72) rotate(10deg);  opacity: 0.82; filter: blur(1.5px)  hue-rotate(60deg)  brightness(0.90); }
+  52%  { transform: scale(0.40) rotate(18deg);  opacity: 0.55; filter: blur(3.5px)  hue-rotate(110deg) brightness(0.55); }
+  72%  { transform: scale(0.14) rotate(26deg);  opacity: 0.22; filter: blur(6px)    hue-rotate(165deg) brightness(0.18); }
+  88%  { transform: scale(0.03) rotate(31deg);  opacity: 0.05; filter: blur(9px)    hue-rotate(195deg) brightness(0.04); }
+  100% { transform: scale(0)    rotate(34deg);  opacity: 0;    filter: blur(11px)   hue-rotate(210deg) brightness(0);    }
 }
 
 @keyframes card-portal-in {
@@ -87,6 +147,15 @@
   62%  { transform: scale(0.24); opacity: 0.4;  filter: blur(5px)  brightness(0.2); }
   80%  { transform: scale(0.06); opacity: 0.12; filter: blur(8px)  brightness(0.05); }
   100% { transform: scale(0);    opacity: 0;    filter: blur(12px) brightness(0); }
+}
+
+@keyframes board-suck-in {
+  0%   { transform: scale(1);    opacity: 1;    filter: blur(0px)  brightness(1); }
+  20%  { transform: scale(0.96); opacity: 1;    filter: blur(0px)  brightness(0.90); }
+  45%  { transform: scale(0.72); opacity: 0.75; filter: blur(3px)  brightness(0.55); }
+  70%  { transform: scale(0.35); opacity: 0.35; filter: blur(8px)  brightness(0.20); }
+  88%  { transform: scale(0.08); opacity: 0.08; filter: blur(14px) brightness(0.04); }
+  100% { transform: scale(0);    opacity: 0;    filter: blur(18px) brightness(0); }
 }
 
 @keyframes card-big-bang-in {
@@ -117,13 +186,19 @@
     transform-origin: center center;
   }
 
+  .board-suck-in {
+    animation: board-suck-in 1800ms cubic-bezier(0.4, 0, 1, 1) forwards;
+    pointer-events: none;
+    transform-origin: center center;
+  }
+
   .card-big-bang-in {
     animation: card-big-bang-in 850ms 210ms cubic-bezier(0.22, 1, 0.36, 1) both;
     transform-origin: center center;
   }
 
   .card-portal-out {
-    animation: card-portal-out 720ms ease-in forwards;
+    animation: card-portal-out 800ms cubic-bezier(0.22, 0, 0.58, 0) forwards;
     pointer-events: none;
     transform-origin: center center;
   }
@@ -133,9 +208,64 @@
     transform-origin: center center;
   }
 
+  .font-starwars {
+    font-family: "StarJedi", sans-serif;
+    letter-spacing: 0.06em;
+  }
+
   .glass-drag {
     background: hsl(var(--glass-bg) / 0.85);
     border: 1px solid hsl(var(--glass-border) / 0.4);
     box-shadow: 0 8px 32px hsl(var(--galaxy-glow) / 0.15);
   }
+
+  /* Custom scrollbar — galaxy theme */
+  .scrollbar-galaxy {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.35) transparent;
+  }
+  .scrollbar-galaxy::-webkit-scrollbar {
+    width: 5px;
+  }
+  .scrollbar-galaxy::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-galaxy::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.35);
+    border-radius: 9999px;
+  }
+  .scrollbar-galaxy::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.65);
+  }
+}
+
+/* Number input — hide native spinners (arrows) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+
+/* Global scrollbar — applies everywhere */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.25) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.25);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.55);
 }

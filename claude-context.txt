@@ -1,0 +1,954 @@
+## PROJECT CONTEXT
+
+### architecture.md
+
+# Architecture
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Runtime | Bun |
+| Framework | React 18 + TypeScript |
+| Build | Vite 5 + `@vitejs/plugin-react-swc` |
+| Styling | Tailwind CSS 3 + CSS variables (dark-only theme) |
+| UI components | shadcn/ui (`src/components/ui/`) via Radix UI primitives |
+| Drag-and-drop | `@hello-pangea/dnd` |
+| Routing | react-router-dom v6 |
+| State | React Context (`TaskProvider`) |
+| Persistence | `localStorage` (key: `kanban-tasks`) |
+| Testing | Vitest + jsdom + Testing Library |
+
+## Application Structure
+
+Single-page app with 2 routes:
+
+```
+/ → Index → TaskProvider → KanbanBoard
+* → NotFound
+```
+
+`App.tsx` mounts `QueryClientProvider` + `TooltipProvider` + toast providers globally. **Note:** `@tanstack/react-query` is installed but not used for task data; all data flows through React Context.
+
+## Data Flow
+
+```
+TaskProvider  (src/store/taskStore.tsx)
+  └── React Context: Task[] + CRUD handlers
+        └── useEffect syncs to localStorage on every state change
+              └── taskStorage (src/services/taskStorage.ts)
+                    └── localStorageService (current impl)
+                          └── JSON.parse / JSON.stringify under key "kanban-tasks"
+```
+
+Components read state via `useTaskContext()` → `useTasks()`:
+
+```
+useTasks()  (src/hooks/useTasks.ts)
+  ├── Calls useTaskContext() for raw tasks + actions
+  └── Returns tasksByStatus: Record<TaskStatus, Task[]>  (memoized, sorted by task.order)
+```
+
+## Component Tree
+
+```
+KanbanBoard
+  ├── StarParticles          (canvas — twinkling stars + periodic comet)
+  ├── NyanCatEasterEgg       (canvas — pixel-art Nyan Cat every 5 min)
+  ├── Header                 (title + "Nova Tarefa" button)
+  ├── DragDropContext        (@hello-pangea/dnd)
+  │     └── KanbanColumn ×4  (todo / doing / done / cancelled)
+  │           └── TaskCard   (Draggable — shows title, priority badge, description)
+  │                 ├── DragParticles      (canvas — active while card is dragged)
+  │                 ├── BigBangCanvas      (canvas — burst effect on new card creation)
+  │                 ├── BlackHoleCanvas    (canvas — black hole on delete)
+  │                 ├── PortalExitCanvas   (canvas — swirl on move-to-column)
+  │                 └── PortalEntryCanvas  (canvas — scatter on arrival)
+  └── TaskDialog             (create/edit modal — plain useState, NOT React Hook Form)
+```
+
+## Task Data Model
+
+```typescript
+interface Task {
+  id: string;          // crypto.randomUUID()
+  title: string;
+  description: string;
+  status: TaskStatus;  // "todo" | "doing" | "done" | "cancelled"
+  priority?: TaskPriority; // "low" | "medium" | "high" | "critical" — optional
+  order: number;       // Date.now() on creation; index after reorder
+  userId?: string;     // defined but never set — reserved for multi-user
+  createdAt: string;   // ISO timestamp
+  updatedAt: string;   // ISO timestamp
+}
+```
+
+## Drag-and-Drop Logic
+
+Handled entirely in `KanbanBoard.handleDragEnd`:
+
+- **Same column**: `reorderTasks(status, reorderedIds)` — splices id array, updates `order` as array index.
+- **Cross-column**: `moveTaskBetweenColumns(taskId, src, dest, destIndex, srcIds, destIds)` — updates moved task's `status` + `order`, and re-numbers both columns.
+
+## Theme
+
+Dark galaxy theme, CSS-variables-only (no light mode). Defined in `src/index.css`:
+- Background: `hsl(230 25% 9%)` with radial gradient nebula overlays
+- Primary: `hsl(260 50% 60%)` (violet-purple)
+- Custom utilities: `.glass`, `.glass-column`, `.glass-drag` (glassmorphism)
+- Card animation keyframes: `card-portal-out`, `card-portal-in`, `card-big-bang-in`, `card-suck-in`
+
+## File Map
+
+```
+src/
+  App.tsx                   — Router + providers root
+  main.tsx                  — ReactDOM.createRoot entry
+  index.css                 — Global styles, CSS vars, animation keyframes
+  types/task.ts             — Task, TaskStatus, TaskPriority, COLUMNS, PRIORITIES
+  store/taskStore.tsx       — Context, TaskProvider, CRUD operations
+  services/taskStorage.ts   — TaskStorageService interface + localStorageService
+  hooks/useTasks.ts         — Grouped/sorted tasks consumer hook
+  hooks/use-mobile.tsx      — Breakpoint hook (shadcn default)
+  hooks/use-toast.ts        — Toast hook (shadcn default)
+  lib/utils.ts              — cn() helper (clsx + tailwind-merge)
+  pages/Index.tsx           — Route component: wraps KanbanBoard in TaskProvider
+  pages/NotFound.tsx        — 404 page
+  components/
+    KanbanBoard.tsx         — Board orchestrator, drag-drop context, dialog state
+    KanbanColumn.tsx        — Droppable column wrapper
+    TaskCard.tsx            — Draggable card + all canvas effect sub-components
+    TaskDialog.tsx          — Create/edit modal (local state, no RHF)
+    Header.tsx              — App title + add-task button
+    StarParticles.tsx       — Full-screen background canvas (stars + comet)
+    NyanCatEasterEgg.tsx    — Full-screen overlay canvas (Nyan Cat easter egg)
+    CometTrail.tsx          — Cursor-following particle trail during drag (defined, unused)
+    NavLink.tsx             — Router NavLink wrapper (defined, currently unused)
+    ui/                     — shadcn/ui generated components (do not hand-edit)
+  test/
+    setup.ts                — window.matchMedia mock for jsdom
+    example.test.ts         — Placeholder test
+```
+
+---
+
+### bugs.md
+
+# Known Issues & Quirks
+
+## `CometTrail.tsx` — defined but never imported
+
+`src/components/CometTrail.tsx` implements a cursor-following particle trail intended for use during drag operations. It is not imported by any component. The drag visual effect currently used is `DragParticles` (a canvas mounted inside `TaskCard` while `snapshot.isDragging` is true).
+
+**Impact:** None — dead code only.  
+**Location:** [src/components/CometTrail.tsx](../src/components/CometTrail.tsx)
+
+---
+
+## `NavLink.tsx` — defined but never used
+
+`src/components/NavLink.tsx` wraps `react-router-dom`'s `NavLink` with an `activeClassName` API. There is currently no navigation UI in the app (single-page board only).
+
+**Impact:** None — dead code only.  
+**Location:** [src/components/NavLink.tsx](../src/components/NavLink.tsx)
+
+---
+
+## `updateTask` implementation doesn't enforce `priority` in its type
+
+The `TaskContextValue` interface includes `priority` in the `updateTask` signature, but the implementation's type annotation omits it. `priority` updates work at runtime via object spread, but static analysis won't catch invalid priority values passed to `updateTask`.
+
+**Impact:** Low — works correctly at runtime, but type-unsafe.  
+**Location:** [src/store/taskStore.tsx:46](../src/store/taskStore.tsx)
+
+---
+
+## `@tanstack/react-query` installed but unused for task data
+
+`QueryClient` is mounted in `App.tsx` but all task state goes through React Context and localStorage. If queries are added later, they will share this client.
+
+**Impact:** Adds ~50kB to bundle unnecessarily.  
+**Location:** [src/App.tsx:1](../src/App.tsx)
+
+---
+
+## `react-hook-form` installed but unused
+
+Listed as a production dependency. `TaskDialog` uses `useState` directly.
+
+**Impact:** Bundle weight only.
+
+---
+
+## Order field resets to small integers after any drag
+
+After the first drag-and-drop, all tasks in the affected columns have `order` values of 0, 1, 2 … Newly created tasks use `order = Date.now()` (~1.7 trillion), so they always sort after existing tasks. This is consistent but the mixed scale is non-obvious.
+
+**Impact:** Functionally harmless. Tasks remain correctly ordered.
+
+---
+
+## No tests beyond the placeholder
+
+`src/test/example.test.ts` contains only a `1 + 1 = 2` assertion. There are no component, hook, or integration tests.
+
+**Impact:** Regressions in task CRUD, drag-drop logic, or storage are undetected by CI.
+
+---
+
+### decisions.md
+
+# Design Decisions
+
+## Storage: localStorage with swap-ready interface
+
+`taskStorage.ts` exports a `TaskStorageService` interface and a `localStorageService` implementation. The active service is assigned to `taskStorage` as a single export.
+
+**To migrate to an API:** create `apiStorageService: TaskStorageService` and change the last line of `taskStorage.ts`. No other file needs to change.
+
+**Current behaviour:** every React state update triggers a `useEffect` that calls `taskStorage.saveTasks(tasks)`, serialising the full task array to JSON.
+
+---
+
+## State: React Context, not a global store library
+
+Task state lives in `TaskProvider` (React Context + `useState`). There is no Redux, Zustand, or Jotai. All mutations go through `useCallback`-wrapped handlers exposed via context.
+
+`@tanstack/react-query` is installed (scaffolding default) but is not used for task data.
+
+---
+
+## Order field strategy
+
+- **New task:** `order = Date.now()` — guarantees new tasks sort to the bottom of a column.
+- **After reorder / cross-column move:** `order` is reassigned as the array index (0, 1, 2 …).
+- Implication: after any drag, orders become small integers. New tasks created after a drag will have large `Date.now()` values, placing them at the bottom regardless of column size.
+
+---
+
+## `updateTask` type inconsistency
+
+The `TaskContextValue` interface declares:
+
+```typescript
+updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority">>) => void;
+```
+
+The implementation narrows to `title | description` only:
+
+```typescript
+const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "title" | "description">>) => { … })
+```
+
+`KanbanBoard` passes `priority` in the update object. This works at runtime (spread includes any key), but TypeScript does not enforce priority updates through the implementation signature. Strict mode is off, so no error is raised.
+
+---
+
+## TaskDialog: plain useState, not React Hook Form
+
+`react-hook-form` is listed as a dependency but `TaskDialog.tsx` manages form state with four `useState` calls. This is intentional simplicity for the current form complexity (2 inputs + 2 selects).
+
+---
+
+## Animation approach: per-card Canvas elements
+
+Rather than CSS-only animations, visual effects (black hole, portal, big bang, drag particles) are rendered on `<canvas>` elements mounted inside each `TaskCard`. Each canvas:
+- Mounts when its trigger condition becomes true
+- Runs its own `requestAnimationFrame` loop
+- Calls an `onComplete` callback (for delete/portal) to fire the actual state mutation after the animation finishes
+- Unmounts automatically via React state
+
+This defers the destructive state changes (delete, move) until the animation completes, keeping the card visible during the effect.
+
+---
+
+## UI language: Portuguese (pt-BR)
+
+All user-facing text (button labels, dialog titles, confirmation messages) is written in Brazilian Portuguese. Priority labels: Baixa / Média / Alta / Crítica.
+
+---
+
+## TypeScript: strict mode off
+
+`tsconfig.app.json` has `"strict": false` and `"noImplicitAny": false`. Type safety is present but not enforced comprehensively.
+
+---
+
+## shadcn/ui: do not hand-edit
+
+`src/components/ui/` is generated by `bunx shadcn@latest add <component>`. Edit via regeneration, not directly.
+
+---
+
+## `userId` field: placeholder for future multi-user
+
+`Task.userId?: string` is declared in the type and persisted in localStorage, but is never populated by any code path. Reserved for a future authenticated multi-user implementation.
+
+---
+
+### flows/api.md
+
+# API / Storage Flow
+
+## Current State: localStorage only
+
+There are **no HTTP requests** in this application. No `fetch`, `axios`, or `@tanstack/react-query` queries are made. All data is read from and written to `window.localStorage`.
+
+### Storage key
+
+```
+localStorage["kanban-tasks"]  →  JSON array of Task objects
+```
+
+### Read path
+
+```
+Component mount
+  → TaskProvider useState initialiser
+  → taskStorage.getTasks()
+  → localStorageService.getTasks()
+  → JSON.parse(localStorage.getItem("kanban-tasks")) ?? []
+  → Task[]
+```
+
+### Write path
+
+```
+Any CRUD action (add / update / delete / move / reorder)
+  → setTasks(newState)            — React state update
+  → useEffect([tasks])            — fires after every render with changed tasks
+  → taskStorage.saveTasks(tasks)
+  → localStorageService.saveTasks(tasks)
+  → localStorage.setItem("kanban-tasks", JSON.stringify(tasks))
+```
+
+Note: the entire task array is serialised and written on **every change**, regardless of which task changed.
+
+### Storage abstraction
+
+`src/services/taskStorage.ts` defines:
+
+```typescript
+export interface TaskStorageService {
+  getTasks(): Task[];
+  saveTasks(tasks: Task[]): void;
+}
+```
+
+The active implementation is exported as `taskStorage`. To swap to an API:
+
+1. Create `apiStorageService: TaskStorageService` that calls your backend.
+2. Change the last line of `taskStorage.ts`:
+   ```typescript
+   export const taskStorage: TaskStorageService = apiStorageService;
+   ```
+3. No other file needs modification.
+
+### Error handling
+
+`localStorageService.getTasks()` catches JSON parse errors and returns `[]`. `saveTasks` has no error handling — if `localStorage` is full or unavailable, the write silently fails.
+
+### @tanstack/react-query
+
+`QueryClient` is instantiated and provided in `App.tsx` but is not used for any data fetching. It is available for future use.
+
+---
+
+### flows/auth.md
+
+# Auth Flow
+
+## Current State: No Authentication
+
+This application has **no authentication system**. There is no login, session, token, or user identity mechanism of any kind.
+
+### What exists (placeholder only)
+
+The `Task` type includes an optional `userId` field:
+
+```typescript
+interface Task {
+  userId?: string;  // never populated — reserved for future multi-user support
+  …
+}
+```
+
+This field is declared, persisted to localStorage as part of the task object, and never read or written by any application code.
+
+### Data isolation
+
+All tasks belong to the device/browser. There is no concept of "current user". Any person with access to the browser's localStorage can read, modify, or delete all tasks.
+
+### Future migration path
+
+To add auth:
+1. Implement an auth provider (e.g. Supabase, Auth0, custom JWT).
+2. Populate `task.userId` on `addTask` with the authenticated user's ID.
+3. Filter `getTasks()` results in `taskStorage.ts` by `userId`.
+4. Swap `localStorageService` for an `apiStorageService` that calls an authenticated API (see `docs/flows/api.md`).
+
+No components or hooks need to change for steps 3–4 if the `TaskStorageService` interface is honoured.
+
+---
+
+## CODE MAP
+
+```json
+{
+  "generatedAt": "2026-04-16T22:34:49.281Z",
+  "totalFiles": 47,
+  "files": [
+    {
+      "path": "src/App.tsx",
+      "exports": [
+        "default:App"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 31
+    },
+    {
+      "path": "src/components/CometTrail.tsx",
+      "exports": [
+        "default:CometTrail"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 153
+    },
+    {
+      "path": "src/components/Header.tsx",
+      "exports": [
+        "default:Header"
+      ],
+      "hooks": [
+        "useSettings"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 29
+    },
+    {
+      "path": "src/components/KanbanBoard.tsx",
+      "exports": [
+        "default:KanbanBoard"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect",
+        "useTasks",
+        "useSettings",
+        "useState",
+        "useCallback"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 293
+    },
+    {
+      "path": "src/components/KanbanColumn.tsx",
+      "exports": [
+        "default:KanbanColumn"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 44
+    },
+    {
+      "path": "src/components/SettingsDialog.tsx",
+      "exports": [
+        "default:SettingsDialog"
+      ],
+      "hooks": [
+        "useSettings"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 74
+    },
+    {
+      "path": "src/components/StarParticles.tsx",
+      "exports": [
+        "default:StarParticles"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 207
+    },
+    {
+      "path": "src/components/StarWarsShip.tsx",
+      "exports": [
+        "default:StarWarsShip"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 190
+    },
+    {
+      "path": "src/components/TaskCard.tsx",
+      "exports": [
+        "default:TaskCard"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect",
+        "useSettings",
+        "useTaskContext",
+        "useState"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 1067
+    },
+    {
+      "path": "src/components/TaskDialog.tsx",
+      "exports": [
+        "default:TaskDialog"
+      ],
+      "hooks": [
+        "useState",
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 406
+    },
+    {
+      "path": "src/components/ui/alert-dialog.tsx",
+      "exports": [
+        "AlertDialog",
+        "AlertDialogPortal",
+        "AlertDialogOverlay",
+        "AlertDialogTrigger",
+        "AlertDialogContent",
+        "AlertDialogHeader",
+        "AlertDialogFooter",
+        "AlertDialogTitle",
+        "AlertDialogDescription",
+        "AlertDialogAction",
+        "AlertDialogCancel"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 105
+    },
+    {
+      "path": "src/components/ui/badge.tsx",
+      "exports": [
+        "Badge",
+        "badgeVariants"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 30
+    },
+    {
+      "path": "src/components/ui/button.tsx",
+      "exports": [
+        "Button",
+        "buttonVariants"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 48
+    },
+    {
+      "path": "src/components/ui/calendar.tsx",
+      "exports": [
+        "Calendar"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 55
+    },
+    {
+      "path": "src/components/ui/card.tsx",
+      "exports": [
+        "Card",
+        "CardHeader",
+        "CardFooter",
+        "CardTitle",
+        "CardDescription",
+        "CardContent"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 44
+    },
+    {
+      "path": "src/components/ui/checkbox.tsx",
+      "exports": [
+        "Checkbox"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 27
+    },
+    {
+      "path": "src/components/ui/dialog.tsx",
+      "exports": [
+        "Dialog",
+        "DialogPortal",
+        "DialogOverlay",
+        "DialogClose",
+        "DialogTrigger",
+        "DialogContent",
+        "DialogHeader",
+        "DialogFooter",
+        "DialogTitle",
+        "DialogDescription"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 96
+    },
+    {
+      "path": "src/components/ui/dropdown-menu.tsx",
+      "exports": [
+        "DropdownMenu",
+        "DropdownMenuTrigger",
+        "DropdownMenuContent",
+        "DropdownMenuItem",
+        "DropdownMenuCheckboxItem",
+        "DropdownMenuRadioItem",
+        "DropdownMenuLabel",
+        "DropdownMenuSeparator",
+        "DropdownMenuShortcut",
+        "DropdownMenuGroup",
+        "DropdownMenuPortal",
+        "DropdownMenuSub",
+        "DropdownMenuSubContent",
+        "DropdownMenuSubTrigger",
+        "DropdownMenuRadioGroup"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 180
+    },
+    {
+      "path": "src/components/ui/input.tsx",
+      "exports": [
+        "Input"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 23
+    },
+    {
+      "path": "src/components/ui/label.tsx",
+      "exports": [
+        "Label"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 18
+    },
+    {
+      "path": "src/components/ui/popover.tsx",
+      "exports": [
+        "Popover",
+        "PopoverTrigger",
+        "PopoverContent"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 30
+    },
+    {
+      "path": "src/components/ui/select.tsx",
+      "exports": [
+        "Select",
+        "SelectGroup",
+        "SelectValue",
+        "SelectTrigger",
+        "SelectContent",
+        "SelectLabel",
+        "SelectItem",
+        "SelectSeparator",
+        "SelectScrollUpButton",
+        "SelectScrollDownButton"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 144
+    },
+    {
+      "path": "src/components/ui/separator.tsx",
+      "exports": [
+        "Separator"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 21
+    },
+    {
+      "path": "src/components/ui/sheet.tsx",
+      "exports": [
+        "Sheet",
+        "SheetClose",
+        "SheetContent",
+        "SheetDescription",
+        "SheetFooter",
+        "SheetHeader",
+        "SheetOverlay",
+        "SheetPortal",
+        "SheetTitle",
+        "SheetTrigger"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 108
+    },
+    {
+      "path": "src/components/ui/skeleton.tsx",
+      "exports": [
+        "Skeleton"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 8
+    },
+    {
+      "path": "src/components/ui/sonner.tsx",
+      "exports": [
+        "Toaster",
+        "toast"
+      ],
+      "hooks": [
+        "useTheme"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 28
+    },
+    {
+      "path": "src/components/ui/switch.tsx",
+      "exports": [
+        "Switch"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 28
+    },
+    {
+      "path": "src/components/ui/textarea.tsx",
+      "exports": [
+        "Textarea"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 22
+    },
+    {
+      "path": "src/components/ui/toast.tsx",
+      "exports": [
+        "type",
+        "ToastProvider",
+        "ToastViewport",
+        "Toast",
+        "ToastTitle",
+        "ToastDescription",
+        "ToastClose",
+        "ToastAction"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 112
+    },
+    {
+      "path": "src/components/ui/toaster.tsx",
+      "exports": [
+        "Toaster"
+      ],
+      "hooks": [
+        "useToast"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 25
+    },
+    {
+      "path": "src/components/ui/toggle.tsx",
+      "exports": [
+        "Toggle",
+        "toggleVariants"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 38
+    },
+    {
+      "path": "src/components/ui/tooltip.tsx",
+      "exports": [
+        "Tooltip",
+        "TooltipTrigger",
+        "TooltipContent",
+        "TooltipProvider"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 29
+    },
+    {
+      "path": "src/components/ui/use-toast.ts",
+      "exports": [
+        "useToast",
+        "toast"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 4
+    },
+    {
+      "path": "src/hooks/use-mobile.tsx",
+      "exports": [
+        "useIsMobile"
+      ],
+      "hooks": [
+        "useIsMobile",
+        "useState",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 20
+    },
+    {
+      "path": "src/hooks/use-toast.ts",
+      "exports": [
+        "reducer",
+        "useToast",
+        "toast"
+      ],
+      "hooks": [
+        "useToast",
+        "useState",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 187
+    },
+    {
+      "path": "src/hooks/useTasks.ts",
+      "exports": [
+        "useTasks"
+      ],
+      "hooks": [
+        "useTaskContext",
+        "useMemo"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 17
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "exports": [
+        "cn"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 7
+    },
+    {
+      "path": "src/main.tsx",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 6
+    },
+    {
+      "path": "src/pages/Index.tsx",
+      "exports": [
+        "default:Index"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 13
+    },
+    {
+      "path": "src/pages/NotFound.tsx",
+      "exports": [
+        "default:NotFound"
+      ],
+      "hooks": [
+        "useLocation",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 25
+    },
+    {
+      "path": "src/services/taskStorage.ts",
+      "exports": [
+        "localStorageService",
+        "taskStorage"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 28
+    },
+    {
+      "path": "src/store/settingsStore.tsx",
+      "exports": [
+        "SettingsProvider",
+        "useSettings"
+      ],
+      "hooks": [
+        "useState",
+        "useEffect",
+        "useContext"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 56
+    },
+    {
+      "path": "src/store/taskStore.tsx",
+      "exports": [
+        "useTaskContext",
+        "TaskProvider"
+      ],
+      "hooks": [
+        "useContext",
+        "useState",
+        "useEffect",
+        "useCallback"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 127
+    },
+    {
+      "path": "src/test/example.test.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 8
+    },
+    {
+      "path": "src/test/setup.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 17
+    },
+    {
+      "path": "src/types/task.ts",
+      "exports": [
+        "PRIORITIES",
+        "COLUMNS"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 52
+    },
+    {
+      "path": "src/vite-env.d.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 2
+    }
+  ]
+}
+```

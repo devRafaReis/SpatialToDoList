@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { GripVertical, Pencil, Trash2, ArrowRight } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, COLUMNS, PRIORITIES } from "@/types/task";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Draggable } from "@hello-pangea/dnd";
 import {
   AlertDialog,
@@ -15,11 +17,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useSettings } from "@/store/settingsStore";
+import { useTaskContext } from "@/store/taskStore";
 
 // ---------------------------------------------------------------------------
 // Drag particles — tiny glowing dots rendered inside the card while dragging.
@@ -116,95 +128,155 @@ const PortalExitCanvas = ({ onComplete }: { onComplete: () => void }) => {
     const H = canvas.height;
     const cx = W / 2;
     const cy = H / 2;
-    const DURATION = 780;
+    const DURATION = 900;
 
     type Swirler = {
-      angle: number; radius: number;
-      spinSpeed: number; pullSpeed: number;
-      size: number; hue: number; alpha: number;
+      angle: number;
+      radius: number;
+      L: number;        // conserved angular momentum: L = r² * ω
+      pullBase: number; // base inward speed px/frame@60fps
+      size: number;
+      hue: number;
+      alpha: number;
     };
 
-    const swirlers: Swirler[] = Array.from({ length: 28 }, (_, i) => ({
-      angle: (i / 28) * Math.PI * 2 + Math.random() * 0.4,
-      radius: 28 + Math.random() * 55,
-      spinSpeed: 0.038 + Math.random() * 0.035,
-      pullSpeed: 0.55 + Math.random() * 0.6,
-      size: 0.9 + Math.random() * 2.2,
-      hue: 168 + Math.floor(Math.random() * 80), // teal → cyan → blue
-      alpha: 0.6 + Math.random() * 0.4,
-    }));
+    const swirlers: Swirler[] = [];
+    let nextSpawn = 0;
+
+    const spawnSwirler = (radiusOverride?: number) => {
+      const r = radiusOverride ?? (42 + Math.random() * 58);
+      const omega0 = 0.036 + Math.random() * 0.032;
+      swirlers.push({
+        angle:    Math.random() * Math.PI * 2,
+        radius:   r,
+        L:        r * r * omega0,
+        pullBase: 0.38 + Math.random() * 0.52,
+        size:     0.8 + Math.random() * 2.3,
+        hue:      168 + Math.floor(Math.random() * 82),
+        alpha:    0.55 + Math.random() * 0.42,
+      });
+    };
+
+    // Initial batch spread across radii so canvas is full from frame 1
+    for (let i = 0; i < 24; i++) spawnSwirler(8 + Math.random() * 92);
 
     const start = performance.now();
+    let prev = start;
     let animId: number;
+
+    // endFade window: canvas fades to transparent between p=0.65 and p=0.88.
+    // onComplete fires as soon as endFade hits 0, deferred one RAF so the
+    // React state update doesn't stutter inside an active animation frame.
+    const FADE_START = 0.65;
+    const FADE_END   = 0.88;
 
     const draw = (now: number) => {
       const elapsed = now - start;
+      const dt      = Math.min(now - prev, 32);
+      prev = now;
       const p = Math.min(1, elapsed / DURATION);
+
+      // Global transparency envelope — everything rendered this frame is
+      // multiplied by endFade, guaranteeing the last visible frame is clear.
+      const endFade = p >= FADE_END
+        ? 0
+        : p > FADE_START
+          ? 1 - (p - FADE_START) / (FADE_END - FADE_START)
+          : 1;
+
       ctx.clearRect(0, 0, W, H);
 
-      // Portal disc glow — peaks early then fades
-      const discA = p < 0.35 ? p / 0.35 : 1 - (p - 0.35) / 0.65;
-      const discR = 10 + (1 - p) * 52;
-      const disc = ctx.createRadialGradient(cx, cy, 0, cx, cy, discR * 2.2);
-      disc.addColorStop(0,    `hsla(185, 100%, 80%, ${discA * 0.9})`);
-      disc.addColorStop(0.30, `hsla(195, 90%, 65%, ${discA * 0.55})`);
-      disc.addColorStop(0.65, `hsla(220, 80%, 55%, ${discA * 0.22})`);
-      disc.addColorStop(1,    `hsla(240, 70%, 45%, 0)`);
-      ctx.beginPath();
-      ctx.arc(cx, cy, discR * 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = disc;
-      ctx.fill();
+      // Stop spawning at FADE_START so no new particle outlives the fade
+      if (p < FADE_START && elapsed > nextSpawn) {
+        const count = p < 0.25 ? 3 : 2;
+        for (let i = 0; i < count; i++) spawnSwirler();
+        nextSpawn = elapsed + 50;
+      }
 
-      // Spinning outer ring
-      const ringR = discR * 1.35;
-      ctx.beginPath();
-      ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
-      ctx.strokeStyle = `hsla(185, 100%, 78%, ${discA * 0.85})`;
-      ctx.lineWidth = 1.6 * (1 - p * 0.5);
-      ctx.stroke();
+      // Inward pull accelerates over time
+      const accel = 1 + p * p * 6;
 
-      // Spiral particles converging to center
-      for (const s of swirlers) {
-        s.angle += s.spinSpeed;
-        s.radius -= s.pullSpeed;
-        if (s.radius < 1) continue;
+      // ── Swirlers ─────────────────────────────────────────────────────────
+      for (let i = swirlers.length - 1; i >= 0; i--) {
+        const s = swirlers[i];
+
+        s.radius -= s.pullBase * accel * (dt / 16);
+        if (s.radius < 1.5) { swirlers.splice(i, 1); continue; }
+
+        // ω = L / r² — angular momentum conservation
+        s.angle += (s.L / (s.radius * s.radius)) * (dt / 16);
+
         const px = cx + Math.cos(s.angle) * s.radius;
-        const py = cy + Math.sin(s.angle) * s.radius * 0.48;
-        const a = s.alpha * (1 - p * 0.7) * (s.radius / 80);
-        const size = Math.max(0.1, s.size * (s.radius / 80));
+        const py = cy + Math.sin(s.angle) * s.radius * 0.44;
 
-        const glow = ctx.createRadialGradient(px, py, 0, px, py, size * 4);
-        glow.addColorStop(0, `hsla(${s.hue}, 100%, 88%, ${a * 0.7})`);
-        glow.addColorStop(1, `hsla(${s.hue}, 90%, 65%, 0)`);
+        const centerFade = Math.min(1, (s.radius - 1.5) / 16);
+        const a = s.alpha * centerFade * endFade;
+        if (a < 0.01) continue;
+
+        const sz = Math.max(0.1, s.size * (0.32 + s.radius / 105));
+        ctx.shadowBlur  = sz * 7;
+        ctx.shadowColor = `hsla(${s.hue}, 100%, 82%, ${a * 0.72})`;
         ctx.beginPath();
-        ctx.arc(px, py, size * 4, 0, Math.PI * 2);
-        ctx.fillStyle = glow;
+        ctx.arc(px, py, sz, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${s.hue}, 95%, 90%, ${a})`;
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+
+      // ── Vortex core ───────────────────────────────────────────────────────
+      // Peaks at p=0.5, fades naturally before FADE_END
+      const coreEnv = Math.sin(Math.min(p, FADE_START) / FADE_START * Math.PI) * endFade;
+      if (coreEnv > 0.03) {
+        const coreR = 3 + coreEnv * 15;
+        const grad  = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 2.5);
+        grad.addColorStop(0,    `hsla(185, 100%, 92%, ${coreEnv * 0.88})`);
+        grad.addColorStop(0.30, `hsla(200, 95%,  72%, ${coreEnv * 0.50})`);
+        grad.addColorStop(0.65, `hsla(220, 85%,  58%, ${coreEnv * 0.18})`);
+        grad.addColorStop(1,    `hsla(240, 75%,  45%, 0)`);
+        ctx.beginPath();
+        ctx.arc(cx, cy, coreR * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
         ctx.fill();
 
         ctx.beginPath();
-        ctx.arc(px, py, size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${s.hue}, 95%, 92%, ${a})`;
-        ctx.fill();
+        ctx.arc(cx, cy, coreR * 1.55, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(185, 100%, 82%, ${coreEnv * 0.75})`;
+        ctx.lineWidth   = 1.4 * endFade;
+        ctx.stroke();
       }
 
-      // Final flash when portal closes
-      if (p > 0.85) {
-        const flashA = (p - 0.85) / 0.15;
-        const fg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 22);
-        fg.addColorStop(0,   `rgba(160, 255, 255, ${flashA * 0.9})`);
-        fg.addColorStop(0.4, `rgba(60, 180, 220, ${flashA * 0.5})`);
-        fg.addColorStop(1,   `rgba(20, 80, 160, 0)`);
-        ctx.beginPath();
-        ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-        ctx.fillStyle = fg;
-        ctx.fill();
+      // ── Collapse flash ────────────────────────────────────────────────────
+      // Peaks at p≈0.72 (mid-way through fade window) and is gone by FADE_END
+      const FLASH_START = FADE_START - 0.02; // 0.63
+      const FLASH_END   = FADE_END   - 0.02; // 0.86
+      if (p > FLASH_START && p < FLASH_END) {
+        const t      = (p - FLASH_START) / (FLASH_END - FLASH_START);
+        const flashA = Math.sin(t * Math.PI) * 0.88 * endFade;
+        if (flashA > 0.01) {
+          const flashR = 16 - t * 3;
+          const fg     = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(1, flashR));
+          fg.addColorStop(0,    `rgba(190, 255, 255, ${flashA})`);
+          fg.addColorStop(0.45, `rgba(90,  190, 235, ${flashA * 0.50})`);
+          fg.addColorStop(1,    `rgba(30,  90,  175, 0)`);
+          ctx.beginPath();
+          ctx.arc(cx, cy, Math.max(1, flashR * 1.8), 0, Math.PI * 2);
+          ctx.fillStyle = fg;
+          ctx.fill();
+        }
       }
 
-      if (p >= 1) {
-        if (!calledRef.current) { calledRef.current = true; onCompleteRef.current(); }
-      } else {
-        animId = requestAnimationFrame(draw);
+      // ── Completion ────────────────────────────────────────────────────────
+      // Fire as soon as the canvas is visually empty (endFade=0), not at DURATION.
+      // Defer via RAF so the React state update lands in a fresh frame — no stutter.
+      if (endFade <= 0 || p >= 1) {
+        if (!calledRef.current) {
+          calledRef.current = true;
+          requestAnimationFrame(() => onCompleteRef.current());
+        }
+        return;
       }
+
+      animId = requestAnimationFrame(draw);
     };
 
     animId = requestAnimationFrame(draw);
@@ -615,13 +687,27 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: TaskCardProps) => {
+  const { animationsEnabled } = useSettings();
+  const { updateTask } = useTaskContext();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTeleporting, setIsTeleporting] = useState(false);
   const [teleportDest, setTeleportDest] = useState<TaskStatus | null>(null);
   const otherColumns = COLUMNS.filter((col) => col.id !== task.status);
 
+  const toggleChecklistItem = (itemId: string) => {
+    const updated = (task.checklist ?? []).map((i) =>
+      i.id === itemId ? { ...i, done: !i.done } : i
+    );
+    updateTask(task.id, { checklist: updated });
+  };
+
   const handleMoveClick = (destStatus: TaskStatus) => {
+    if (!animationsEnabled) {
+      onMove(task.id, destStatus);
+      return;
+    }
     setTeleportDest(destStatus);
     setIsTeleporting(true);
   };
@@ -632,6 +718,10 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
 
   const handleConfirmDelete = () => {
     setDeleteOpen(false);
+    if (!animationsEnabled) {
+      onDelete(task.id);
+      return;
+    }
     setIsDeleting(true);
   };
 
@@ -645,24 +735,24 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
             {...provided.draggableProps}
             className={`relative mb-2 ${isDeleting || isTeleporting ? "z-50" : ""}`}
           >
-            {isPortalIn && <PortalEntryCanvas />}
-            {isNew && <BigBangCanvas />}
-            {isDeleting && (
+            {isPortalIn && animationsEnabled && <PortalEntryCanvas />}
+            {isNew && animationsEnabled && <BigBangCanvas />}
+            {isDeleting && animationsEnabled && (
               <BlackHoleCanvas onComplete={() => onDelete(task.id)} />
             )}
-            {isTeleporting && (
+            {isTeleporting && animationsEnabled && (
               <PortalExitCanvas onComplete={handlePortalExitComplete} />
             )}
 
             <Card
               className={`border-0 relative overflow-hidden ${
-                isDeleting
+                isDeleting && animationsEnabled
                   ? "card-suck-in"
-                  : isTeleporting
+                  : isTeleporting && animationsEnabled
                   ? "card-portal-out"
-                  : isPortalIn
+                  : isPortalIn && animationsEnabled
                   ? "card-portal-in"
-                  : isNew
+                  : isNew && animationsEnabled
                   ? "card-big-bang-in"
                   : `transition-all duration-200 ${
                       snapshot.isDragging
@@ -674,13 +764,22 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                 boxShadow: "0 0 0 2px hsla(265,60%,72%,0.5), 0 0 18px hsla(265,85%,75%,0.65), 0 0 45px hsla(265,80%,65%,0.3)"
               } : undefined}
             >
-              {snapshot.isDragging && <DragParticles />}
+              {snapshot.isDragging && animationsEnabled && <DragParticles />}
               <CardContent className="flex items-start gap-2 p-3">
                 <div {...provided.dragHandleProps} className="mt-1 cursor-grab text-accent-foreground/70">
                   <GripVertical className="h-4 w-4" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-foreground truncate">{task.title}</p>
+                <div className="flex-1 min-w-0 h-[88px] overflow-hidden">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className={`font-medium text-sm text-foreground leading-snug cursor-default ${
+                        task.description || (task.checklist && task.checklist.length > 0) ? "line-clamp-1" : "line-clamp-2"
+                      }`}>{task.title}</p>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
+                      {task.title}
+                    </TooltipContent>
+                  </Tooltip>
                   {task.priority && (() => {
                     const p = PRIORITIES.find((pr) => pr.id === task.priority);
                     return p ? (
@@ -691,16 +790,66 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                     ) : null;
                   })()}
                   {task.description && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1 cursor-default">{task.description}</p>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
+                        {task.description.length > 180
+                          ? <>{task.description.slice(0, 180)}… <span className="text-muted-foreground/60 italic">Open card to read more.</span></>
+                          : task.description}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {task.checklist && task.checklist.length > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="mt-1 flex items-center gap-1.5 cursor-default">
+                          <ListChecks className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">
+                            {task.checklist.filter((i) => i.done).length}/{task.checklist.length}
+                          </span>
+                          <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary/70 transition-all duration-300"
+                              style={{ width: `${(task.checklist.filter((i) => i.done).length / task.checklist.length) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-64">
+                        <ul className="space-y-1">
+                          {task.checklist.map((item) => (
+                            <li key={item.id} className={`flex items-center gap-1.5 text-xs ${item.done ? "line-through text-muted-foreground/70" : ""}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${item.done ? "bg-primary/50" : "bg-primary"}`} />
+                              {item.text}
+                            </li>
+                          ))}
+                        </ul>
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary">
-                        <ArrowRight className="h-3.5 w-3.5" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => setViewOpen(true)}>
+                        <Eye className="h-3.5 w-3.5" />
                       </Button>
-                    </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>View</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary">
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Move</TooltipContent>
+                    </Tooltip>
                     <DropdownMenuContent align="end">
                       {otherColumns.map((col) => (
                         <DropdownMenuItem key={col.id} onClick={() => handleMoveClick(col.id)}>
@@ -709,35 +858,207 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => onEdit(task)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-300" onClick={() => setDeleteOpen(true)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => onEdit(task)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Edit</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-300" onClick={() => setDeleteOpen(true)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete</TooltipContent>
+                  </Tooltip>
                 </div>
               </CardContent>
+
+              {/* Planning footer — always rendered for uniform card height */}
+              {(() => {
+                const hasTime    = task.estimatedHours != null || task.estimatedMinutes != null;
+                const hasDate    = !!(task.startDate || task.endDate);
+                const hasPlanning = hasTime || hasDate;
+                const footer = (
+                  <div className={`flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-1.5 min-h-[27px] cursor-default ${hasPlanning ? "border-t border-border/20" : ""}`}>
+                    {hasTime && (
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Clock className="h-2.5 w-2.5 shrink-0" />
+                        {task.estimatedHours ? `${task.estimatedHours}h` : ""}
+                        {task.estimatedMinutes ? ` ${task.estimatedMinutes}m` : ""}
+                      </span>
+                    )}
+                    {hasDate && (
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <CalendarRange className="h-2.5 w-2.5 shrink-0" />
+                        {task.startDate ? format(parseISO(task.startDate), "MMM d") : "—"}
+                        {" → "}
+                        {task.endDate ? format(parseISO(task.endDate), "MMM d") : "—"}
+                      </span>
+                    )}
+                  </div>
+                );
+                if (!hasPlanning) return footer;
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>{footer}</TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs space-y-1">
+                      {hasTime && (
+                        <p className="flex items-center gap-1.5">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          {[task.estimatedHours && `${task.estimatedHours}h`, task.estimatedMinutes && `${task.estimatedMinutes}m`].filter(Boolean).join(" ")}
+                          <span className="text-muted-foreground/70">estimated</span>
+                        </p>
+                      )}
+                      {hasDate && (
+                        <p className="flex items-center gap-1.5">
+                          <CalendarRange className="h-3 w-3 shrink-0" />
+                          {task.startDate ? format(parseISO(task.startDate), "MMM d, yyyy") : "—"}
+                          {" → "}
+                          {task.endDate ? format(parseISO(task.endDate), "MMM d, yyyy") : "—"}
+                        </p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })()}
+
             </Card>
           </div>
         )}
       </Draggable>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95vw] max-w-[95vw] sm:max-w-lg rounded-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir tarefa</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir "{task.title}"? Esta ação não pode ser desfeita.
+            <AlertDialogTitle>Delete task</AlertDialogTitle>
+            <AlertDialogDescription className="break-all">
+              Are you sure you want to delete "{task.title}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-lg md:max-w-xl rounded-lg flex flex-col" style={{ height: "min(90dvh, 520px)" }}>
+          <DialogHeader className="space-y-2 shrink-0">
+            <DialogTitle className="text-base leading-snug break-all pr-6">
+              {task.title}
+            </DialogTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              {(() => {
+                const col = COLUMNS.find((c) => c.id === task.status);
+                return col ? (
+                  <span className="inline-flex w-fit items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                    {col.title}
+                  </span>
+                ) : null;
+              })()}
+              {task.priority && (() => {
+                const p = PRIORITIES.find((pr) => pr.id === task.priority);
+                return p ? (
+                  <span className={`inline-flex w-fit items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${p.badgeClass}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${p.dotClass}`} />
+                    {p.label}
+                  </span>
+                ) : null;
+              })()}
+            </div>
+          </DialogHeader>
+          <DialogDescription asChild>
+            <div className="scrollbar-galaxy mt-1 space-y-3 overflow-y-auto overflow-x-hidden pr-1 flex-1 min-h-0">
+              {/* Description */}
+              <div className="overflow-x-hidden rounded-md">
+                {task.description ? (
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all leading-relaxed">
+                    {task.description}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground/50 italic">No description.</p>
+                )}
+              </div>
+
+              {/* Planning section — always visible below description */}
+              {(task.estimatedHours != null || task.estimatedMinutes != null || task.startDate || task.endDate) && (
+                <div className="space-y-2 rounded-md border border-border/40 bg-muted/20 p-3">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <CalendarRange className="h-3.5 w-3.5" />
+                    Planning
+                  </p>
+                  {(task.estimatedHours != null || task.estimatedMinutes != null) && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="text-foreground">
+                        {[
+                          task.estimatedHours ? `${task.estimatedHours}h` : null,
+                          task.estimatedMinutes ? `${task.estimatedMinutes}m` : null,
+                        ].filter(Boolean).join(" ")}
+                      </span>
+                      <span className="text-muted-foreground text-xs">estimated</span>
+                    </div>
+                  )}
+                  {(task.startDate || task.endDate) && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <CalendarRange className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="text-foreground">
+                        {task.startDate ? format(parseISO(task.startDate), "MMM d, yyyy") : "—"}
+                        {" → "}
+                        {task.endDate ? format(parseISO(task.endDate), "MMM d, yyyy") : "—"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Checklist section */}
+              {task.checklist && task.checklist.length > 0 && (
+                <div className="space-y-2 rounded-md border border-border/40 bg-muted/20 p-3">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <ListChecks className="h-3.5 w-3.5" />
+                    Checklist
+                    <span className="ml-auto text-[10px]">
+                      {task.checklist.filter((i) => i.done).length}/{task.checklist.length}
+                    </span>
+                  </p>
+                  <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary/70 transition-all duration-300"
+                      style={{ width: `${(task.checklist.filter((i) => i.done).length / task.checklist.length) * 100}%` }}
+                    />
+                  </div>
+                  <ul className="space-y-2 pt-0.5">
+                    {task.checklist.map((item) => (
+                      <li key={item.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`view-cl-${item.id}`}
+                          checked={item.done}
+                          onCheckedChange={() => toggleChecklistItem(item.id)}
+                          className="shrink-0"
+                        />
+                        <label
+                          htmlFor={`view-cl-${item.id}`}
+                          className={`flex-1 min-w-0 cursor-pointer break-words text-sm ${item.done ? "line-through text-muted-foreground/50" : "text-foreground"}`}
+                        >
+                          {item.text}
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

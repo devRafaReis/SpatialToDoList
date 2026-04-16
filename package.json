@@ -11,7 +11,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "index": "bun run scripts/indexer.ts",
+    "context": "bun run scripts/context-builder.ts",
+    "prepare-context": "bun run index && bun run context"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
