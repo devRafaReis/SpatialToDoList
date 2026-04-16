@@ -6,7 +6,7 @@ import KanbanColumn from "@/components/KanbanColumn";
 import TaskDialog from "@/components/TaskDialog";
 import Header from "@/components/Header";
 import StarParticles from "@/components/StarParticles";
-import StarWarsShip from "@/components/StarWarsShip";
+import SpaceEasterEggs from "@/components/SpaceEasterEggs";
 import { useSettings } from "@/store/settingsStore";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -221,7 +221,7 @@ const KanbanBoard = () => {
   return (
     <div className="relative flex min-h-screen flex-col">
       {animationsEnabled && <StarParticles />}
-      {animationsEnabled && <StarWarsShip />}
+      {animationsEnabled && <SpaceEasterEggs />}
       {isDeletingAll && animationsEnabled && (
         <BoardBlackHoleCanvas onComplete={() => { deleteAllTasks(); setIsDeletingAll(false); }} />
       )}
