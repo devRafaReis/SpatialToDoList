@@ -833,7 +833,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                 <div className="flex gap-1 shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => setViewOpen(true)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => setViewOpen(true)} aria-label="View">
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
@@ -843,7 +843,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" aria-label="Move">
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -860,7 +860,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                   </DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => onEdit(task)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => onEdit(task)} aria-label="Edit">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
@@ -868,7 +868,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-300" onClick={() => setDeleteOpen(true)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-300" onClick={() => setDeleteOpen(true)} aria-label="Delete">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
@@ -949,7 +949,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
       </AlertDialog>
 
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-lg md:max-w-xl rounded-lg flex flex-col" style={{ height: "min(90dvh, 520px)" }}>
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-lg md:max-w-xl rounded-lg flex flex-col" style={{ maxHeight: "min(90dvh, 520px)" }}>
           <DialogHeader className="space-y-2 shrink-0">
             <DialogTitle className="text-base leading-snug break-all pr-6">
               {task.title}

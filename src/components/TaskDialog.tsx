@@ -124,7 +124,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSave }: TaskDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-xl md:max-w-2xl rounded-lg flex flex-col" style={{ height: "min(90dvh, 580px)" }}>
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-xl md:max-w-2xl rounded-lg flex flex-col" style={{ maxHeight: "min(90dvh, 580px)" }}>
         <DialogHeader className="shrink-0">
           <DialogTitle>{isEditing ? "Edit Task" : "New Task"}</DialogTitle>
           <DialogDescription>
@@ -132,9 +132,9 @@ const TaskDialog = ({ open, onOpenChange, task, onSave }: TaskDialogProps) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="scrollbar-galaxy flex flex-col gap-3 overflow-y-auto p-[5px] flex-1 min-h-0">
+        <div className="scrollbar-galaxy flex flex-col gap-3 overflow-y-auto p-[5px] flex-1 min-h-0 overscroll-contain touch-pan-y scroll-smooth" style={{ scrollPaddingBottom: "12px", WebkitOverflowScrolling: "touch" }}>
           {/* Title */}
-          <div className="space-y-1">
+          <div className="space-y-1 scroll-mt-2">
             <Input
               placeholder="Task title"
               value={title}
@@ -152,7 +152,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSave }: TaskDialogProps) => {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={2000}
-            className="resize-none min-h-[160px]"
+            className="resize-none min-h-[80px] sm:min-h-[160px] scroll-mt-2"
           />
 
           {/* Column (create only) */}
@@ -389,12 +389,12 @@ const TaskDialog = ({ open, onOpenChange, task, onSave }: TaskDialogProps) => {
           </div>
         </div>
 
-        <DialogFooter className="shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+        <DialogFooter className="shrink-0 flex flex-col gap-2 sm:flex-row sm:gap-2">
           <Button onClick={handleSave} disabled={!title.trim()}>
             {isEditing ? "Save" : "Create"}
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
           </Button>
         </DialogFooter>
       </DialogContent>
