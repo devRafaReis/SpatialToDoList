@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { Task, TaskStatus, COLUMNS, PRIORITIES } from "@/types/task";
+import { Task, TaskStatus, PRIORITIES } from "@/types/task";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -688,13 +688,13 @@ interface TaskCardProps {
 
 const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: TaskCardProps) => {
   const { animationsEnabled } = useSettings();
-  const { updateTask } = useTaskContext();
+  const { updateTask, boards } = useTaskContext();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTeleporting, setIsTeleporting] = useState(false);
   const [teleportDest, setTeleportDest] = useState<TaskStatus | null>(null);
-  const otherColumns = COLUMNS.filter((col) => col.id !== task.status);
+  const otherColumns = boards.filter((col) => col.id !== task.status);
 
   const toggleChecklistItem = (itemId: string) => {
     const updated = (task.checklist ?? []).map((i) =>
@@ -956,7 +956,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
             </DialogTitle>
             <div className="flex flex-wrap items-center gap-2">
               {(() => {
-                const col = COLUMNS.find((c) => c.id === task.status);
+                const col = boards.find((c) => c.id === task.status);
                 return col ? (
                   <span className="inline-flex w-fit items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
                     {col.title}

@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Clock, CalendarRange, CalendarIcon, Plus, Trash2, ListChecks, ChevronDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { Task, TaskStatus, TaskPriority, ChecklistItem, COLUMNS, PRIORITIES } from "@/types/task";
+import { Task, TaskStatus, TaskPriority, ChecklistItem, PRIORITIES } from "@/types/task";
+import { useTaskContext } from "@/store/taskStore";
 import {
   Dialog,
   DialogContent,
@@ -42,9 +43,10 @@ interface TaskDialogProps {
 }
 
 const TaskDialog = ({ open, onOpenChange, task, onSave }: TaskDialogProps) => {
+  const { boards } = useTaskContext();
   const [title, setTitle]                       = useState("");
   const [description, setDescription]           = useState("");
-  const [status, setStatus]                     = useState<TaskStatus>("todo");
+  const [status, setStatus]                     = useState<TaskStatus>("");
   const [priority, setPriority]                 = useState<TaskPriority | undefined>(undefined);
   const [estimatedHours, setEstimatedHours]     = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState("");
@@ -76,7 +78,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSave }: TaskDialogProps) => {
     if (!open) return;
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
-    setStatus(task?.status ?? "todo");
+    setStatus(task?.status ?? boards[0]?.id ?? "");
     setPriority(task?.priority ?? undefined);
     setEstimatedHours(task?.estimatedHours?.toString() ?? "");
     setEstimatedMinutes(task?.estimatedMinutes?.toString() ?? "");
@@ -162,7 +164,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSave }: TaskDialogProps) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {COLUMNS.map((col) => (
+                {boards.map((col) => (
                   <SelectItem key={col.id} value={col.id}>
                     {col.title}
                   </SelectItem>

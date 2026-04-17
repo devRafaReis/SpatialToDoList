@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { Task, TaskStatus, ChecklistItem, COLUMNS } from "@/types/task";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { Task, TaskStatus, ChecklistItem } from "@/types/task";
 import { useTasks } from "@/hooks/useTasks";
 import KanbanColumn from "@/components/KanbanColumn";
 import TaskDialog from "@/components/TaskDialog";
@@ -8,8 +8,9 @@ import Header from "@/components/Header";
 import StarParticles from "@/components/StarParticles";
 import SpaceEasterEggs from "@/components/SpaceEasterEggs";
 import { useSettings } from "@/store/settingsStore";
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -150,17 +151,27 @@ const BoardBlackHoleCanvas = ({ onComplete }: { onComplete: () => void }) => {
 };
 
 const KanbanBoard = () => {
-  const { tasksByStatus, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns } = useTasks();
-  const { animationsEnabled } = useSettings();
+  const { tasksByStatus, boards, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards } = useTasks();
+  const { animationsEnabled, boardLayout } = useSettings();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
   const [teleportedTaskId, setTeleportedTaskId] = useState<string | null>(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [addingBoard, setAddingBoard] = useState(false);
+  const [newBoardTitle, setNewBoardTitle] = useState("");
   const newTaskTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const totalTasks = Object.values(tasksByStatus).reduce((sum, arr) => sum + arr.length, 0);
+
+  const handleAddBoard = () => {
+    const trimmed = newBoardTitle.trim();
+    if (!trimmed) return;
+    addBoard(trimmed);
+    setNewBoardTitle("");
+    setAddingBoard(false);
+  };
 
   const handleConfirmDeleteAll = () => {
     setDeleteAllOpen(false);
@@ -170,9 +181,17 @@ const KanbanBoard = () => {
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {
-      const { source, destination, draggableId } = result;
+      const { source, destination, draggableId, type } = result;
       if (!destination) return;
       if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+
+      if (type === "BOARD") {
+        const orderedIds = boards.map((b) => b.id);
+        orderedIds.splice(source.index, 1);
+        orderedIds.splice(destination.index, 0, draggableId);
+        reorderBoards(orderedIds);
+        return;
+      }
 
       const destStatus   = destination.droppableId as TaskStatus;
       const sourceStatus = source.droppableId as TaskStatus;
@@ -191,7 +210,7 @@ const KanbanBoard = () => {
         moveTaskBetweenColumns(draggableId, sourceStatus, destStatus, destination.index, sourceIds, destIds);
       }
     },
-    [tasksByStatus, reorderTasks, moveTaskBetweenColumns]
+    [boards, tasksByStatus, reorderTasks, moveTaskBetweenColumns, reorderBoards]
   );
 
   const handleAddTask = () => {
@@ -229,26 +248,76 @@ const KanbanBoard = () => {
         <Header onAddTask={handleAddTask} />
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className={isDeletingAll && animationsEnabled ? "board-suck-in" : ""}>
-            <div className="mx-auto w-full max-w-screen-2xl grid auto-rows-min grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 xl:p-6">
-              {COLUMNS.map((col) => (
-                <KanbanColumn
-                  key={col.id}
-                  column={col}
-                  tasks={tasksByStatus[col.id]}
-                  onEditTask={handleEditTask}
-                  onDeleteTask={deleteTask}
-                  onMoveTask={(id, status) => {
-                    moveTask(id, status, Date.now());
-                    setTeleportedTaskId(id);
-                    setTimeout(() => setTeleportedTaskId(null), 1200);
-                  }}
-                  newTaskId={newTaskId}
-                  teleportedTaskId={teleportedTaskId}
-                />
-              ))}
-            </div>
-            {totalTasks > 0 && (
-              <div className="mx-auto w-full max-w-screen-2xl px-4 pb-4 xl:px-6 xl:pb-6 flex justify-end">
+            <Droppable droppableId="board-list" type="BOARD" direction="vertical">
+              {(boardProvided) => (
+                <div
+                  ref={boardProvided.innerRef}
+                  {...boardProvided.droppableProps}
+                  className={`mx-auto w-full max-w-screen-2xl gap-4 p-4 xl:p-6 ${
+                    boardLayout === "horizontal"
+                      ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                      : "flex flex-col"
+                  }`}
+                >
+                  {boards.map((board, boardIndex) => (
+                    <Draggable key={board.id} draggableId={board.id} index={boardIndex}>
+                      {(boardDrag) => (
+                        <div
+                          ref={boardDrag.innerRef}
+                          {...boardDrag.draggableProps}
+                        >
+                          <KanbanColumn
+                            column={board}
+                            tasks={tasksByStatus[board.id] ?? []}
+                            dragHandleProps={boardDrag.dragHandleProps}
+                            onEditTask={handleEditTask}
+                            onDeleteTask={deleteTask}
+                            onMoveTask={(id, status) => {
+                              moveTask(id, status, Date.now());
+                              setTeleportedTaskId(id);
+                              setTimeout(() => setTeleportedTaskId(null), 1200);
+                            }}
+                            onRenameBoard={(title) => renameBoard(board.id, title)}
+                            onDeleteBoard={() => deleteBoard(board.id)}
+                            newTaskId={newTaskId}
+                            teleportedTaskId={teleportedTaskId}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {boardProvided.placeholder}
+                </div>
+              )}
+            </Droppable>
+
+            <div className="mx-auto w-full max-w-screen-2xl px-4 pb-4 xl:px-6 xl:pb-6 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                {addingBoard ? (
+                  <>
+                    <Input
+                      autoFocus
+                      placeholder="Board name…"
+                      value={newBoardTitle}
+                      onChange={(e) => setNewBoardTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAddBoard();
+                        if (e.key === "Escape") { setAddingBoard(false); setNewBoardTitle(""); }
+                      }}
+                      maxLength={40}
+                      className="h-8 w-48 text-sm"
+                    />
+                    <Button size="sm" onClick={handleAddBoard} disabled={!newBoardTitle.trim()} className="h-8">Add</Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setAddingBoard(false); setNewBoardTitle(""); }} className="h-8">Cancel</Button>
+                  </>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={() => setAddingBoard(true)} className="gap-1.5 text-muted-foreground/70 text-xs">
+                    <Plus className="h-3.5 w-3.5" />
+                    Add board
+                  </Button>
+                )}
+              </div>
+              {totalTasks > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -259,8 +328,8 @@ const KanbanBoard = () => {
                   <Trash2 className="h-3.5 w-3.5" />
                   Delete all tasks
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </DragDropContext>
         <TaskDialog open={dialogOpen} onOpenChange={setDialogOpen} task={editingTask} onSave={handleSave} />

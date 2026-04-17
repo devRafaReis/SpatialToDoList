@@ -1,4 +1,4 @@
-import { Settings } from "lucide-react";
+import { LayoutList, LayoutPanelTop, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useSettings } from "@/store/settingsStore";
 
 const SettingsDialog = () => {
-  const { animationsEnabled, lightMode, setAnimationsEnabled, setLightMode } = useSettings();
+  const { animationsEnabled, lightMode, boardLayout, setAnimationsEnabled, setLightMode, setBoardLayout } = useSettings();
 
   return (
     <Dialog>
@@ -47,6 +47,45 @@ const SettingsDialog = () => {
               onCheckedChange={setAnimationsEnabled}
               disabled={lightMode}
             />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <Label className="text-sm font-medium">Board layout</Label>
+              <span className="text-xs text-muted-foreground">
+                {boardLayout === "horizontal" ? "Swimlane — tasks flow horizontally." : "Columns — tasks stack vertically."}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 rounded-md border border-border/40 p-0.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-7 ${boardLayout === "vertical" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                    onClick={() => setBoardLayout("vertical")}
+                    aria-label="Vertical columns"
+                  >
+                    <LayoutList className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Vertical columns</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-7 ${boardLayout === "horizontal" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                    onClick={() => setBoardLayout("horizontal")}
+                    aria-label="Horizontal swimlane"
+                  >
+                    <LayoutPanelTop className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Horizontal swimlane</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-4">

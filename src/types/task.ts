@@ -1,4 +1,4 @@
-export type TaskStatus = "todo" | "doing" | "done" | "cancelled";
+export type TaskStatus = string;
 
 export type TaskPriority = "low" | "medium" | "high" | "critical";
 
@@ -20,8 +20,8 @@ export interface Task {
   updatedAt: string;
   estimatedHours?: number;
   estimatedMinutes?: number;
-  startDate?: string;   // "YYYY-MM-DD"
-  endDate?: string;     // "YYYY-MM-DD"
+  startDate?: string;
+  endDate?: string;
   checklist?: ChecklistItem[];
 }
 
@@ -40,12 +40,12 @@ export const PRIORITIES: Priority[] = [
 ];
 
 export interface Column {
-  id: TaskStatus;
+  id: string;
   title: string;
 }
 
-export const COLUMNS: Column[] = [
-  { id: "todo", title: "To Do" },
+export const DEFAULT_COLUMNS: Column[] = [
+  { id: "todo",  title: "To Do" },
   { id: "doing", title: "Doing" },
-  { id: "done", title: "Done" },
+  { id: "done",  title: "Done" },
 ];
