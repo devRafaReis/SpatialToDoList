@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from "react";
-import { Task, TaskPriority, TaskStatus, ChecklistItem, Column } from "@/types/task";
+import { Task, TaskPriority, TaskStatus, ChecklistItem, Column, DEFAULT_COLUMNS } from "@/types/task";
 import { taskStorage } from "@/services/taskStorage";
 
 interface TaskContextValue {
@@ -16,6 +16,7 @@ interface TaskContextValue {
   deleteBoard: (id: string) => void;
   renameBoard: (id: string, title: string) => void;
   reorderBoards: (orderedIds: string[]) => void;
+  resetAll: () => void;
 }
 
 const TaskContext = createContext<TaskContextValue | null>(null);
@@ -107,12 +108,17 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBoards((prev) => orderedIds.map((id) => prev.find((b) => b.id === id)!).filter(Boolean));
   }, []);
 
+  const resetAll = useCallback(() => {
+    setBoards(DEFAULT_COLUMNS);
+    setTasks([]);
+  }, []);
+
   return (
     <TaskContext.Provider value={{
       tasks, boards,
       addTask, updateTask, deleteTask, deleteAllTasks,
       moveTask, reorderTasks, moveTaskBetweenColumns,
-      addBoard, deleteBoard, renameBoard, reorderBoards,
+      addBoard, deleteBoard, renameBoard, reorderBoards, resetAll,
     }}>
       {children}
     </TaskContext.Provider>

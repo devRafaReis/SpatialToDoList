@@ -29,6 +29,7 @@ interface TaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   task?: Task | null;
+  defaultStatus?: string;
   onSave: (
     title: string,
     description: string,
@@ -42,7 +43,7 @@ interface TaskDialogProps {
   ) => void;
 }
 
-const TaskDialog = ({ open, onOpenChange, task, onSave }: TaskDialogProps) => {
+const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDialogProps) => {
   const { boards } = useTaskContext();
   const [title, setTitle]                       = useState("");
   const [description, setDescription]           = useState("");
@@ -78,7 +79,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSave }: TaskDialogProps) => {
     if (!open) return;
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
-    setStatus(task?.status ?? boards[0]?.id ?? "");
+    setStatus(task?.status ?? defaultStatus ?? boards[0]?.id ?? "");
     setPriority(task?.priority ?? undefined);
     setEstimatedHours(task?.estimatedHours?.toString() ?? "");
     setEstimatedMinutes(task?.estimatedMinutes?.toString() ?? "");

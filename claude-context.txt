@@ -395,8 +395,8 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
 
 ```json
 {
-  "generatedAt": "2026-04-16T22:34:49.281Z",
-  "totalFiles": 47,
+  "generatedAt": "2026-04-17T02:48:21.421Z",
+  "totalFiles": 48,
   "files": [
     {
       "path": "src/App.tsx",
@@ -444,16 +444,21 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 293
+      "linesOfCode": 517
     },
     {
       "path": "src/components/KanbanColumn.tsx",
       "exports": [
         "default:KanbanColumn"
       ],
-      "hooks": [],
+      "hooks": [
+        "useSettings",
+        "useState",
+        "useRef",
+        "useEffect"
+      ],
       "apiCalls": [],
-      "linesOfCode": 44
+      "linesOfCode": 226
     },
     {
       "path": "src/components/SettingsDialog.tsx",
@@ -464,7 +469,19 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useSettings"
       ],
       "apiCalls": [],
-      "linesOfCode": 74
+      "linesOfCode": 113
+    },
+    {
+      "path": "src/components/SpaceEasterEggs.tsx",
+      "exports": [
+        "default:SpaceEasterEggs"
+      ],
+      "hooks": [
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 464
     },
     {
       "path": "src/components/StarParticles.tsx",
@@ -511,12 +528,13 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "default:TaskDialog"
       ],
       "hooks": [
+        "useTaskContext",
         "useState",
         "useRef",
         "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 406
+      "linesOfCode": 408
     },
     {
       "path": "src/components/ui/alert-dialog.tsx",
@@ -790,7 +808,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 29
+      "linesOfCode": 34
     },
     {
       "path": "src/components/ui/use-toast.ts",
@@ -840,7 +858,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useMemo"
       ],
       "apiCalls": [],
-      "linesOfCode": 17
+      "linesOfCode": 23
     },
     {
       "path": "src/lib/utils.ts",
@@ -887,7 +905,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 28
+      "linesOfCode": 39
     },
     {
       "path": "src/store/settingsStore.tsx",
@@ -901,7 +919,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 56
+      "linesOfCode": 70
     },
     {
       "path": "src/store/taskStore.tsx",
@@ -936,7 +954,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       "path": "src/types/task.ts",
       "exports": [
         "PRIORITIES",
-        "COLUMNS"
+        "DEFAULT_COLUMNS"
       ],
       "hooks": [],
       "apiCalls": [],

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Droppable, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import { useSettings } from "@/store/settingsStore";
-import { ChevronDown, GripVertical, Pencil, Trash2, Check, X } from "lucide-react";
+import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X } from "lucide-react";
 import { Task, TaskStatus, Column } from "@/types/task";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription,
@@ -19,6 +20,7 @@ interface KanbanColumnProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
   onMoveTask: (id: string, status: TaskStatus) => void;
+  onAddTask: () => void;
   onRenameBoard: (title: string) => void;
   onDeleteBoard: () => void;
   newTaskId?: string | null;
@@ -28,7 +30,7 @@ interface KanbanColumnProps {
 const KanbanColumn = ({
   column, tasks, dragHandleProps,
   onEditTask, onDeleteTask, onMoveTask,
-  onRenameBoard, onDeleteBoard,
+  onAddTask, onRenameBoard, onDeleteBoard,
   newTaskId, teleportedTaskId,
 }: KanbanColumnProps) => {
   const { boardLayout } = useSettings();
@@ -106,31 +108,62 @@ const KanbanColumn = ({
           <Badge variant="secondary" className="text-xs shrink-0">{tasks.length}</Badge>
 
           {!isRenaming && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost" size="icon"
+                  className="h-6 w-6 text-muted-foreground/50 hover:text-primary shrink-0"
+                  onClick={onAddTask}
+                  aria-label="Add task"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add task</TooltipContent>
+            </Tooltip>
+          )}
+
+          {!isRenaming && (
             <div className="flex items-center gap-0.5 shrink-0">
-              <Button
-                variant="ghost" size="icon"
-                className="h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground"
-                onClick={() => setCollapsed((c) => !c)}
-                aria-label={collapsed ? "Expand board" : "Collapse board"}
-              >
-                <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`} />
-              </Button>
-              <Button
-                variant="ghost" size="icon"
-                className="h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground"
-                onClick={() => setIsRenaming(true)}
-                aria-label="Rename board"
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost" size="icon"
-                className="h-6 w-6 text-muted-foreground/50 hover:text-red-400"
-                onClick={() => setDeleteOpen(true)}
-                aria-label="Delete board"
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground"
+                    onClick={() => setCollapsed((c) => !c)}
+                    aria-label={collapsed ? "Expand board" : "Collapse board"}
+                  >
+                    <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{collapsed ? "Expand" : "Collapse"}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground"
+                    onClick={() => setIsRenaming(true)}
+                    aria-label="Rename board"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Rename</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-6 w-6 text-muted-foreground/50 hover:text-red-400"
+                    onClick={() => setDeleteOpen(true)}
+                    aria-label="Delete board"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete board</TooltipContent>
+              </Tooltip>
             </div>
           )}
         </div>

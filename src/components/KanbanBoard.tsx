@@ -8,7 +8,7 @@ import Header from "@/components/Header";
 import StarParticles from "@/components/StarParticles";
 import SpaceEasterEggs from "@/components/SpaceEasterEggs";
 import { useSettings } from "@/store/settingsStore";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -150,15 +150,193 @@ const BoardBlackHoleCanvas = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
+const BoardBigBangCanvas = ({ onComplete }: { onComplete: () => void }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const calledRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const cx = W / 2;
+    const cy = H / 2;
+    const DURATION = 1600;
+    const DECAY = 2.5;
+
+    const particles = Array.from({ length: 140 }, () => ({
+      angle: Math.random() * Math.PI * 2,
+      speed: 200 + Math.random() * 700,
+      endP: 0.38 + Math.random() * 0.62,
+      size: 1.5 + Math.random() * 4,
+      hue: 215 + Math.floor(Math.random() * 115),
+    }));
+
+    const start = performance.now();
+    let animId: number;
+
+    const draw = (now: number) => {
+      const elapsed = Math.max(0, now - start);
+      const p = Math.min(1, elapsed / DURATION);
+      ctx.shadowBlur = 0;
+      ctx.clearRect(0, 0, W, H);
+
+      // Central flash
+      if (p < 0.16) {
+        const t = p / 0.16;
+        const flashA = 1 - t;
+        const flashR = Math.max(1, 20 + t * Math.max(W, H) * 0.65);
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, flashR);
+        g.addColorStop(0,    `rgba(255,255,255,${flashA})`);
+        g.addColorStop(0.10, `rgba(220,180,255,${flashA * 0.95})`);
+        g.addColorStop(0.42, `rgba(130,60,220,${flashA * 0.55})`);
+        g.addColorStop(1,    `rgba(70,20,160,0)`);
+        ctx.beginPath();
+        ctx.arc(cx, cy, flashR, 0, Math.PI * 2);
+        ctx.fillStyle = g;
+        ctx.fill();
+      }
+
+      // Expanding shockwave rings
+      for (let ri = 0; ri < 3; ri++) {
+        const rp = p - ri * 0.07;
+        if (rp > 0 && rp < 0.82) {
+          const t = rp / 0.82;
+          const ringR = t * Math.max(W, H) * 0.78;
+          const ringA = (1 - t) * [0.80, 0.50, 0.28][ri];
+          ctx.beginPath();
+          ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+          ctx.strokeStyle = `hsla(275,100%,85%,${ringA})`;
+          ctx.lineWidth = (3.5 - ri * 0.9) * (1 - t * 0.7);
+          ctx.stroke();
+        }
+      }
+
+      // Burst particles
+      const elapsedSec = elapsed / 1000;
+      for (const pt of particles) {
+        const localP = p / pt.endP;
+        if (localP <= 0 || localP >= 1) continue;
+        const dist = (pt.speed / DECAY) * (1 - Math.exp(-DECAY * elapsedSec));
+        const x = cx + Math.cos(pt.angle) * dist;
+        const y = cy + Math.sin(pt.angle) * dist;
+        const a = Math.max(0, 1 - localP);
+        const sz = Math.max(0.1, pt.size * (1 - localP * 0.4));
+        ctx.shadowBlur = sz * 9;
+        ctx.shadowColor = `hsla(${pt.hue},90%,78%,${a * 0.75})`;
+        ctx.beginPath();
+        ctx.arc(x, y, sz, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${pt.hue},95%,92%,${a})`;
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+
+      if (p >= 1) {
+        if (!calledRef.current) {
+          calledRef.current = true;
+          requestAnimationFrame(() => onCompleteRef.current());
+        }
+      } else {
+        animId = requestAnimationFrame(draw);
+      }
+    };
+
+    animId = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={window.innerWidth}
+      height={window.innerHeight}
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0"
+      style={{ zIndex: 100 }}
+    />
+  );
+};
+
+const BoardDragParticles = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const parent = canvas.parentElement;
+    const w = parent?.clientWidth  ?? 600;
+    const h = parent?.clientHeight ?? 120;
+    canvas.width  = w;
+    canvas.height = h;
+
+    type P = { x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; hue: number };
+    const parts: P[] = [];
+    let id: number;
+
+    const tick = () => {
+      ctx.clearRect(0, 0, w, h);
+
+      if (Math.random() < 0.85) {
+        parts.push({
+          x:       8 + Math.random() * (w - 16),
+          y:       8 + Math.random() * (h - 16),
+          vx:      (Math.random() - 0.5) * 0.5,
+          vy:      -(0.3 + Math.random() * 0.7),
+          life:    22 + Math.random() * 28,
+          maxLife: 50,
+          size:    0.7 + Math.random() * 1.6,
+          hue:     265 + Math.floor(Math.random() * 55),
+        });
+      }
+
+      for (const p of parts) {
+        p.x += p.vx; p.y += p.vy; p.life--;
+        const a = p.life / p.maxLife;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(0.1, p.size * a), 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 95%, 88%, ${a * 0.85})`;
+        ctx.fill();
+      }
+
+      let i = parts.length;
+      while (i--) { if (parts[i].life <= 0) parts.splice(i, 1); }
+
+      id = requestAnimationFrame(tick);
+    };
+
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 rounded-lg"
+    />
+  );
+};
+
 const KanbanBoard = () => {
-  const { tasksByStatus, boards, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards } = useTasks();
-  const { animationsEnabled, boardLayout } = useSettings();
+  const { tasksByStatus, boards, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll } = useTasks();
+  const { animationsEnabled, boardLayout, setBoardLayout } = useSettings();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [defaultTaskStatus, setDefaultTaskStatus] = useState<string | undefined>(undefined);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
   const [teleportedTaskId, setTeleportedTaskId] = useState<string | null>(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [addingBoard, setAddingBoard] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState("");
   const newTaskTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -177,6 +355,12 @@ const KanbanBoard = () => {
     setDeleteAllOpen(false);
     if (!animationsEnabled) { deleteAllTasks(); return; }
     setIsDeletingAll(true);
+  };
+
+  const handleConfirmReset = () => {
+    setResetOpen(false);
+    if (!animationsEnabled) { resetAll(); setBoardLayout("horizontal"); return; }
+    setIsResetting(true);
   };
 
   const handleDragEnd = useCallback(
@@ -213,8 +397,9 @@ const KanbanBoard = () => {
     [boards, tasksByStatus, reorderTasks, moveTaskBetweenColumns, reorderBoards]
   );
 
-  const handleAddTask = () => {
+  const handleAddTask = (status?: string) => {
     setEditingTask(null);
+    setDefaultTaskStatus(status);
     setDialogOpen(true);
   };
 
@@ -244,28 +429,45 @@ const KanbanBoard = () => {
       {isDeletingAll && animationsEnabled && (
         <BoardBlackHoleCanvas onComplete={() => { deleteAllTasks(); setIsDeletingAll(false); }} />
       )}
+      {isResetting && animationsEnabled && (
+        <BoardBigBangCanvas onComplete={() => { resetAll(); setBoardLayout("horizontal"); setIsResetting(false); }} />
+      )}
       <div className="relative z-10 flex flex-1 flex-col">
         <Header onAddTask={handleAddTask} />
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className={isDeletingAll && animationsEnabled ? "board-suck-in" : ""}>
-            <Droppable droppableId="board-list" type="BOARD" direction="vertical">
+            <Droppable
+              droppableId="board-list"
+              type="BOARD"
+              direction={boardLayout === "horizontal" ? "horizontal" : "vertical"}
+            >
               {(boardProvided) => (
                 <div
                   ref={boardProvided.innerRef}
                   {...boardProvided.droppableProps}
                   className={`mx-auto w-full max-w-screen-2xl gap-4 p-4 xl:p-6 ${
                     boardLayout === "horizontal"
-                      ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                      ? "flex flex-row overflow-x-auto"
                       : "flex flex-col"
                   }`}
                 >
                   {boards.map((board, boardIndex) => (
                     <Draggable key={board.id} draggableId={board.id} index={boardIndex}>
-                      {(boardDrag) => (
+                      {(boardDrag, boardSnap) => (
                         <div
                           ref={boardDrag.innerRef}
                           {...boardDrag.draggableProps}
+                          className={`relative ${boardLayout === "horizontal" ? "flex-1 min-w-72 max-w-[calc(33.333%-11px)]" : ""}`}
+                          style={{
+                            ...boardDrag.draggableProps.style,
+                            ...(boardSnap.isDragging ? {
+                              boxShadow: "0 0 0 2px hsla(265,60%,72%,0.5), 0 0 24px hsla(265,85%,75%,0.55), 0 0 60px hsla(265,80%,65%,0.25)",
+                              borderRadius: "0.5rem",
+                              opacity: 0.95,
+                            } : {}),
+                          }}
                         >
+                          {boardSnap.isDragging && animationsEnabled && <BoardDragParticles />}
                           <KanbanColumn
                             column={board}
                             tasks={tasksByStatus[board.id] ?? []}
@@ -277,6 +479,7 @@ const KanbanBoard = () => {
                               setTeleportedTaskId(id);
                               setTimeout(() => setTeleportedTaskId(null), 1200);
                             }}
+                            onAddTask={() => handleAddTask(board.id)}
                             onRenameBoard={(title) => renameBoard(board.id, title)}
                             onDeleteBoard={() => deleteBoard(board.id)}
                             newTaskId={newTaskId}
@@ -317,22 +520,34 @@ const KanbanBoard = () => {
                   </Button>
                 )}
               </div>
-              {totalTasks > 0 && (
+              <div className="flex items-center gap-2">
+                {totalTasks > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground/60 hover:text-red-400 hover:bg-red-400/10 gap-1.5 text-xs"
+                    onClick={() => setDeleteAllOpen(true)}
+                    disabled={isDeletingAll || isResetting}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete all tasks
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-muted-foreground/60 hover:text-red-400 hover:bg-red-400/10 gap-1.5 text-xs"
-                  onClick={() => setDeleteAllOpen(true)}
-                  disabled={isDeletingAll}
+                  className="text-muted-foreground/60 hover:text-amber-400 hover:bg-amber-400/10 gap-1.5 text-xs"
+                  onClick={() => setResetOpen(true)}
+                  disabled={isDeletingAll || isResetting}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete all tasks
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset to default
                 </Button>
-              )}
+              </div>
             </div>
           </div>
         </DragDropContext>
-        <TaskDialog open={dialogOpen} onOpenChange={setDialogOpen} task={editingTask} onSave={handleSave} />
+        <TaskDialog open={dialogOpen} onOpenChange={setDialogOpen} task={editingTask} defaultStatus={defaultTaskStatus} onSave={handleSave} />
       </div>
 
       <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
@@ -350,6 +565,26 @@ const KanbanBoard = () => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete all
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+        <AlertDialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md rounded-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to default?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will restore the 3 default boards (To Do, Doing, Done), delete all custom boards, and remove all tasks. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmReset}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Reset
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
