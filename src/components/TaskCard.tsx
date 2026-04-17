@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { createPortal, flushSync } from "react-dom";
 import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, PRIORITIES } from "@/types/task";
@@ -128,7 +129,7 @@ const PortalExitCanvas = ({ onComplete }: { onComplete: () => void }) => {
     const H = canvas.height;
     const cx = W / 2;
     const cy = H / 2;
-    const DURATION = 900;
+    const DURATION = 650;
 
     type Swirler = {
       angle: number;
@@ -267,11 +268,12 @@ const PortalExitCanvas = ({ onComplete }: { onComplete: () => void }) => {
 
       // ── Completion ────────────────────────────────────────────────────────
       // Fire as soon as the canvas is visually empty (endFade=0), not at DURATION.
-      // Defer via RAF so the React state update lands in a fresh frame — no stutter.
+      // Call directly (no RAF wrapper) — the caller uses flushSync so React commits
+      // the dest card in the same frame, eliminating the blank-frame gap.
       if (endFade <= 0 || p >= 1) {
         if (!calledRef.current) {
           calledRef.current = true;
-          requestAnimationFrame(() => onCompleteRef.current());
+          onCompleteRef.current();
         }
         return;
       }
@@ -289,8 +291,7 @@ const PortalExitCanvas = ({ onComplete }: { onComplete: () => void }) => {
       width={300}
       height={220}
       aria-hidden="true"
-      className="pointer-events-none absolute"
-      style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 20 }}
+      className="pointer-events-none block"
     />
   );
 };
@@ -311,7 +312,7 @@ const PortalEntryCanvas = () => {
     const H = canvas.height;
     const cx = W / 2;
     const cy = H / 2;
-    const DURATION = 700;
+    const DURATION = 520;
 
     type Scatterer = {
       angle: number; radius: number;
@@ -393,8 +394,7 @@ const PortalEntryCanvas = () => {
       width={380}
       height={220}
       aria-hidden="true"
-      className="pointer-events-none absolute"
-      style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 30 }}
+      className="pointer-events-none block"
     />
   );
 };
@@ -694,7 +694,25 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTeleporting, setIsTeleporting] = useState(false);
   const [teleportDest, setTeleportDest] = useState<TaskStatus | null>(null);
+  const [exitPos, setExitPos] = useState<{ x: number; y: number } | null>(null);
+  const [entryPos, setEntryPos] = useState<{ x: number; y: number } | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const otherColumns = boards.filter((col) => col.id !== task.status);
+
+  const getCardCenter = () => {
+    const el = cardRef.current;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  };
+
+  // Capture position when card first appears as portal destination or new task
+  useLayoutEffect(() => {
+    if ((isPortalIn || isNew) && animationsEnabled) {
+      setEntryPos(getCardCenter());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPortalIn, isNew]);
 
   const toggleChecklistItem = (itemId: string) => {
     const updated = (task.checklist ?? []).map((i) =>
@@ -708,12 +726,13 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
       onMove(task.id, destStatus);
       return;
     }
+    setExitPos(getCardCenter());
     setTeleportDest(destStatus);
     setIsTeleporting(true);
   };
 
   const handlePortalExitComplete = () => {
-    if (teleportDest) onMove(task.id, teleportDest);
+    if (teleportDest) flushSync(() => onMove(task.id, teleportDest));
   };
 
   const handleConfirmDelete = () => {
@@ -722,6 +741,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
       onDelete(task.id);
       return;
     }
+    setExitPos(getCardCenter());
     setIsDeleting(true);
   };
 
@@ -735,13 +755,30 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
             {...provided.draggableProps}
             className={`relative mb-2 ${isDeleting || isTeleporting ? "z-50" : ""}`}
           >
-            {isPortalIn && animationsEnabled && <PortalEntryCanvas />}
-            {isNew && animationsEnabled && <BigBangCanvas />}
-            {isDeleting && animationsEnabled && (
-              <BlackHoleCanvas onComplete={() => onDelete(task.id)} />
+            <div ref={cardRef} className="absolute inset-0 pointer-events-none" />
+            {isPortalIn && animationsEnabled && entryPos && createPortal(
+              <div style={{ position: "fixed", left: entryPos.x - 190, top: entryPos.y - 110, pointerEvents: "none", zIndex: 200 }}>
+                <PortalEntryCanvas />
+              </div>,
+              document.body
             )}
-            {isTeleporting && animationsEnabled && (
-              <PortalExitCanvas onComplete={handlePortalExitComplete} />
+            {isNew && animationsEnabled && entryPos && createPortal(
+              <div style={{ position: "fixed", left: entryPos.x - 190, top: entryPos.y - 110, pointerEvents: "none", zIndex: 200 }}>
+                <BigBangCanvas />
+              </div>,
+              document.body
+            )}
+            {isDeleting && animationsEnabled && exitPos && createPortal(
+              <div style={{ position: "fixed", left: exitPos.x - 190, top: exitPos.y - 110, pointerEvents: "none", zIndex: 200 }}>
+                <BlackHoleCanvas onComplete={() => onDelete(task.id)} />
+              </div>,
+              document.body
+            )}
+            {isTeleporting && animationsEnabled && exitPos && createPortal(
+              <div style={{ position: "fixed", left: exitPos.x - 150, top: exitPos.y - 110, pointerEvents: "none", zIndex: 200 }}>
+                <PortalExitCanvas onComplete={handlePortalExitComplete} />
+              </div>,
+              document.body
             )}
 
             <Card

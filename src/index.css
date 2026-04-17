@@ -198,13 +198,13 @@
   }
 
   .card-portal-out {
-    animation: card-portal-out 800ms cubic-bezier(0.22, 0, 0.58, 0) forwards;
+    animation: card-portal-out 600ms cubic-bezier(0.22, 0, 0.58, 0) forwards;
     pointer-events: none;
     transform-origin: center center;
   }
 
   .card-portal-in {
-    animation: card-portal-in 750ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: card-portal-in 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
     transform-origin: center center;
   }
 
