@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket, MoreHorizontal } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, PRIORITIES } from "@/types/task";
 import { Card, CardContent } from "@/components/ui/card";
@@ -915,7 +915,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                 <div {...provided.dragHandleProps} className="mt-1 cursor-grab text-accent-foreground/70">
                   <GripVertical className="h-4 w-4" />
                 </div>
-                <div className="flex-1 min-w-0 h-[88px] overflow-hidden">
+                <div className="flex-1 min-w-0 overflow-hidden">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <p className={`font-medium text-sm text-foreground leading-snug cursor-default ${
@@ -954,7 +954,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                   {task.description && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1 cursor-default">{task.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2 cursor-default">{task.description}</p>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
                         {task.description.length > 180
@@ -981,51 +981,35 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                     </TooltipContent>
                   </Tooltip>
                 )}
-                <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => setViewOpen(true)} aria-label="View">
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>View</TooltipContent>
-                  </Tooltip>
-                  <DropdownMenu>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" aria-label="Move">
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>Move</TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent align="end">
-                      {otherColumns.map((col) => (
-                        <DropdownMenuItem key={col.id} onClick={() => handleMoveClick(col.id)}>
-                          {col.title}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => onEdit(task)} aria-label="Edit">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Edit</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-300" onClick={handleDeleteClick} aria-label="Delete">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Delete</TooltipContent>
-                  </Tooltip>
-                </div>
+                {/* Single actions menu — opacity-0 at rest (no layout shift), visible on hover/focus */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 h-7 w-7 text-accent-foreground/70 sm:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150"
+                      aria-label="Actions"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setViewOpen(true)}>
+                      <Eye className="h-3.5 w-3.5 mr-2" /> View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(task)}>
+                      <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                    </DropdownMenuItem>
+                    {otherColumns.length > 0 && otherColumns.map((col) => (
+                      <DropdownMenuItem key={col.id} onClick={() => handleMoveClick(col.id)}>
+                        <ArrowRight className="h-3.5 w-3.5 mr-2" /> Move to {col.title}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuItem onClick={handleDeleteClick} className="text-red-400 focus:text-red-400">
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </CardContent>
 
               {/* Inline checklist */}
