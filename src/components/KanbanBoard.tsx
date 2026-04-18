@@ -458,6 +458,30 @@ const KanbanBoard = () => {
     [boards, tasksByStatus, reorderTasks, moveTaskBetweenColumns, reorderBoards]
   );
 
+  const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
+  const handleSortTasks = (columnId: string, sort: "priority" | "date") => {
+    const tasks = tasksByStatus[columnId] ?? [];
+    const sorted = [...tasks].sort((a, b) => {
+      if (sort === "priority") {
+        const pa = PRIORITY_ORDER[a.priority ?? ""] ?? 4;
+        const pb = PRIORITY_ORDER[b.priority ?? ""] ?? 4;
+        return pa - pb;
+      }
+      // sort by startDate asc, no date at end
+      if (!a.startDate && !b.startDate) return 0;
+      if (!a.startDate) return 1;
+      if (!b.startDate) return -1;
+      const cmp = a.startDate.localeCompare(b.startDate);
+      if (cmp !== 0) return cmp;
+      if (!a.startTime && !b.startTime) return 0;
+      if (!a.startTime) return 1;
+      if (!b.startTime) return -1;
+      return a.startTime.localeCompare(b.startTime);
+    });
+    reorderTasks(columnId, sorted.map((t) => t.id));
+  };
+
   const handleAddTask = (status?: string) => {
     setEditingTask(null);
     setDefaultTaskStatus(status);
@@ -584,6 +608,7 @@ const KanbanBoard = () => {
                               setTimeout(() => setTeleportedTaskId(null), 1200);
                             }}
                             onAddTask={() => handleAddTask(board.id)}
+                            onSortTasks={(sort) => handleSortTasks(board.id, sort)}
                             onRenameBoard={(title) => renameBoard(board.id, title)}
                             onDeleteBoard={() => deleteBoard(board.id)}
                             newTaskId={newTaskId}

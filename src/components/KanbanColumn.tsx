@@ -3,11 +3,12 @@ import { createPortal } from "react-dom";
 import { Droppable, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import { useSettings } from "@/store/settingsStore";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X } from "lucide-react";
+import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X, ArrowUpDown } from "lucide-react";
 import { Task, TaskStatus, Column } from "@/types/task";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription,
@@ -245,6 +246,7 @@ interface KanbanColumnProps {
   onDeleteTask: (id: string) => void;
   onMoveTask: (id: string, status: TaskStatus) => void;
   onAddTask: () => void;
+  onSortTasks: (sort: "priority" | "date") => void;
   onRenameBoard: (title: string) => void;
   onDeleteBoard: () => void;
   newTaskId?: string | null;
@@ -255,7 +257,7 @@ interface KanbanColumnProps {
 const KanbanColumn = ({
   column, tasks, dragHandleProps,
   onEditTask, onDeleteTask, onMoveTask,
-  onAddTask, onRenameBoard, onDeleteBoard,
+  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard,
   newTaskId, teleportedTaskId, isNew,
 }: KanbanColumnProps) => {
   const { boardLayout, animationsEnabled } = useSettings();
@@ -405,6 +407,26 @@ const KanbanColumn = ({
 
           {!isRenaming && (
             <div className="flex items-center gap-0.5 shrink-0">
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground" aria-label="Sort tasks">
+                        <ArrowUpDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Sort tasks</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onSortTasks("priority")}>
+                    Sort by priority
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onSortTasks("date")}>
+                    Sort by date
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
