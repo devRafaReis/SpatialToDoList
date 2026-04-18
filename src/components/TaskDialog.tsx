@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Clock, CalendarRange, CalendarIcon, Plus, Trash2, ListChecks, ChevronDown, RefreshCw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, TaskPriority, ChecklistItem, PRIORITIES, Recurrence, RecurrenceType } from "@/types/task";
-import { useTaskContext } from "@/store/taskStore";
+import { useTaskContext } from "@/store/taskContext";
 import {
   Dialog,
   DialogContent,

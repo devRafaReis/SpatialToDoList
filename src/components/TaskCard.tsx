@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSettings } from "@/store/settingsStore";
-import { useTaskContext } from "@/store/taskStore";
+import { useTaskContext } from "@/store/taskContext";
 
 // ---------------------------------------------------------------------------
 // Drag particles — tiny glowing dots rendered inside the card while dragging.

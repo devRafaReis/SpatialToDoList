@@ -42,7 +42,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [accessDenied, setAccessDenied] = useState(false);
   const [deniedEmail, setDeniedEmail] = useState("");
   const popupRef = useRef<Window | null>(null);
-  const popupMonitorRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const accessDeniedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearAccessDenied = () => {
@@ -63,10 +62,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const handleSession = async (sessionUser: User | null) => {
-    // Close popup and stop monitoring it
-    if (popupRef.current && !popupRef.current.closed) popupRef.current.close();
+    // Close popup if still open
+    try { if (popupRef.current && !popupRef.current.closed) popupRef.current.close(); } catch { /* COOP may block */ }
     popupRef.current = null;
-    if (popupMonitorRef.current) { clearInterval(popupMonitorRef.current); popupMonitorRef.current = null; }
 
     if (!sessionUser) {
       setUser(null);
@@ -131,15 +129,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       `width=${w},height=${h},left=${left},top=${top},toolbar=0,menubar=0,location=0,scrollbars=1`
     );
 
-    // If user closes popup without completing login, reset signingIn
-    popupMonitorRef.current = setInterval(() => {
-      if (popupRef.current?.closed) {
-        clearInterval(popupMonitorRef.current!);
-        popupMonitorRef.current = null;
-        popupRef.current = null;
-        setSigningIn(false);
-      }
-    }, 500);
+    // COOP headers from Google block popup.closed polling, so use the parent
+    // window's focus event instead: when the popup closes, focus returns here.
+    const onFocus = () => {
+      window.removeEventListener("focus", onFocus);
+      // Small delay so onAuthStateChange can fire first if auth succeeded
+      setTimeout(() => {
+        setSigningIn((current) => {
+          // Only clear if auth hasn't already resolved it
+          if (current) { popupRef.current = null; return false; }
+          return current;
+        });
+      }, 800);
+    };
+    window.addEventListener("focus", onFocus);
   };
 
   const signOut = async () => {

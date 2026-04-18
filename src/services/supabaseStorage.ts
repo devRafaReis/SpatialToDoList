@@ -81,6 +81,26 @@ export async function deleteAllTasksRemote(userId: string, workspaceId: string):
   if (error) throw error;
 }
 
+export async function syncTasks(userId: string, workspaceId: string, tasks: Task[], workspaceName?: string): Promise<void> {
+  // Guard against FK violation: ensure workspace row exists before inserting tasks.
+  // ignoreDuplicates=true means DO NOTHING on conflict — the real name is preserved.
+  await supabase
+    .from("workspaces")
+    .upsert({ id: workspaceId, user_id: userId, name: workspaceName ?? workspaceId }, { onConflict: "id", ignoreDuplicates: true });
+
+  const { error: delError } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId);
+  if (delError) throw delError;
+  if (tasks.length === 0) return;
+  const { error: insError } = await supabase
+    .from("tasks")
+    .insert(tasks.map((t) => taskToDb(t, userId, workspaceId)));
+  if (insError) throw insError;
+}
+
 interface DbTaskRow {
   id: string;
   title: string;

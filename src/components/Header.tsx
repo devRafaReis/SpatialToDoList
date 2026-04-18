@@ -5,7 +5,7 @@ import WorkspaceSwitcher from "@/components/WorkspaceSwitcher";
 import AccessRequestDialog from "@/components/AccessRequestDialog";
 import { useSettings } from "@/store/settingsStore";
 import { useAuth } from "@/store/authStore";
-import { useTaskContext } from "@/store/taskStore";
+import { useTaskContext } from "@/store/taskContext";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
