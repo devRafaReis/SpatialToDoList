@@ -356,7 +356,7 @@ const KanbanColumn = ({
                   if (e.key === "Escape") cancelRename();
                 }}
                 onBlur={commitRename}
-                maxLength={40}
+                maxLength={20}
                 className="flex-1 min-w-0 bg-transparent border-b border-primary/60 text-sm font-semibold text-foreground outline-none py-0.5"
               />
               <button onClick={commitRename} className="text-primary hover:text-primary/80 shrink-0">

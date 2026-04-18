@@ -509,7 +509,7 @@ const KanbanBoard = () => {
                     if (e.key === "Enter") handleAddBoardTop();
                     if (e.key === "Escape") { setAddingBoardTop(false); setNewBoardTitleTop(""); }
                   }}
-                  maxLength={40}
+                  maxLength={20}
                   className="h-8 w-36 sm:w-48 text-sm"
                 />
                 <Button size="sm" onClick={handleAddBoardTop} disabled={!newBoardTitleTop.trim()} className="h-8">Add</Button>
@@ -622,7 +622,7 @@ const KanbanBoard = () => {
                         if (e.key === "Enter") handleAddBoard();
                         if (e.key === "Escape") { setAddingBoard(false); setNewBoardTitle(""); }
                       }}
-                      maxLength={40}
+                      maxLength={20}
                       className="h-8 w-36 sm:w-48 text-sm"
                     />
                     <Button size="sm" onClick={handleAddBoard} disabled={!newBoardTitle.trim()} className="h-8">Add</Button>

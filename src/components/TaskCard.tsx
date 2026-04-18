@@ -682,6 +682,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [checklistExpanded, setChecklistExpanded] = useState(() => checklistExpandedByDefault);
+  useEffect(() => { setChecklistExpanded(checklistExpandedByDefault); }, [checklistExpandedByDefault]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTeleporting, setIsTeleporting] = useState(false);
   const [teleportDest, setTeleportDest] = useState<TaskStatus | null>(null);
