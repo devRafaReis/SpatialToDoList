@@ -47,9 +47,18 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Partículas ao arrastar card
 - Easter egg: Nyan Cat atravessa a tela a cada 5 minutos
 
+### Autenticação e sincronização na nuvem
+- Login com **Google** via popup (a página principal nunca redireciona)
+- Dados sincronizados automaticamente com **Supabase** quando logado — acessível de qualquer dispositivo
+- Modo **guest** totalmente funcional sem login, com dados salvos em `localStorage`
+- Na primeira vez que logar, dados locais são migrados automaticamente para a nuvem
+- **Allowlist de acesso:** somente emails autorizados conseguem entrar; outros usuários podem enviar uma solicitação de acesso diretamente pelo app
+- Ao deslogar, o app volta ao modo guest com os dados locais
+
 ### Persistência
-- Dados salvos automaticamente em `localStorage` por workspace
-- Configurações salvas separadamente com prefixo `spatialTodo_`
+- **Guest:** dados salvos automaticamente em `localStorage` por workspace
+- **Logado:** `localStorage` como cache + Supabase como fonte de verdade
+- Configurações sincronizadas com a nuvem quando logado; salvas em `spatialTodo_*` localmente
 
 ---
 
@@ -63,6 +72,7 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 | Estilo | Tailwind CSS + shadcn/ui |
 | Drag-and-drop | @hello-pangea/dnd |
 | Datas | date-fns |
+| Backend / Auth | Supabase (PostgreSQL + Google OAuth) |
 | Testes | Vitest + Testing Library |
 
 ---
@@ -94,23 +104,29 @@ bun run test:watch   # Testes em modo watch
 
 ```
 src/
-  App.tsx                    # Providers e rotas
+  App.tsx                    # Providers e rotas (AuthProvider > WorkspaceProvider > ...)
   main.tsx                   # Entry point
   index.css                  # Variáveis CSS, tema galaxy, keyframes de animação
+  lib/
+    supabase.ts              # Cliente Supabase (anon key)
   types/task.ts              # Task, TaskStatus, TaskPriority, Recurrence, Workspace, PRIORITIES
   store/
-    taskStore.tsx            # Context + CRUD + handlers de drag-drop + lógica de recorrência
-    settingsStore.tsx        # Configurações globais (animações, tema, layout, checklist)
-    workspaceStore.tsx       # Workspaces: CRUD + workspace ativo + migração de dados legados
-  services/taskStorage.ts    # Abstração de storage — createWorkspaceStorage(id)
+    authStore.tsx            # Auth context — Google OAuth popup, allowlist, accessDenied
+    taskStore.tsx            # Context + CRUD + drag-drop + recorrência + sync Supabase
+    settingsStore.tsx        # Configurações globais + sync Supabase
+    workspaceStore.tsx       # Workspaces CRUD + migração + sync Supabase
+  services/
+    taskStorage.ts           # Abstração localStorage — createWorkspaceStorage(id)
+    supabaseStorage.ts       # CRUD Supabase: workspaces, boards, tasks, settings
   hooks/useTasks.ts          # Tarefas agrupadas por status (memoizado)
-  pages/Index.tsx            # Rota / — monta TaskProvider com key=workspaceId
+  pages/Index.tsx            # Rota / — monta TaskProvider com key=workspaceId+userId
   components/
     KanbanBoard.tsx          # Orquestrador: drag-drop, filtros, gerenciamento de boards
     KanbanColumn.tsx         # Board droppable + animações de criação/exclusão + collapse
     TaskCard.tsx             # Card draggable + checklist inline + badge de recorrência + canvas
     TaskDialog.tsx           # Modal criação/edição (planejamento, checklist, recorrência)
-    Header.tsx               # WorkspaceSwitcher + filtros + configurações + botão nova tarefa
+    Header.tsx               # WorkspaceSwitcher + AuthButton + SettingsDialog
+    AccessRequestDialog.tsx  # Dialog para usuários não autorizados solicitarem acesso
     FilterPopover.tsx        # Popover de filtros (prioridade, board, datas)
     WorkspaceSwitcher.tsx    # Seletor de workspace com CRUD
     SettingsDialog.tsx       # Dialog de configurações globais
@@ -155,12 +171,10 @@ bun run prepare-context  # Executa os dois comandos acima em sequência
 
 ---
 
-## Migração para API
+## Supabase — setup
 
-A camada de storage está abstraída em `src/services/taskStorage.ts`. Para migrar do `localStorage` para uma API:
+O projeto utiliza Supabase como backend. A configuração do banco de dados (schema, RLS policies e funções) está documentada internamente em `CLAUDE.md` e não é exposta publicamente.
 
-1. Implemente `TaskStorageService` com chamadas ao seu backend (recebe `workspaceId`)
-2. Substitua `createWorkspaceStorage` pela sua implementação
-3. Nenhum outro arquivo precisa ser alterado
-
-Detalhes em [docs/flows/api.md](docs/flows/api.md).
+Para rodar o projeto você precisará de um projeto Supabase próprio com:
+- Google OAuth configurado em Authentication → Providers
+- As variáveis de ambiente/credenciais configuradas em `src/lib/supabase.ts`

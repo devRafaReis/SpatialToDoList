@@ -23,7 +23,9 @@
       "Bash(powershell -Command 'Get-Item '\\\\''C:\\\\Users\\\\rafael.reis\\\\Desktop\\\\projects\\\\SpatialToDoList\\\\project-map.json'\\\\'','\\\\''C:\\\\Users\\\\rafael.reis\\\\Desktop\\\\projects\\\\SpatialToDoList\\\\claude-context.txt'\\\\'' | Select-Object Name,@{N='\\\\''KB'\\\\'';E={[math]::Round\\($_.Length/1KB,1\\)}}')",
       "Bash(awk -F'\"' '{print $2}')",
       "Bash(~/.bun/bin/bun run *)",
-      "Bash(dir \"c:\\\\Users\\\\rafael.reis\\\\Desktop\\\\projects\\\\SpatialToDoList-master\" /b)"
+      "Bash(dir \"c:\\\\Users\\\\rafael.reis\\\\Desktop\\\\projects\\\\SpatialToDoList-master\" /b)",
+      "Bash(bun add *)",
+      "Bash(bunx shadcn@latest add avatar --yes)"
     ]
   }
 }

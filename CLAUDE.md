@@ -36,42 +36,49 @@ This is a Kanban board app (React 18 + TypeScript + Vite) with dynamic user-conf
 
 ```
 App.tsx
-  WorkspaceProvider  (src/store/workspaceStore.tsx)
-    SettingsProvider (src/store/settingsStore.tsx)
-      TooltipProvider
-        BrowserRouter
-          Index.tsx → TaskProvider(key=workspaceId, workspaceId=activeId) → KanbanBoard
+  AuthProvider       (src/store/authStore.tsx)
+    WorkspaceProvider  (src/store/workspaceStore.tsx)
+      SettingsProvider (src/store/settingsStore.tsx)
+        TooltipProvider
+          BrowserRouter
+            Index.tsx → TaskProvider(key=workspaceId+userId, workspaceId, userId) → KanbanBoard
 ```
 
 ### Data flow
 
 ```
-WorkspaceProvider → activeWorkspaceId
-  → TaskProvider (key=activeWorkspaceId — full remount on workspace switch)
-        └── React Context: Task[] + Column[] + CRUD handlers
-              └── persists to localStorage via createWorkspaceStorage(workspaceId)
-                    └── keys: kanban-tasks_<id>, kanban-boards_<id>
+AuthProvider → user (Supabase session)
+  WorkspaceProvider → activeWorkspaceId
+    → TaskProvider (key=activeWorkspaceId+userId — full remount on workspace/auth change)
+          └── React Context: Task[] + Column[] + CRUD handlers
+                ├── guest: persists to localStorage via createWorkspaceStorage(workspaceId)
+                └── logged in: localStorage (cache) + Supabase (source of truth)
+                      └── cloud load on mount → debounced upsert on changes (600ms)
 ```
 
 Components consume tasks via `useTaskContext()` → `useTasks()` hook which returns tasks grouped by status.
 
-Settings persist under `spatialTodo_*` keys. Workspace list and active workspace persist under `spatialTodo_workspaces` / `spatialTodo_activeWorkspace`.
+Settings persist under `spatialTodo_*` keys locally and in `public.settings` table in Supabase when logged in. Workspace list persists under `spatialTodo_workspaces` / `spatialTodo_activeWorkspace` locally and in `public.workspaces` table when logged in.
 
 ### Key files
 
 | File | Role |
 |---|---|
-| `src/store/taskStore.tsx` | Task + board state, CRUD, drag-drop handlers, recurrence auto-creation |
-| `src/store/settingsStore.tsx` | Animations, light mode, board layout, checklist defaults |
-| `src/store/workspaceStore.tsx` | Workspace list, active workspace, first-load migration of legacy keys |
-| `src/services/taskStorage.ts` | `createWorkspaceStorage(id): TaskStorageService` — swap this for API migration |
+| `src/lib/supabase.ts` | Supabase client singleton (anon key — safe for frontend) |
+| `src/store/authStore.tsx` | Auth context — Google OAuth popup, allowlist check, `accessDenied` state |
+| `src/store/taskStore.tsx` | Task + board state, CRUD, drag-drop handlers, recurrence, cloud sync |
+| `src/store/settingsStore.tsx` | Animations, light mode, board layout, checklist defaults + Supabase sync |
+| `src/store/workspaceStore.tsx` | Workspace list, active workspace, legacy migration, Supabase sync |
+| `src/services/taskStorage.ts` | `createWorkspaceStorage(id): TaskStorageService` — localStorage layer |
+| `src/services/supabaseStorage.ts` | All Supabase CRUD: workspaces, boards, tasks, settings |
 | `src/types/task.ts` | `Task`, `Recurrence`, `Workspace`, `TaskFilter`, `Column`, `PRIORITIES` |
 | `src/hooks/useTasks.ts` | Subscribes to context, groups tasks by status with memoization |
 | `src/components/KanbanBoard.tsx` | Board orchestrator — `DragDropContext`, filter state, board management |
 | `src/components/KanbanColumn.tsx` | Each board column (`Droppable`) + collapse + creation/deletion animations |
 | `src/components/TaskCard.tsx` | Individual card (`Draggable`) + inline checklist + recurrence badge + canvas fx |
 | `src/components/TaskDialog.tsx` | Create/edit task modal — planning, checklist, recurrence sections |
-| `src/components/Header.tsx` | WorkspaceSwitcher + FilterPopover + SettingsDialog + add-task button |
+| `src/components/Header.tsx` | WorkspaceSwitcher + SettingsDialog + AuthButton |
+| `src/components/AccessRequestDialog.tsx` | Dialog for non-allowed users to request access |
 | `src/components/FilterPopover.tsx` | Filter UI (priority, board, start/end date ranges) |
 | `src/components/WorkspaceSwitcher.tsx` | Workspace dropdown with CRUD and deletion confirmation |
 | `src/components/SettingsDialog.tsx` | Settings panel (animations, layout, checklist, light mode) |
@@ -145,12 +152,69 @@ Use `gap-2` on the Droppable vertical container. Do **not** put `mb-2` on the Dr
 Priority order: `critical(0) > high(1) > medium(2) > low(3) > none(4)`.
 Date sort: ascending by `startDate` then `startTime`; tasks without a date go last.
 
+### Supabase integration
+
+**Auth flow:**
+- Google OAuth via popup (`skipBrowserRedirect: true`) — main page never redirects
+- After login, `authStore` checks `public.allowed_emails` table; if not found, signs the user out, sets `accessDenied = true`, and opens `AccessRequestDialog` automatically
+- `accessDenied` auto-clears after 10 seconds
+- Popup detects it's an OAuth callback via `window.opener` and closes itself once session is ready
+
+**Storage modes:**
+- Guest (no user): localStorage only — identical to pre-Supabase behavior
+- Logged in: localStorage as cache + Supabase as source of truth
+  - On workspace mount: fetch from Supabase; if empty → migrate local data (first login)
+  - On changes: localStorage saves immediately; Supabase syncs via 600ms debounce
+  - Deleted task IDs are tracked in `pendingDeletesRef` and removed from Supabase on next sync
+
+**Database tables (`public` schema, all with RLS):**
+
+| Table | Purpose |
+|---|---|
+| `workspaces` | User workspaces (`id`, `user_id`, `name`) |
+| `boards` | Columns per workspace (`id`, `workspace_id`, `user_id`, `title`, `position`) |
+| `tasks` | All task fields; `order` is `bigint` (stores `Date.now()`) |
+| `settings` | One row per user with all settings fields |
+| `allowed_emails` | Allowlist — only emails here can log in |
+| `access_requests` | Pending access requests (`name`, `email`, unique constraint) |
+
+**RLS policy pattern (all tables):**
+```sql
+using (auth.uid() = user_id and exists (
+  select 1 from public.allowed_emails where email = auth.email()
+))
+with check (auth.uid() = user_id and exists (
+  select 1 from public.allowed_emails where email = auth.email()
+))
+```
+
+**Admin operations:**
+```sql
+-- Approve a pending request (moves email to allowlist)
+select approve_access_request('email@example.com');
+
+-- View pending requests
+select name, email, requested_at from public.access_requests order by requested_at asc;
+
+-- Add email directly
+insert into public.allowed_emails values ('email@example.com');
+
+-- Remove access
+delete from public.allowed_emails where email = 'email@example.com';
+```
+
+**Supabase config required:**
+- Authentication → Providers → Google: Client ID + Secret from Google Cloud Console
+- Authentication → URL Configuration: add `http://localhost:8080` (dev) and production URL
+- Authorized redirect URI in Google Cloud Console: `https://<project>.supabase.co/auth/v1/callback`
+
 ### UI stack
 
 - **shadcn/ui** components live in `src/components/ui/` — do not hand-edit; regenerate via `bunx shadcn@latest add <component>`
 - Tailwind CSS with path alias `@/*` → `src/*`
 - Drag-and-drop via `@hello-pangea/dnd`
 - Dark galaxy theme / light mode toggled via `.light` class on `<html>`
+- Supabase JS client v2 (`@supabase/supabase-js`)
 
 ### Testing
 

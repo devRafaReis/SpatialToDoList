@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SettingsProvider } from "@/store/settingsStore";
 import { WorkspaceProvider } from "@/store/workspaceStore";
+import { AuthProvider } from "@/store/authStore";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -12,6 +13,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <AuthProvider>
     <WorkspaceProvider>
     <SettingsProvider>
       <TooltipProvider>
@@ -27,6 +29,7 @@ const App = () => (
       </TooltipProvider>
     </SettingsProvider>
     </WorkspaceProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

@@ -1,0 +1,145 @@
+import { useState } from "react";
+import { Send, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabase";
+
+const NAME_MAX = 30;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  defaultEmail?: string;
+}
+
+const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
+  const [name, setName]     = useState("");
+  const [email, setEmail]   = useState(defaultEmail);
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent]     = useState(false);
+  const [errors, setErrors] = useState<{ name?: string; email?: string; submit?: string }>({});
+
+  const validate = () => {
+    const e: typeof errors = {};
+    if (!name.trim()) e.name = "Name is required.";
+    else if (name.trim().length > NAME_MAX) e.name = `Max ${NAME_MAX} characters.`;
+    if (!email.trim()) e.email = "Email is required.";
+    else if (!EMAIL_RE.test(email.trim())) e.email = "Enter a valid email address.";
+    return e;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+
+    setLoading(true);
+    setErrors({});
+    const { error: err } = await supabase
+      .from("access_requests")
+      .insert({ name: name.trim(), email: email.trim().toLowerCase() });
+    setLoading(false);
+
+    if (err) {
+      // Postgres unique violation code
+      if (err.code === "23505") {
+        setErrors({ submit: "A request with this email has already been sent." });
+      } else {
+        setErrors({ submit: "Failed to send request. Please try again." });
+      }
+      return;
+    }
+    setSent(true);
+  };
+
+  const handleClose = () => {
+    setSent(false);
+    setName("");
+    setEmail(defaultEmail);
+    setErrors({});
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+      <DialogContent className="w-[95vw] max-w-sm rounded-lg" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle className="text-base">
+            {sent ? "Request sent!" : "Request access"}
+          </DialogTitle>
+          {!sent && (
+            <DialogDescription className="text-sm text-muted-foreground">
+              Your email is not on the access list. Fill in your details and the admin will be notified.
+            </DialogDescription>
+          )}
+        </DialogHeader>
+
+        {sent ? (
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
+            <CheckCircle className="h-10 w-10 text-emerald-400" />
+            <p className="text-sm text-muted-foreground">
+              Your request has been submitted. You'll be able to sign in once the admin approves your email.
+            </p>
+            <Button className="mt-2 w-full" onClick={handleClose}>Close</Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 pt-1">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="req-name" className="text-xs">Name</Label>
+                <span className={`text-[10px] tabular-nums ${name.length > NAME_MAX ? "text-red-400" : "text-muted-foreground/60"}`}>
+                  {name.length}/{NAME_MAX}
+                </span>
+              </div>
+              <Input
+                id="req-name"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+                }}
+                autoFocus
+                className={errors.name ? "border-red-400 focus-visible:ring-red-400/30" : ""}
+              />
+              {errors.name && <p className="text-xs text-red-400">{errors.name}</p>}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="req-email" className="text-xs">Email</Label>
+              <Input
+                id="req-email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                className={errors.email ? "border-red-400 focus-visible:ring-red-400/30" : ""}
+              />
+              {errors.email && <p className="text-xs text-red-400">{errors.email}</p>}
+            </div>
+
+            {errors.submit && <p className="text-xs text-red-400">{errors.submit}</p>}
+
+            <div className="flex gap-2 pt-1">
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1 gap-2" disabled={loading}>
+                {!loading && <Send className="h-3.5 w-3.5" />}
+                {loading ? "Sending…" : "Send request"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default AccessRequestDialog;

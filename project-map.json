@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-04-18T14:19:39.306Z",
-  "totalFiles": 52,
+  "generatedAt": "2026-04-18T19:07:40.799Z",
+  "totalFiles": 57,
   "files": [
     {
       "path": "src/App.tsx",
@@ -9,7 +9,18 @@
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 34
+      "linesOfCode": 37
+    },
+    {
+      "path": "src/components/AccessRequestDialog.tsx",
+      "exports": [
+        "default:AccessRequestDialog"
+      ],
+      "hooks": [
+        "useState"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 146
     },
     {
       "path": "src/components/CometTrail.tsx",
@@ -40,10 +51,12 @@
         "default:Header"
       ],
       "hooks": [
+        "useAuth",
+        "useState",
         "useSettings"
       ],
       "apiCalls": [],
-      "linesOfCode": 21
+      "linesOfCode": 100
     },
     {
       "path": "src/components/KanbanBoard.tsx",
@@ -142,7 +155,7 @@
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 1297
+      "linesOfCode": 1293
     },
     {
       "path": "src/components/TaskDialog.tsx",
@@ -176,6 +189,17 @@
       "hooks": [],
       "apiCalls": [],
       "linesOfCode": 105
+    },
+    {
+      "path": "src/components/ui/avatar.tsx",
+      "exports": [
+        "Avatar",
+        "AvatarImage",
+        "AvatarFallback"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 49
     },
     {
       "path": "src/components/ui/badge.tsx",
@@ -507,6 +531,15 @@
       "linesOfCode": 23
     },
     {
+      "path": "src/lib/supabase.ts",
+      "exports": [
+        "supabase"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 7
+    },
+    {
       "path": "src/lib/utils.ts",
       "exports": [
         "cn"
@@ -528,10 +561,11 @@
         "default:Index"
       ],
       "hooks": [
-        "useWorkspace"
+        "useWorkspace",
+        "useAuth"
       ],
       "apiCalls": [],
-      "linesOfCode": 15
+      "linesOfCode": 17
     },
     {
       "path": "src/pages/NotFound.tsx",
@@ -546,6 +580,13 @@
       "linesOfCode": 25
     },
     {
+      "path": "src/services/supabaseStorage.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 165
+    },
+    {
       "path": "src/services/taskStorage.ts",
       "exports": [
         "createWorkspaceStorage"
@@ -555,18 +596,35 @@
       "linesOfCode": 34
     },
     {
+      "path": "src/store/authStore.tsx",
+      "exports": [
+        "useAuth",
+        "AuthProvider"
+      ],
+      "hooks": [
+        "useContext",
+        "useState",
+        "useRef",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 155
+    },
+    {
       "path": "src/store/settingsStore.tsx",
       "exports": [
         "SettingsProvider",
         "useSettings"
       ],
       "hooks": [
+        "useAuth",
+        "useRef",
         "useState",
         "useEffect",
         "useContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 82
+      "linesOfCode": 125
     },
     {
       "path": "src/store/taskStore.tsx",
@@ -578,11 +636,12 @@
         "useContext",
         "useMemo",
         "useState",
+        "useRef",
         "useEffect",
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 177
+      "linesOfCode": 269
     },
     {
       "path": "src/store/workspaceStore.tsx",
@@ -592,11 +651,13 @@
         "useWorkspace"
       ],
       "hooks": [
+        "useAuth",
         "useState",
+        "useEffect",
         "useContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 85
+      "linesOfCode": 120
     },
     {
       "path": "src/test/example.test.ts",

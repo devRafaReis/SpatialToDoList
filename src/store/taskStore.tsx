@@ -1,7 +1,15 @@
-import React, { createContext, useContext, useCallback, useState, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useCallback, useState, useEffect, useRef, useMemo } from "react";
 import { addDays, addWeeks, addMonths, parseISO, format, getDay } from "date-fns";
 import { Task, TaskPriority, TaskStatus, ChecklistItem, Column, DEFAULT_COLUMNS, Recurrence, RecurrenceType } from "@/types/task";
 import { createWorkspaceStorage } from "@/services/taskStorage";
+import {
+  fetchTasks,
+  fetchBoards,
+  upsertTasks,
+  syncBoards,
+  deleteTaskRemote,
+  deleteAllTasksRemote,
+} from "@/services/supabaseStorage";
 
 function shiftDate(dateStr: string, type: RecurrenceType, interval?: number): string {
   const d = parseISO(dateStr);
@@ -37,6 +45,7 @@ function buildNextOccurrence(task: Task, firstBoardId: string): Task | null {
 interface TaskContextValue {
   tasks: Task[];
   boards: Column[];
+  cloudLoading: boolean;
   addTask: (title: string, description: string, status?: TaskStatus, priority?: TaskPriority, estimatedHours?: number, estimatedMinutes?: number, startDate?: string, startTime?: string, endDate?: string, endTime?: string, checklist?: ChecklistItem[], recurrence?: Recurrence) => string;
   updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "startTime" | "endDate" | "endTime" | "checklist" | "recurrence" | "reminderDismissed">>) => void;
   deleteTask: (id: string) => void;
@@ -59,21 +68,91 @@ export const useTaskContext = () => {
   return ctx;
 };
 
-export const TaskProvider: React.FC<{ workspaceId: string; children: React.ReactNode }> = ({ workspaceId, children }) => {
+export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; children: React.ReactNode }> = ({ workspaceId, userId, children }) => {
   const storage = useMemo(() => createWorkspaceStorage(workspaceId), [workspaceId]);
   const [tasks,  setTasks]  = useState<Task[]>(()   => storage.getTasks());
   const [boards, setBoards] = useState<Column[]>(() => storage.getBoards());
+  const [cloudLoading, setCloudLoading] = useState(!!userId);
 
-  useEffect(() => { storage.saveTasks(tasks);   }, [tasks]);
-  useEffect(() => { storage.saveBoards(boards); }, [boards]);
+  // Tracks task IDs deleted while logged in so cloud sync can remove them
+  const pendingDeletesRef = useRef<Set<string>>(new Set());
+  // Becomes true after the initial cloud load (or immediately if no userId)
+  const cloudLoadDoneRef = useRef(!userId);
 
-  // ── Task CRUD ──────────────────────────────────────────────────────────────
+  // ── Cloud load on mount ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!userId) {
+      cloudLoadDoneRef.current = true;
+      setCloudLoading(false);
+      return;
+    }
+    setCloudLoading(true);
+    cloudLoadDoneRef.current = false;
+    Promise.all([fetchTasks(userId, workspaceId), fetchBoards(userId, workspaceId)])
+      .then(([cloudTasks, cloudBoards]) => {
+        if (cloudTasks.length === 0 && cloudBoards.length === 0) {
+          // First time for this workspace — migrate local data to Supabase
+          const localTasks  = storage.getTasks();
+          const localBoards = storage.getBoards();
+          syncBoards(userId, workspaceId, localBoards).catch(console.error);
+          if (localTasks.length > 0) upsertTasks(userId, workspaceId, localTasks).catch(console.error);
+          // Keep current localStorage state as-is
+        } else {
+          const newBoards = cloudBoards.length > 0 ? cloudBoards : boards;
+          setBoards(newBoards);
+          setTasks(cloudTasks);
+          storage.saveBoards(newBoards);
+          storage.saveTasks(cloudTasks);
+        }
+        cloudLoadDoneRef.current = true;
+      })
+      .catch(console.error)
+      .finally(() => setCloudLoading(false));
+  }, [userId, workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Persist to localStorage ───────────────────────────────────────────────
+  useEffect(() => { storage.saveTasks(tasks);   }, [tasks,  storage]);
+  useEffect(() => { storage.saveBoards(boards); }, [boards, storage]);
+
+  // ── Debounced sync tasks → Supabase ───────────────────────────────────────
+  useEffect(() => {
+    if (!userId || !cloudLoadDoneRef.current) return;
+    const deletes = [...pendingDeletesRef.current];
+    pendingDeletesRef.current.clear();
+
+    const timer = setTimeout(async () => {
+      try {
+        await Promise.all(deletes.map((id) => deleteTaskRemote(id)));
+        await upsertTasks(userId, workspaceId, tasks);
+      } catch (e) {
+        // Restore failed deletes so the next sync retries them
+        deletes.forEach((id) => pendingDeletesRef.current.add(id));
+        console.error("Cloud task sync failed:", e);
+      }
+    }, 600);
+
+    return () => {
+      clearTimeout(timer);
+      deletes.forEach((id) => pendingDeletesRef.current.add(id));
+    };
+  }, [tasks, userId, workspaceId]);
+
+  // ── Debounced sync boards → Supabase ─────────────────────────────────────
+  useEffect(() => {
+    if (!userId || !cloudLoadDoneRef.current) return;
+    const timer = setTimeout(() => {
+      syncBoards(userId, workspaceId, boards).catch(console.error);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [boards, userId, workspaceId]);
+
+  // ── Task CRUD ─────────────────────────────────────────────────────────────
   const addTask = useCallback((
     title: string, description: string,
     status?: TaskStatus, priority?: TaskPriority,
     estimatedHours?: number, estimatedMinutes?: number,
-    startDate?: string, startTime?: string, endDate?: string, endTime?: string, checklist?: ChecklistItem[],
-    recurrence?: Recurrence,
+    startDate?: string, startTime?: string, endDate?: string, endTime?: string,
+    checklist?: ChecklistItem[], recurrence?: Recurrence,
   ) => {
     const now = new Date().toISOString();
     const newTask: Task = {
@@ -90,8 +169,17 @@ export const TaskProvider: React.FC<{ workspaceId: string; children: React.React
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t));
   }, []);
 
-  const deleteTask    = useCallback((id: string) => setTasks((prev) => prev.filter((t) => t.id !== id)), []);
-  const deleteAllTasks = useCallback(() => setTasks([]), []);
+  const deleteTask = useCallback((id: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (userId) pendingDeletesRef.current.add(id);
+  }, [userId]);
+
+  const deleteAllTasks = useCallback(() => {
+    setTasks((prev) => {
+      if (userId) prev.forEach((t) => pendingDeletesRef.current.add(t.id));
+      return [];
+    });
+  }, [userId]);
 
   const moveTask = useCallback((taskId: string, newStatus: TaskStatus, newOrder: number) => {
     setTasks((prev) => {
@@ -133,7 +221,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; children: React.React
     });
   }, [boards]);
 
-  // ── Board CRUD ─────────────────────────────────────────────────────────────
+  // ── Board CRUD ────────────────────────────────────────────────────────────
   const addBoard = useCallback((title: string) => {
     const id = `board-${crypto.randomUUID().slice(0, 8)}`;
     setBoards((prev) => [...prev, { id, title }]);
@@ -159,13 +247,17 @@ export const TaskProvider: React.FC<{ workspaceId: string; children: React.React
   }, []);
 
   const resetAll = useCallback(() => {
+    if (userId) {
+      deleteAllTasksRemote(userId, workspaceId).catch(console.error);
+      syncBoards(userId, workspaceId, DEFAULT_COLUMNS).catch(console.error);
+    }
     setBoards(DEFAULT_COLUMNS);
     setTasks([]);
-  }, []);
+  }, [userId, workspaceId]);
 
   return (
     <TaskContext.Provider value={{
-      tasks, boards,
+      tasks, boards, cloudLoading,
       addTask, updateTask, deleteTask, deleteAllTasks,
       moveTask, reorderTasks, moveTaskBetweenColumns,
       addBoard, deleteBoard, renameBoard, reorderBoards, resetAll,
