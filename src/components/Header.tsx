@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { LogIn, LogOut, Loader2 } from "lucide-react";
+import { LogIn, LogOut, Loader2, CloudOff, Cloud, RefreshCw } from "lucide-react";
 import SettingsDialog from "@/components/SettingsDialog";
 import WorkspaceSwitcher from "@/components/WorkspaceSwitcher";
 import AccessRequestDialog from "@/components/AccessRequestDialog";
 import { useSettings } from "@/store/settingsStore";
 import { useAuth } from "@/store/authStore";
+import { useTaskContext } from "@/store/taskStore";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +17,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+const SyncButton = () => {
+  const { user } = useAuth();
+  const { syncStatus, syncError, forceSyncNow } = useTaskContext();
+  if (!user) return null;
+
+  const label =
+    syncStatus === "syncing" ? "Sincronizando..." :
+    syncStatus === "error"   ? `Erro: ${syncError ?? "falha na sincronização"}` :
+    "Sincronizado — clique para sincronizar agora";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={forceSyncNow}
+          disabled={syncStatus === "syncing"}
+          className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors disabled:pointer-events-none"
+        >
+          {syncStatus === "syncing" && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+          {syncStatus === "error"   && <CloudOff className="h-3.5 w-3.5 text-destructive" />}
+          {syncStatus === "idle"    && <Cloud className="h-3.5 w-3.5" />}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-56 text-xs">{label}</TooltipContent>
+    </Tooltip>
+  );
+};
 
 const AuthButton = () => {
   const { user, loading, signingIn, accessDenied, deniedEmail, clearAccessDenied, signInWithGoogle, signOut } = useAuth();
@@ -89,6 +119,7 @@ const Header = () => {
         <WorkspaceSwitcher />
       </div>
       <div className="flex items-center gap-2 shrink-0">
+        <SyncButton />
         <AuthButton />
         <SettingsDialog />
       </div>

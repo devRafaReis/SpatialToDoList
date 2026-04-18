@@ -32,7 +32,7 @@ function buildNextOccurrence(task: Task, firstBoardId: string): Task | null {
     ...task,
     id: crypto.randomUUID(),
     status: firstBoardId,
-    order: Date.now() + 1,
+    order: Math.floor(Date.now() / 1000) + 1,
     createdAt: now,
     updatedAt: now,
     startDate: task.startDate ? shiftDate(task.startDate, rec.type, rec.interval) : undefined,
@@ -46,6 +46,9 @@ interface TaskContextValue {
   tasks: Task[];
   boards: Column[];
   cloudLoading: boolean;
+  syncStatus: "idle" | "syncing" | "error";
+  syncError: string | null;
+  forceSyncNow: () => Promise<void>;
   addTask: (title: string, description: string, status?: TaskStatus, priority?: TaskPriority, estimatedHours?: number, estimatedMinutes?: number, startDate?: string, startTime?: string, endDate?: string, endTime?: string, checklist?: ChecklistItem[], recurrence?: Recurrence) => string;
   updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "startTime" | "endDate" | "endTime" | "checklist" | "recurrence" | "reminderDismissed">>) => void;
   deleteTask: (id: string) => void;
@@ -73,6 +76,8 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
   const [tasks,  setTasks]  = useState<Task[]>(()   => storage.getTasks());
   const [boards, setBoards] = useState<Column[]>(() => storage.getBoards());
   const [cloudLoading, setCloudLoading] = useState(!!userId);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle");
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Tracks task IDs deleted while logged in so cloud sync can remove them
   const pendingDeletesRef = useRef<Set<string>>(new Set());
@@ -94,15 +99,18 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
           setBoards(cloudBoards);
           storage.saveBoards(cloudBoards);
         } else {
-          // No boards in cloud — migrate local boards
           syncBoards(userId, workspaceId, storage.getBoards()).catch(console.error);
         }
 
         if (cloudTasks.length > 0) {
-          setTasks(cloudTasks);
-          storage.saveTasks(cloudTasks);
+          // Merge: cloud is source of truth; add any local-only tasks not yet synced
+          const cloudIds = new Set(cloudTasks.map((t) => t.id));
+          const localOnly = storage.getTasks().filter((t) => !cloudIds.has(t.id));
+          const merged = [...cloudTasks, ...localOnly];
+          setTasks(merged);
+          storage.saveTasks(merged);
+          if (localOnly.length > 0) upsertTasks(userId, workspaceId, localOnly).catch(console.error);
         } else {
-          // No tasks in cloud — migrate local tasks (keep localStorage state as-is)
           const localTasks = storage.getTasks();
           if (localTasks.length > 0) upsertTasks(userId, workspaceId, localTasks).catch(console.error);
         }
@@ -123,12 +131,17 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
     pendingDeletesRef.current.clear();
 
     const timer = setTimeout(async () => {
+      setSyncStatus("syncing");
+      setSyncError(null);
       try {
         await Promise.all(deletes.map((id) => deleteTaskRemote(id)));
         await upsertTasks(userId, workspaceId, tasks);
+        setSyncStatus("idle");
       } catch (e) {
-        // Restore failed deletes so the next sync retries them
         deletes.forEach((id) => pendingDeletesRef.current.add(id));
+        const msg = e instanceof Error ? e.message : String(e);
+        setSyncError(msg);
+        setSyncStatus("error");
         console.error("Cloud task sync failed:", e);
       }
     }, 600);
@@ -148,6 +161,26 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
     return () => clearTimeout(timer);
   }, [boards, userId, workspaceId]);
 
+  // ── Manual sync ──────────────────────────────────────────────────────────
+  const forceSyncNow = useCallback(async () => {
+    if (!userId) return;
+    setSyncStatus("syncing");
+    setSyncError(null);
+    try {
+      const deletes = [...pendingDeletesRef.current];
+      pendingDeletesRef.current.clear();
+      await Promise.all(deletes.map((id) => deleteTaskRemote(id)));
+      await syncBoards(userId, workspaceId, boards);
+      await upsertTasks(userId, workspaceId, tasks);
+      setSyncStatus("idle");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setSyncError(msg);
+      setSyncStatus("error");
+      console.error("Force sync failed:", e);
+    }
+  }, [userId, workspaceId, boards, tasks]);
+
   // ── Task CRUD ─────────────────────────────────────────────────────────────
   const addTask = useCallback((
     title: string, description: string,
@@ -160,7 +193,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
     const newTask: Task = {
       id: crypto.randomUUID(), title, description,
       status: status ?? "todo",
-      priority, order: Date.now(), createdAt: now, updatedAt: now,
+      priority, order: Math.floor(Date.now() / 1000), createdAt: now, updatedAt: now,
       estimatedHours, estimatedMinutes, startDate, startTime, endDate, endTime, checklist, recurrence,
     };
     setTasks((prev) => [...prev, newTask]);
@@ -259,7 +292,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
 
   return (
     <TaskContext.Provider value={{
-      tasks, boards, cloudLoading,
+      tasks, boards, cloudLoading, syncStatus, syncError, forceSyncNow,
       addTask, updateTask, deleteTask, deleteAllTasks,
       moveTask, reorderTasks, moveTaskBetweenColumns,
       addBoard, deleteBoard, renameBoard, reorderBoards, resetAll,

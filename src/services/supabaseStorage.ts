@@ -81,13 +81,33 @@ export async function deleteAllTasksRemote(userId: string, workspaceId: string):
   if (error) throw error;
 }
 
-function dbToTask(row: any): Task {
+interface DbTaskRow {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string | null;
+  order: number;
+  estimated_hours: number | null;
+  estimated_minutes: number | null;
+  start_date: string | null;
+  start_time: string | null;
+  end_date: string | null;
+  end_time: string | null;
+  reminder_dismissed: boolean | null;
+  checklist: unknown | null;
+  recurrence: unknown | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function dbToTask(row: DbTaskRow): Task {
   return {
     id: row.id,
     title: row.title,
     description: row.description,
     status: row.status,
-    priority: row.priority ?? undefined,
+    priority: (row.priority ?? undefined) as Task["priority"],
     order: row.order,
     estimatedHours: row.estimated_hours ?? undefined,
     estimatedMinutes: row.estimated_minutes ?? undefined,
@@ -96,8 +116,8 @@ function dbToTask(row: any): Task {
     endDate: row.end_date ?? undefined,
     endTime: row.end_time ?? undefined,
     reminderDismissed: row.reminder_dismissed ?? false,
-    checklist: row.checklist ?? undefined,
-    recurrence: row.recurrence ?? undefined,
+    checklist: (row.checklist ?? undefined) as Task["checklist"],
+    recurrence: (row.recurrence ?? undefined) as Task["recurrence"],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -112,7 +132,7 @@ function taskToDb(task: Task, userId: string, workspaceId: string) {
     description: task.description,
     status: task.status,
     priority: task.priority ?? null,
-    order: task.order,
+    order: task.order > 2147483647 ? Math.floor(task.order / 1000) : task.order,
     estimated_hours: task.estimatedHours ?? null,
     estimated_minutes: task.estimatedMinutes ?? null,
     start_date: task.startDate ?? null,
