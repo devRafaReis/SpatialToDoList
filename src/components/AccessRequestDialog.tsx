@@ -38,15 +38,25 @@ const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
 
     setLoading(true);
     setErrors({});
+
+    // Fetch client IP for server-side rate limiting (best-effort, falls back to null)
+    let ip: string | null = null;
+    try {
+      const res = await fetch("https://api.ipify.org?format=json");
+      const json = await res.json();
+      ip = json.ip ?? null;
+    } catch { /* proceed without IP if fetch fails */ }
+
     const { error: err } = await supabase
       .from("access_requests")
-      .insert({ name: name.trim(), email: email.trim().toLowerCase() });
+      .insert({ name: name.trim(), email: email.trim().toLowerCase(), ip_address: ip });
     setLoading(false);
 
     if (err) {
-      // Postgres unique violation code
       if (err.code === "23505") {
         setErrors({ submit: "A request with this email has already been sent." });
+      } else if (err.code === "P0001" && err.message === "rate_limit_exceeded") {
+        setErrors({ submit: "Too many requests from your network. Try again in 1 hour." });
       } else {
         setErrors({ submit: "Failed to send request. Please try again." });
       }
