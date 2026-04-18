@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-17T23:59:33.930Z",
+  "generatedAt": "2026-04-18T01:02:25.328Z",
   "totalFiles": 52,
   "files": [
     {
@@ -141,7 +141,7 @@
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 1190
+      "linesOfCode": 1194
     },
     {
       "path": "src/components/TaskDialog.tsx",
@@ -149,13 +149,13 @@
         "default:TaskDialog"
       ],
       "hooks": [
-        "useTaskContext",
         "useState",
         "useRef",
-        "useEffect"
+        "useEffect",
+        "useTaskContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 539
+      "linesOfCode": 642
     },
     {
       "path": "src/components/ui/alert-dialog.tsx",
@@ -620,7 +620,7 @@
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 84
+      "linesOfCode": 85
     },
     {
       "path": "src/vite-env.d.ts",

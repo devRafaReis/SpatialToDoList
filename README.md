@@ -6,7 +6,7 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 
 ### Tarefas
 - Criar, editar e excluir tarefas com título, descrição e prioridade (Baixa / Média / Alta / Crítica)
-- **Planejamento:** tempo estimado (horas/minutos) e intervalo de datas (início/fim)
+- **Planejamento:** tempo estimado (input único — aceita `1h30m`, `90m`, `1.5h`, `1:30`), data de início com hora, data de vencimento
 - **Checklist:** subitens interativos com barra de progresso, expansíveis diretamente no card
 - **Recorrência:** diária (todos os dias), diária (Seg–Sex), semanal ou mensal — com limite de repetições ou sem fim; ao mover para o último board, uma nova cópia é criada automaticamente com as datas deslocadas
 - Drag-and-drop entre boards e reordenação dentro do mesmo board
@@ -14,6 +14,7 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 
 ### Boards
 - Criar, renomear e excluir boards customizados (além dos padrões: To Do, Doing, Done)
+- Título limitado a 20 caracteres
 - Reordenar boards via drag-and-drop
 - Minimizar/expandir boards individualmente
 - Board se expande automaticamente ao criar uma tarefa dentro dele enquanto está minimizado
@@ -32,7 +33,7 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 ### Configurações
 - Animações (estrelas, cometas, partículas — desativável para melhor performance)
 - Layout do board: swimlane horizontal ou colunas verticais
-- Checklists expandidos por padrão nos cards
+- Checklists expandidos por padrão nos cards — aplica imediatamente a todos os cards abertos
 - Modo claro ("Boring ToDoList") / escuro galaxy
 
 ### Animações
@@ -46,6 +47,8 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Dados salvos automaticamente em `localStorage` por workspace
 - Configurações salvas separadamente com prefixo `spatialTodo_`
 
+---
+
 ## Stack
 
 | Camada | Tecnologia |
@@ -57,6 +60,8 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 | Drag-and-drop | @hello-pangea/dnd |
 | Datas | date-fns |
 | Testes | Vitest + Testing Library |
+
+---
 
 ## Pré-requisitos
 
@@ -79,17 +84,7 @@ bun test             # Roda todos os testes uma vez
 bun run test:watch   # Testes em modo watch
 ```
 
-## Contexto para o Claude Code
-
-Os scripts abaixo geram arquivos de contexto que facilitam sessões com o Claude Code.
-
-```bash
-bun run index            # Escaneia /src e gera project-map.json
-bun run context          # Lê /docs + project-map.json e gera claude-context.txt
-bun run prepare-context  # Executa os dois comandos acima em sequência
-```
-
-**Quando rodar:** sempre que fizer mudanças relevantes na arquitetura, adicionar novos arquivos ou modificar a lógica de estado.
+---
 
 ## Estrutura do projeto
 
@@ -123,10 +118,38 @@ docs/
   decisions.md               # Decisões de design e padrões do código
   bugs.md                    # Problemas conhecidos e quirks
   flows/api.md               # Fluxo de storage e plano de migração para API
-scripts/
-  indexer.ts                 # Gerador de project-map.json
-  context-builder.ts         # Gerador de claude-context.txt
 ```
+
+---
+
+## Design System
+
+O projeto possui um design system documentado em [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).
+
+Resumo rápido:
+- **Tema:** dark galaxy (padrão) + light mode via classe `.light` no `<html>`
+- **Cores:** tokens CSS via Tailwind — nunca hardcode
+- **Superfícies:** `.glass` (glassmorphism) — nunca backgrounds sólidos em cards
+- **Primária:** roxo `hsl(260, 50%, 60%)`
+- **Ícones:** Lucide React
+- **Radius:** `rounded-lg` (12px) em cards, `rounded-md` em inputs/botões
+- **Animações:** condicionais em `animationsEnabled` do `useSettings()`
+
+---
+
+## Contexto para o Claude Code
+
+Os scripts abaixo geram arquivos de contexto que facilitam sessões com o Claude Code.
+
+```bash
+bun run index            # Escaneia /src e gera project-map.json
+bun run context          # Lê /docs + project-map.json e gera claude-context.txt
+bun run prepare-context  # Executa os dois comandos acima em sequência
+```
+
+**Quando rodar:** sempre que fizer mudanças relevantes na arquitetura, adicionar novos arquivos ou modificar a lógica de estado.
+
+---
 
 ## Migração para API
 
