@@ -810,7 +810,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
             )}
 
             <Card
-              className={`border-0 relative overflow-hidden ${
+              className={`group border-0 relative overflow-hidden ${
                 isDeleting && animationsEnabled
                   ? "card-suck-in"
                   : isTeleporting && animationsEnabled
@@ -883,7 +883,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                     </Tooltip>
                   )}
                 </div>
-                <div className="flex gap-1 shrink-0">
+                <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-accent-foreground/70 hover:text-primary" onClick={() => setViewOpen(true)} aria-label="View">
