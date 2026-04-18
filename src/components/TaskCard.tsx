@@ -861,7 +861,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
           <div
             ref={provided.innerRef}
             {...provided.draggableProps}
-            className={`relative mb-2 ${isDeleting || isTeleporting ? "z-50" : ""}`}
+            className={`relative ${isDeleting || isTeleporting ? "z-50" : ""}`}
           >
             <div ref={cardRef} className="absolute inset-0 pointer-events-none" />
             {isReminderActive && animationsEnabled && <ReminderParticles />}

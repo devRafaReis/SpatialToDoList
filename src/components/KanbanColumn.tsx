@@ -480,7 +480,7 @@ const KanbanColumn = ({
               className={`p-2 transition-colors ${snapshot.isDraggingOver ? "bg-accent/30" : ""} ${
                 isHorizontal
                   ? "flex flex-row gap-2 overflow-x-auto min-h-[140px]"
-                  : "flex flex-col min-h-[80px]"
+                  : "flex flex-col gap-2 min-h-[80px]"
               }`}
             >
               {tasks.map((task, index) => (
