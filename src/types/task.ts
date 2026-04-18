@@ -43,12 +43,13 @@ export const PRIORITIES: Priority[] = [
   { id: "critical", label: "Critical", badgeClass: "bg-red-500/15 text-red-400 border-red-500/30",             dotClass: "bg-red-400"     },
 ];
 
-export type RecurrenceType = "daily" | "daily-weekdays" | "weekly" | "monthly";
+export type RecurrenceType = "daily" | "daily-weekdays" | "weekly" | "monthly" | "every-n-days";
 
 export interface Recurrence {
   type: RecurrenceType;
   enabled: boolean;
-  limit?: number; // undefined = forever; decrements on each auto-creation
+  limit?: number;    // undefined = forever; decrements on each auto-creation
+  interval?: number; // days interval for "every-n-days"
 }
 
 export interface Column {

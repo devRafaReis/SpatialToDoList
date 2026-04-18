@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-18T13:23:53.452Z",
+  "generatedAt": "2026-04-18T14:19:39.306Z",
   "totalFiles": 52,
   "files": [
     {
@@ -61,7 +61,7 @@
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 726
+      "linesOfCode": 751
     },
     {
       "path": "src/components/KanbanColumn.tsx",
@@ -77,7 +77,7 @@
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 539
+      "linesOfCode": 561
     },
     {
       "path": "src/components/SettingsDialog.tsx",
@@ -142,7 +142,7 @@
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 1292
+      "linesOfCode": 1297
     },
     {
       "path": "src/components/TaskDialog.tsx",
@@ -156,7 +156,7 @@
         "useTaskContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 642
+      "linesOfCode": 672
     },
     {
       "path": "src/components/ui/alert-dialog.tsx",
@@ -582,7 +582,7 @@
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 176
+      "linesOfCode": 177
     },
     {
       "path": "src/store/workspaceStore.tsx",
@@ -621,7 +621,7 @@
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 86
+      "linesOfCode": 88
     },
     {
       "path": "src/vite-env.d.ts",

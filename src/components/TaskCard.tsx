@@ -938,7 +938,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       ) : null;
                     })()}
                     {task.recurrence && (() => {
-                      const label: Record<string, string> = { daily: "daily", "daily-weekdays": "Mon–Fri", weekly: "weekly", monthly: "monthly" };
+                      const label: Record<string, string> = { daily: "daily", "daily-weekdays": "Mon–Fri", weekly: "weekly", monthly: "monthly", "every-n-days": `every ${task.recurrence.interval ?? 2}d` };
                       const limitStr = task.recurrence.limit !== undefined ? ` · ${task.recurrence.limit}×` : "";
                       return (
                         <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none ${
@@ -1194,7 +1194,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
 
               {/* Recurrence section */}
               {task.recurrence && (() => {
-                const typeLabel: Record<string, string> = { daily: "Daily (every day)", "daily-weekdays": "Daily (Mon–Fri)", weekly: "Weekly", monthly: "Monthly" };
+                const typeLabel: Record<string, string> = { daily: "Daily (every day)", "daily-weekdays": "Daily (Mon–Fri)", weekly: "Weekly", monthly: "Monthly", "every-n-days": `Every ${task.recurrence.interval ?? 2} days` };
                 const limitLabel = task.recurrence.limit !== undefined
                   ? `${task.recurrence.limit} repetition${task.recurrence.limit !== 1 ? "s" : ""} left`
                   : "Forever";

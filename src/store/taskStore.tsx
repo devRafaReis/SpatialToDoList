@@ -3,7 +3,7 @@ import { addDays, addWeeks, addMonths, parseISO, format, getDay } from "date-fns
 import { Task, TaskPriority, TaskStatus, ChecklistItem, Column, DEFAULT_COLUMNS, Recurrence, RecurrenceType } from "@/types/task";
 import { createWorkspaceStorage } from "@/services/taskStorage";
 
-function shiftDate(dateStr: string, type: RecurrenceType): string {
+function shiftDate(dateStr: string, type: RecurrenceType, interval?: number): string {
   const d = parseISO(dateStr);
   if (type === "daily") return format(addDays(d, 1), "yyyy-MM-dd");
   if (type === "daily-weekdays") {
@@ -11,6 +11,7 @@ function shiftDate(dateStr: string, type: RecurrenceType): string {
     while (getDay(next) === 0 || getDay(next) === 6) next = addDays(next, 1);
     return format(next, "yyyy-MM-dd");
   }
+  if (type === "every-n-days") return format(addDays(d, interval ?? 2), "yyyy-MM-dd");
   if (type === "weekly") return format(addWeeks(d, 1), "yyyy-MM-dd");
   return format(addMonths(d, 1), "yyyy-MM-dd");
 }
@@ -26,8 +27,8 @@ function buildNextOccurrence(task: Task, firstBoardId: string): Task | null {
     order: Date.now() + 1,
     createdAt: now,
     updatedAt: now,
-    startDate: task.startDate ? shiftDate(task.startDate, rec.type) : undefined,
-    endDate:   task.endDate   ? shiftDate(task.endDate,   rec.type) : undefined,
+    startDate: task.startDate ? shiftDate(task.startDate, rec.type, rec.interval) : undefined,
+    endDate:   task.endDate   ? shiftDate(task.endDate,   rec.type, rec.interval) : undefined,
     checklist: task.checklist?.map((i) => ({ ...i, done: false })),
     recurrence: { ...rec, limit: rec.limit !== undefined ? rec.limit - 1 : undefined },
   };

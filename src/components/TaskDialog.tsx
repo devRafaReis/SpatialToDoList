@@ -167,6 +167,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
   const [newItemText, setNewItemText]           = useState("");
   const [recurrenceEnabled, setRecurrenceEnabled]     = useState(false);
   const [recurrenceType, setRecurrenceType]           = useState<RecurrenceType>("weekly");
+  const [recurrenceInterval, setRecurrenceInterval]   = useState("2");
   const [recurrenceLimitType, setRecurrenceLimitType] = useState<"forever" | "count">("forever");
   const [recurrenceLimitCount, setRecurrenceLimitCount] = useState("3");
   const [recurrenceOpen, setRecurrenceOpen]           = useState(false);
@@ -212,6 +213,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     setNewItemText("");
     setRecurrenceEnabled(task?.recurrence?.enabled ?? false);
     setRecurrenceType(task?.recurrence?.type ?? "weekly");
+    setRecurrenceInterval(task?.recurrence?.interval?.toString() ?? "2");
     setRecurrenceLimitType(task?.recurrence?.limit !== undefined ? "count" : "forever");
     setRecurrenceLimitCount(task?.recurrence?.limit?.toString() ?? "3");
     setPlanningOpen(!!(task?.estimatedHours || task?.estimatedMinutes || task?.startDate || task?.startTime || task?.endDate || task?.endTime));
@@ -243,7 +245,12 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
       ? Math.max(1, parseInt(recurrenceLimitCount, 10))
       : undefined;
     const recurrence: Recurrence | undefined = recurrenceOpen
-      ? { type: recurrenceType, enabled: recurrenceEnabled, limit: limitVal }
+      ? {
+          type: recurrenceType,
+          enabled: recurrenceEnabled,
+          limit: limitVal,
+          interval: recurrenceType === "every-n-days" ? Math.max(1, parseInt(recurrenceInterval) || 2) : undefined,
+        }
       : undefined;
     onSave(
       title.trim(),
@@ -537,7 +544,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
               <RefreshCw className="h-3.5 w-3.5 shrink-0" />
               Recurrence
               {recurrenceOpen && (() => {
-                const typeLabel: Record<string, string> = { daily: "daily", "daily-weekdays": "Mon–Fri", weekly: "weekly", monthly: "monthly" };
+                const typeLabel: Record<string, string> = { daily: "daily", "daily-weekdays": "Mon–Fri", weekly: "weekly", monthly: "monthly", "every-n-days": `every ${recurrenceInterval}d` };
                 const limitLabel = recurrenceLimitType === "count" && recurrenceLimitCount ? ` · ${recurrenceLimitCount}×` : recurrenceLimitType === "forever" ? " · ∞" : "";
                 return (
                   <span className={`ml-1 text-[10px] ${recurrenceEnabled ? "text-primary/70" : "text-muted-foreground/50"}`}>
@@ -574,8 +581,24 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                       <SelectItem value="daily-weekdays">Daily (Mon – Fri)</SelectItem>
                       <SelectItem value="weekly">Weekly</SelectItem>
                       <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="every-n-days">Every X days</SelectItem>
                     </SelectContent>
                   </Select>
+                  {recurrenceType === "every-n-days" && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-[11px] text-muted-foreground">Every</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={recurrenceInterval}
+                        onChange={(e) => setRecurrenceInterval(e.target.value)}
+                        disabled={!recurrenceEnabled}
+                        className="w-16 rounded-md border border-border/40 bg-background px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
+                      />
+                      <span className="text-[11px] text-muted-foreground">days</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Repetitions */}

@@ -603,7 +603,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
 
 ```json
 {
-  "generatedAt": "2026-04-18T13:23:53.452Z",
+  "generatedAt": "2026-04-18T14:19:39.306Z",
   "totalFiles": 52,
   "files": [
     {
@@ -665,7 +665,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 726
+      "linesOfCode": 751
     },
     {
       "path": "src/components/KanbanColumn.tsx",
@@ -681,7 +681,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 539
+      "linesOfCode": 561
     },
     {
       "path": "src/components/SettingsDialog.tsx",
@@ -746,7 +746,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 1292
+      "linesOfCode": 1297
     },
     {
       "path": "src/components/TaskDialog.tsx",
@@ -760,7 +760,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useTaskContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 642
+      "linesOfCode": 672
     },
     {
       "path": "src/components/ui/alert-dialog.tsx",
@@ -1186,7 +1186,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 176
+      "linesOfCode": 177
     },
     {
       "path": "src/store/workspaceStore.tsx",
@@ -1225,7 +1225,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 86
+      "linesOfCode": 88
     },
     {
       "path": "src/vite-env.d.ts",

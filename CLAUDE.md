@@ -92,6 +92,7 @@ interface Task {
   startDate?: string;      // "yyyy-MM-dd"
   startTime?: string;      // "HH:mm"
   endDate?: string;        // "yyyy-MM-dd"
+  endTime?: string;        // "HH:mm"
   checklist?: ChecklistItem[];
   recurrence?: Recurrence;
   createdAt: string;
@@ -103,16 +104,46 @@ When adding fields to `Task`, also update: `addTask` + `updateTask` signatures i
 
 ### Recurrence
 
-`Recurrence = { type: "daily" | "daily-weekdays" | "weekly" | "monthly", enabled: boolean, limit?: number }`.
+```ts
+type RecurrenceType = "daily" | "daily-weekdays" | "weekly" | "monthly" | "every-n-days";
+interface Recurrence {
+  type: RecurrenceType;
+  enabled: boolean;
+  limit?: number;    // undefined = forever; decrements on each auto-creation
+  interval?: number; // days between occurrences — only used when type === "every-n-days"
+}
+```
 
 Trigger: task moved to the **last board** (by position). `buildNextOccurrence` in `taskStore.tsx` shifts dates, resets checklist, decrements `limit`. Returns `null` when `limit === 0` (no new task created).
+
+For `"every-n-days"`, `shiftDate` uses `addDays(d, interval ?? 2)`. The user sets the interval via a numeric input in TaskDialog's Recurrence section.
 
 ### TaskDialog sections
 
 The dialog has three collapsible sections — all follow the same pattern (`rounded-md border border-border/40 bg-muted/20` container with chevron toggle):
-1. **Planning** — estimated time (single input, formats: `1h30m`, `90m`, `1.5h`, `1:30`), date range (start date + start time picker, end date), parsed on blur
+1. **Planning** — estimated time (single input, formats: `1h30m`, `90m`, `1.5h`, `1:30`), date range (start date + start time picker, end date + end time picker), parsed on blur
 2. **Checklist** — list of `ChecklistItem` with inline add/delete
-3. **Recurrence** — type, enabled toggle, optional limit
+3. **Recurrence** — type select (includes "Every X days" with custom interval input), enabled toggle, optional limit
+
+#### Time picker scrolling
+Time picker columns use `overflow-y-scroll` + `onWheel={(e) => e.stopPropagation()}` to prevent Radix Popover from capturing wheel events.
+
+### Mobile UX patterns
+
+- Action buttons that should be hidden on desktop until hover but always visible on mobile use `sm:opacity-0 group-hover:opacity-100` (not `opacity-0 group-hover:opacity-100`).
+- Card actions are consolidated in a single `⋯` (`MoreHorizontal`) `DropdownMenu` button (28px) so they never push card content when visible. The Draggable root must NOT have `mb-2` — use `gap-2` on the Droppable container instead.
+- Adding a new board opens a Dialog on mobile instead of an inline input in the header to avoid layout breakage.
+
+### Drag-and-drop (DnD) layout rules
+
+Use `gap-2` on the Droppable vertical container. Do **not** put `mb-2` on the Draggable root element — bottom margin is invisible to `@hello-pangea/dnd` position calculations and causes cards to jump when dragged.
+
+### Per-column sort
+
+`KanbanColumn` accepts `onSortTasks: (sort: "priority" | "date") => void`. `KanbanBoard.handleSortTasks` sorts the column's tasks and calls `reorderTasks(columnId, sortedIds)` to persist the new order.
+
+Priority order: `critical(0) > high(1) > medium(2) > low(3) > none(4)`.
+Date sort: ascending by `startDate` then `startTime`; tasks without a date go last.
 
 ### UI stack
 

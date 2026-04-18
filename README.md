@@ -6,11 +6,14 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 
 ### Tarefas
 - Criar, editar e excluir tarefas com título, descrição e prioridade (Baixa / Média / Alta / Crítica)
-- **Planejamento:** tempo estimado (input único — aceita `1h30m`, `90m`, `1.5h`, `1:30`), data de início com hora, data de vencimento
+- **Planejamento:** tempo estimado (input único — aceita `1h30m`, `90m`, `1.5h`, `1:30`), data de início com hora, data de vencimento com hora final
 - **Checklist:** subitens interativos com barra de progresso, expansíveis diretamente no card
-- **Recorrência:** diária (todos os dias), diária (Seg–Sex), semanal ou mensal — com limite de repetições ou sem fim; ao mover para o último board, uma nova cópia é criada automaticamente com as datas deslocadas
+- **Recorrência:** diária, diária (Seg–Sex), semanal, mensal ou **a cada X dias** (intervalo configurável) — com limite de repetições ou sem fim; ao mover para o último board, uma nova cópia é criada automaticamente com as datas deslocadas
 - Drag-and-drop entre boards e reordenação dentro do mesmo board
+- **Reordenar cards por prioridade ou por data** em cada board individualmente
 - Mover tarefa via menu de contexto com efeito de portal animado
+- **Duplo clique** no card abre modo de visualização; atalho de edição disponível dentro da visualização
+- Menu de ações `⋯` no card — sempre visível no mobile, aparece ao passar o mouse no desktop
 
 ### Boards
 - Criar, renomear e excluir boards customizados (além dos padrões: To Do, Doing, Done)
@@ -18,6 +21,7 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Reordenar boards via drag-and-drop
 - Minimizar/expandir boards individualmente
 - Board se expande automaticamente ao criar uma tarefa dentro dele enquanto está minimizado
+- Criação de novo board via Dialog (não quebra o layout no mobile)
 
 ### Workspaces
 - Múltiplos workspaces independentes (ex.: pessoal, profissional)
