@@ -90,19 +90,21 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
     cloudLoadDoneRef.current = false;
     Promise.all([fetchTasks(userId, workspaceId), fetchBoards(userId, workspaceId)])
       .then(([cloudTasks, cloudBoards]) => {
-        if (cloudTasks.length === 0 && cloudBoards.length === 0) {
-          // First time for this workspace — migrate local data to Supabase
-          const localTasks  = storage.getTasks();
-          const localBoards = storage.getBoards();
-          syncBoards(userId, workspaceId, localBoards).catch(console.error);
-          if (localTasks.length > 0) upsertTasks(userId, workspaceId, localTasks).catch(console.error);
-          // Keep current localStorage state as-is
+        if (cloudBoards.length > 0) {
+          setBoards(cloudBoards);
+          storage.saveBoards(cloudBoards);
         } else {
-          const newBoards = cloudBoards.length > 0 ? cloudBoards : boards;
-          setBoards(newBoards);
+          // No boards in cloud — migrate local boards
+          syncBoards(userId, workspaceId, storage.getBoards()).catch(console.error);
+        }
+
+        if (cloudTasks.length > 0) {
           setTasks(cloudTasks);
-          storage.saveBoards(newBoards);
           storage.saveTasks(cloudTasks);
+        } else {
+          // No tasks in cloud — migrate local tasks (keep localStorage state as-is)
+          const localTasks = storage.getTasks();
+          if (localTasks.length > 0) upsertTasks(userId, workspaceId, localTasks).catch(console.error);
         }
         cloudLoadDoneRef.current = true;
       })
