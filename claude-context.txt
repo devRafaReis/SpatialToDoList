@@ -603,8 +603,8 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
 
 ```json
 {
-  "generatedAt": "2026-04-18T20:14:16.097Z",
-  "totalFiles": 57,
+  "generatedAt": "2026-04-18T21:17:54.854Z",
+  "totalFiles": 58,
   "files": [
     {
       "path": "src/App.tsx",
@@ -1170,7 +1170,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useAuth"
       ],
       "apiCalls": [],
-      "linesOfCode": 17
+      "linesOfCode": 18
     },
     {
       "path": "src/pages/NotFound.tsx",
@@ -1189,7 +1189,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       "exports": [],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 185
+      "linesOfCode": 205
     },
     {
       "path": "src/services/taskStorage.ts",
@@ -1213,7 +1213,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 155
+      "linesOfCode": 158
     },
     {
       "path": "src/store/settingsStore.tsx",
@@ -1232,21 +1232,30 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       "linesOfCode": 125
     },
     {
+      "path": "src/store/taskContext.ts",
+      "exports": [
+        "TaskContext",
+        "useTaskContext"
+      ],
+      "hooks": [
+        "useContext"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 32
+    },
+    {
       "path": "src/store/taskStore.tsx",
       "exports": [
-        "useTaskContext",
         "TaskProvider"
       ],
       "hooks": [
-        "useContext",
         "useMemo",
         "useState",
-        "useRef",
         "useEffect",
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 308
+      "linesOfCode": 272
     },
     {
       "path": "src/store/workspaceStore.tsx",

@@ -54,10 +54,12 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Na primeira vez que logar, dados locais são migrados automaticamente para a nuvem
 - **Allowlist de acesso:** somente emails autorizados conseguem entrar; outros usuários podem enviar uma solicitação de acesso diretamente pelo app
 - Ao deslogar, o app volta ao modo guest com os dados locais
+- **Indicador de sync** no cabeçalho — mostra status em tempo real e permite forçar sincronização manual
 
 ### Persistência
 - **Guest:** dados salvos automaticamente em `localStorage` por workspace
 - **Logado:** `localStorage` como cache + Supabase como fonte de verdade
+- Toda ação (criar, editar, deletar, reordenar) dispara sincronização automática com debounce de 600ms
 - Configurações sincronizadas com a nuvem quando logado; salvas em `spatialTodo_*` localmente
 
 ---
@@ -112,7 +114,8 @@ src/
   types/task.ts              # Task, TaskStatus, TaskPriority, Recurrence, Workspace, PRIORITIES
   store/
     authStore.tsx            # Auth context — Google OAuth popup, allowlist, accessDenied
-    taskStore.tsx            # Context + CRUD + drag-drop + recorrência + sync Supabase
+    taskContext.ts           # TaskContextValue, TaskContext, useTaskContext
+    taskStore.tsx            # TaskProvider — CRUD + drag-drop + recorrência + sync Supabase
     settingsStore.tsx        # Configurações globais + sync Supabase
     workspaceStore.tsx       # Workspaces CRUD + migração + sync Supabase
   services/
@@ -125,7 +128,7 @@ src/
     KanbanColumn.tsx         # Board droppable + animações de criação/exclusão + collapse
     TaskCard.tsx             # Card draggable + checklist inline + badge de recorrência + canvas
     TaskDialog.tsx           # Modal criação/edição (planejamento, checklist, recorrência)
-    Header.tsx               # WorkspaceSwitcher + AuthButton + SettingsDialog
+    Header.tsx               # WorkspaceSwitcher + SyncButton + AuthButton + SettingsDialog
     AccessRequestDialog.tsx  # Dialog para usuários não autorizados solicitarem acesso
     FilterPopover.tsx        # Popover de filtros (prioridade, board, datas)
     WorkspaceSwitcher.tsx    # Seletor de workspace com CRUD
@@ -177,4 +180,5 @@ O projeto utiliza Supabase como backend. A configuração do banco de dados (sch
 
 Para rodar o projeto você precisará de um projeto Supabase próprio com:
 - Google OAuth configurado em Authentication → Providers
-- As variáveis de ambiente/credenciais configuradas em `src/lib/supabase.ts`
+- As variáveis de ambiente definidas em `.env` (use `.env.example` como base)
+- Schema do banco criado conforme documentado internamente em `CLAUDE.md`

@@ -41,22 +41,24 @@ App.tsx
       SettingsProvider (src/store/settingsStore.tsx)
         TooltipProvider
           BrowserRouter
-            Index.tsx → TaskProvider(key=workspaceId+userId, workspaceId, userId) → KanbanBoard
+            Index.tsx → TaskProvider(key=workspaceId+userId, workspaceId, workspaceName, userId) → KanbanBoard
 ```
 
 ### Data flow
 
 ```
 AuthProvider → user (Supabase session)
-  WorkspaceProvider → activeWorkspaceId
+  WorkspaceProvider → activeWorkspaceId + workspaceName
     → TaskProvider (key=activeWorkspaceId+userId — full remount on workspace/auth change)
           └── React Context: Task[] + Column[] + CRUD handlers
                 ├── guest: persists to localStorage via createWorkspaceStorage(workspaceId)
                 └── logged in: localStorage (cache) + Supabase (source of truth)
-                      └── cloud load on mount → debounced upsert on changes (600ms)
+                      └── cloud load on mount → full syncTasks on every change (600ms debounce)
 ```
 
 Components consume tasks via `useTaskContext()` → `useTasks()` hook which returns tasks grouped by status.
+
+`useTaskContext` lives in `src/store/taskContext.ts` (separate from `taskStore.tsx`) to satisfy Vite Fast Refresh — each file must export only React components or only hooks, not both.
 
 Settings persist under `spatialTodo_*` keys locally and in `public.settings` table in Supabase when logged in. Workspace list persists under `spatialTodo_workspaces` / `spatialTodo_activeWorkspace` locally and in `public.workspaces` table when logged in.
 
@@ -66,7 +68,8 @@ Settings persist under `spatialTodo_*` keys locally and in `public.settings` tab
 |---|---|
 | `src/lib/supabase.ts` | Supabase client singleton (anon key — safe for frontend) |
 | `src/store/authStore.tsx` | Auth context — Google OAuth popup, allowlist check, `accessDenied` state |
-| `src/store/taskStore.tsx` | Task + board state, CRUD, drag-drop handlers, recurrence, cloud sync |
+| `src/store/taskContext.ts` | `TaskContextValue` interface, `TaskContext`, `useTaskContext` hook |
+| `src/store/taskStore.tsx` | `TaskProvider` only — task + board state, CRUD, drag-drop, recurrence, cloud sync |
 | `src/store/settingsStore.tsx` | Animations, light mode, board layout, checklist defaults + Supabase sync |
 | `src/store/workspaceStore.tsx` | Workspace list, active workspace, legacy migration, Supabase sync |
 | `src/services/taskStorage.ts` | `createWorkspaceStorage(id): TaskStorageService` — localStorage layer |
@@ -77,7 +80,7 @@ Settings persist under `spatialTodo_*` keys locally and in `public.settings` tab
 | `src/components/KanbanColumn.tsx` | Each board column (`Droppable`) + collapse + creation/deletion animations |
 | `src/components/TaskCard.tsx` | Individual card (`Draggable`) + inline checklist + recurrence badge + canvas fx |
 | `src/components/TaskDialog.tsx` | Create/edit task modal — planning, checklist, recurrence sections |
-| `src/components/Header.tsx` | WorkspaceSwitcher + SettingsDialog + AuthButton |
+| `src/components/Header.tsx` | WorkspaceSwitcher + SyncButton + AuthButton + SettingsDialog |
 | `src/components/AccessRequestDialog.tsx` | Dialog for non-allowed users to request access |
 | `src/components/FilterPopover.tsx` | Filter UI (priority, board, start/end date ranges) |
 | `src/components/WorkspaceSwitcher.tsx` | Workspace dropdown with CRUD and deletion confirmation |
@@ -159,13 +162,28 @@ Date sort: ascending by `startDate` then `startTime`; tasks without a date go la
 - After login, `authStore` checks `public.allowed_emails` table; if not found, signs the user out, sets `accessDenied = true`, and opens `AccessRequestDialog` automatically
 - `accessDenied` auto-clears after 10 seconds
 - Popup detects it's an OAuth callback via `window.opener` and closes itself once session is ready
+- Popup monitoring uses `window.addEventListener("focus")` on the parent window — **not** `popup.closed` polling, which is blocked by Google's `Cross-Origin-Opener-Policy` headers
 
 **Storage modes:**
 - Guest (no user): localStorage only — identical to pre-Supabase behavior
 - Logged in: localStorage as cache + Supabase as source of truth
-  - On workspace mount: fetch from Supabase; if empty → migrate local data (first login)
-  - On changes: localStorage saves immediately; Supabase syncs via 600ms debounce
-  - Deleted task IDs are tracked in `pendingDeletesRef` and removed from Supabase on next sync
+  - On workspace mount: fetch from Supabase
+    - Both boards and tasks empty → first login → migrate from localStorage
+    - Boards exist but tasks empty → intentional delete → `setTasks([])`
+    - Tasks exist → merge cloud tasks with any local-only tasks not yet synced
+  - On every change (add, edit, delete, reorder): localStorage saves immediately; `syncTasks` runs after 600ms debounce
+  - `syncTasks` = delete all workspace tasks in Supabase + re-insert current state (same as `syncBoards`)
+  - `cloudLoadDone` is React state (not a ref) so debounced effects always re-run after cloud load completes, even on fetch error
+
+**Sync status:**
+- `syncStatus: "idle" | "syncing" | "error"` exposed via `useTaskContext()`
+- `SyncButton` in Header shows current status (Cloud / RefreshCw spinning / CloudOff) — click triggers `forceSyncNow`
+- Errors shown in tooltip
+
+**Task `order` field:**
+- Stored as `bigint` in Supabase (requires `alter table public.tasks alter column "order" type bigint`)
+- New tasks use `Math.floor(Date.now() / 1000)` (seconds) to fit safely in the column
+- `taskToDb` in `supabaseStorage.ts` converts any legacy ms-based order values automatically
 
 **Database tables (`public` schema, all with RLS):**
 
@@ -173,19 +191,14 @@ Date sort: ascending by `startDate` then `startTime`; tasks without a date go la
 |---|---|
 | `workspaces` | User workspaces (`id`, `user_id`, `name`) |
 | `boards` | Columns per workspace (`id`, `workspace_id`, `user_id`, `title`, `position`) |
-| `tasks` | All task fields; `order` is `bigint` (stores `Date.now()`) |
+| `tasks` | All task fields; `order` is `bigint` |
 | `settings` | One row per user with all settings fields |
 | `allowed_emails` | Allowlist — only emails here can log in |
 | `access_requests` | Pending access requests (`name`, `email`, unique constraint) |
 
-**RLS policy pattern (all tables):**
+**RLS policy pattern:**
 ```sql
-using (auth.uid() = user_id and exists (
-  select 1 from public.allowed_emails where email = auth.email()
-))
-with check (auth.uid() = user_id and exists (
-  select 1 from public.allowed_emails where email = auth.email()
-))
+create policy "owner" on public.<table> using (auth.uid() = user_id);
 ```
 
 **Admin operations:**
