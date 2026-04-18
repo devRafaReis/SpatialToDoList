@@ -1,6 +1,6 @@
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, PRIORITIES } from "@/types/task";
 import { Card, CardContent } from "@/components/ui/card";
@@ -664,6 +664,77 @@ const BlackHoleCanvas = ({ onComplete }: { onComplete: () => void }) => {
 };
 
 // ---------------------------------------------------------------------------
+// Reminder particles — white sparks that drift outward from the card edges.
+// Rendered in the Draggable wrapper (no overflow-hidden) so they're visible
+// outside the card bounds. Canvas extends PAD px beyond the card on all sides.
+// ---------------------------------------------------------------------------
+const REMINDER_PAD = 8;
+const ReminderParticles = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const parent = canvas.parentElement;
+    const w = (parent?.clientWidth  ?? 300) + REMINDER_PAD * 2;
+    const h = (parent?.clientHeight ?? 80)  + REMINDER_PAD * 2;
+    canvas.width  = w;
+    canvas.height = h;
+
+    type P = { x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; };
+    const parts: P[] = [];
+    let id: number;
+
+    const spawn = () => {
+      const edge = Math.floor(Math.random() * 4);
+      const speed   = 0.4 + Math.random() * 0.5;
+      const spread  = (Math.random() - 0.5) * 0.35;
+      const maxLife = 28 + Math.random() * 18;
+      let x: number, y: number, vx: number, vy: number;
+      if (edge === 0) { x = REMINDER_PAD + Math.random() * (w - REMINDER_PAD * 2); y = REMINDER_PAD;       vx = spread;  vy = -speed; }
+      else if (edge === 1) { x = REMINDER_PAD + Math.random() * (w - REMINDER_PAD * 2); y = h - REMINDER_PAD; vx = spread;  vy =  speed; }
+      else if (edge === 2) { x = REMINDER_PAD;       y = REMINDER_PAD + Math.random() * (h - REMINDER_PAD * 2); vx = -speed; vy = spread; }
+      else                 { x = w - REMINDER_PAD;   y = REMINDER_PAD + Math.random() * (h - REMINDER_PAD * 2); vx =  speed; vy = spread; }
+      parts.push({ x, y, vx, vy, life: maxLife, maxLife, size: 0.8 + Math.random() * 1.3 });
+    };
+
+    const tick = () => {
+      ctx.clearRect(0, 0, w, h);
+      if (Math.random() < 0.55) spawn();
+      for (const p of parts) {
+        p.x += p.vx; p.y += p.vy; p.life--;
+        const a = p.life / p.maxLife;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(0.1, p.size * a), 0, Math.PI * 2);
+        ctx.shadowColor = "rgba(255,255,255,0.9)";
+        ctx.shadowBlur  = 5;
+        ctx.fillStyle   = `rgba(255,255,255,${a * 0.9})`;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      let i = parts.length;
+      while (i--) { if (parts[i].life <= 0) parts.splice(i, 1); }
+      id = requestAnimationFrame(tick);
+    };
+
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute z-10"
+      style={{ top: -REMINDER_PAD, left: -REMINDER_PAD, borderRadius: "calc(var(--radius) + 4px)" }}
+    />
+  );
+};
+
+// ---------------------------------------------------------------------------
 // TaskCard
 // ---------------------------------------------------------------------------
 interface TaskCardProps {
@@ -683,6 +754,15 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
   const [viewOpen, setViewOpen] = useState(false);
   const [checklistExpanded, setChecklistExpanded] = useState(() => checklistExpandedByDefault);
   useEffect(() => { setChecklistExpanded(checklistExpandedByDefault); }, [checklistExpandedByDefault]);
+  const [currentTime, setCurrentTime] = useState(() => format(new Date(), "HH:mm"));
+  useEffect(() => {
+    const id = setInterval(() => setCurrentTime(format(new Date(), "HH:mm")), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const isReminderActive = useMemo(() => {
+    if (!task.startDate || !task.startTime || task.reminderDismissed) return false;
+    return task.startDate === format(new Date(), "yyyy-MM-dd") && task.startTime <= currentTime;
+  }, [task.startDate, task.startTime, task.reminderDismissed, currentTime]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTeleporting, setIsTeleporting] = useState(false);
   const [teleportDest, setTeleportDest] = useState<TaskStatus | null>(null);
@@ -784,6 +864,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
             className={`relative mb-2 ${isDeleting || isTeleporting ? "z-50" : ""}`}
           >
             <div ref={cardRef} className="absolute inset-0 pointer-events-none" />
+            {isReminderActive && animationsEnabled && <ReminderParticles />}
             {isPortalIn && animationsEnabled && entryPos && createPortal(
               <div style={{ position: "fixed", left: entryPos.x - 190, top: entryPos.y - 110, pointerEvents: "none", zIndex: 200 }}>
                 <PortalEntryCanvas />
@@ -822,7 +903,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                   : `transition-all duration-200 ${
                       snapshot.isDragging
                         ? "glass-drag scale-[1.02] z-50"
-                        : "glass hover:shadow-md hover:shadow-primary/10"
+                        : `glass hover:shadow-md hover:shadow-primary/10 ${isReminderActive ? "reminder-glow" : ""}`
                     }`
               }`}
               style={snapshot.isDragging && !isDeleting ? {
@@ -883,6 +964,23 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                     </Tooltip>
                   )}
                 </div>
+                {isReminderActive && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="Dismiss reminder"
+                        onClick={() => updateTask(task.id, { reminderDismissed: true })}
+                        className="shrink-0 h-7 w-7 flex items-center justify-center text-white/80 hover:text-white transition-colors"
+                      >
+                        <Rocket className="h-3.5 w-3.5 animate-pulse" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      Reminder at {task.startTime} — click to dismiss
+                    </TooltipContent>
+                  </Tooltip>
+                )}
                 <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
                   <Tooltip>
                     <TooltipTrigger asChild>

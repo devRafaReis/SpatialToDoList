@@ -23,6 +23,7 @@ export interface Task {
   startDate?: string;
   startTime?: string;
   endDate?: string;
+  reminderDismissed?: boolean;
   checklist?: ChecklistItem[];
   recurrence?: Recurrence;
 }

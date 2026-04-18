@@ -37,7 +37,7 @@ interface TaskContextValue {
   tasks: Task[];
   boards: Column[];
   addTask: (title: string, description: string, status?: TaskStatus, priority?: TaskPriority, estimatedHours?: number, estimatedMinutes?: number, startDate?: string, startTime?: string, endDate?: string, checklist?: ChecklistItem[], recurrence?: Recurrence) => string;
-  updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "startTime" | "endDate" | "checklist" | "recurrence">>) => void;
+  updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "startTime" | "endDate" | "checklist" | "recurrence" | "reminderDismissed">>) => void;
   deleteTask: (id: string) => void;
   deleteAllTasks: () => void;
   moveTask: (taskId: string, newStatus: TaskStatus, newOrder: number) => void;
@@ -85,7 +85,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; children: React.React
     return newTask.id;
   }, []);
 
-  const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "startTime" | "endDate" | "checklist" | "recurrence">>) => {
+  const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "startTime" | "endDate" | "checklist" | "recurrence" | "reminderDismissed">>) => {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t));
   }, []);
 
@@ -97,7 +97,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; children: React.React
       const task = prev.find((t) => t.id === taskId);
       const isLastBoard = boards.length > 0 && boards[boards.length - 1].id === newStatus;
       const shouldRecur = isLastBoard && task?.recurrence?.enabled;
-      const updated = prev.map((t) => t.id === taskId ? { ...t, status: newStatus, order: newOrder, updatedAt: new Date().toISOString() } : t);
+      const updated = prev.map((t) => t.id === taskId ? { ...t, status: newStatus, order: newOrder, updatedAt: new Date().toISOString(), reminderDismissed: true } : t);
       if (!shouldRecur) return updated;
       const next = buildNextOccurrence(task!, boards[0].id);
       return next ? [...updated, next] : updated;
@@ -121,7 +121,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; children: React.React
       const isLastBoard = boards.length > 0 && boards[boards.length - 1].id === destStatus;
       const shouldRecur = isLastBoard && task?.recurrence?.enabled;
       const updated = prev.map((t) => {
-        if (t.id === taskId) return { ...t, status: destStatus, order: destIndex, updatedAt: new Date().toISOString() };
+        if (t.id === taskId) return { ...t, status: destStatus, order: destIndex, updatedAt: new Date().toISOString(), reminderDismissed: true };
         if (t.status === destStatus) { const idx = destIds.indexOf(t.id); return idx >= 0 ? { ...t, order: idx } : t; }
         if (t.status === sourceStatus) { const idx = sourceIds.indexOf(t.id); return idx >= 0 ? { ...t, order: idx } : t; }
         return t;
