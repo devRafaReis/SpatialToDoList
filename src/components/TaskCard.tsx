@@ -981,7 +981,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
               {/* Planning footer — always rendered for uniform card height */}
               {(() => {
                 const hasTime    = task.estimatedHours != null || task.estimatedMinutes != null;
-                const hasDate    = !!(task.startDate || task.endDate);
+                const hasDate    = !!(task.startDate || task.startTime || task.endDate);
                 const hasPlanning = hasTime || hasDate;
                 const footer = (
                   <div className={`flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-1.5 min-h-[27px] cursor-default ${hasPlanning ? "border-t border-border/20" : ""}`}>
@@ -996,6 +996,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                         <CalendarRange className="h-2.5 w-2.5 shrink-0" />
                         {task.startDate ? format(parseISO(task.startDate), "MMM d") : "—"}
+                        {task.startTime ? ` ${task.startTime}` : ""}
                         {" → "}
                         {task.endDate ? format(parseISO(task.endDate), "MMM d") : "—"}
                       </span>
@@ -1018,6 +1019,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         <p className="flex items-center gap-1.5">
                           <CalendarRange className="h-3 w-3 shrink-0" />
                           {task.startDate ? format(parseISO(task.startDate), "MMM d, yyyy") : "—"}
+                          {task.startTime ? ` ${task.startTime}` : ""}
                           {" → "}
                           {task.endDate ? format(parseISO(task.endDate), "MMM d, yyyy") : "—"}
                         </p>
@@ -1112,7 +1114,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
               })()}
 
               {/* Planning section — always visible below description */}
-              {(task.estimatedHours != null || task.estimatedMinutes != null || task.startDate || task.endDate) && (
+              {(task.estimatedHours != null || task.estimatedMinutes != null || task.startDate || task.startTime || task.endDate) && (
                 <div className="space-y-2 rounded-md border border-border/40 bg-muted/20 p-3">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <CalendarRange className="h-3.5 w-3.5" />
@@ -1130,11 +1132,12 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       <span className="text-muted-foreground text-xs">estimated</span>
                     </div>
                   )}
-                  {(task.startDate || task.endDate) && (
+                  {(task.startDate || task.startTime || task.endDate) && (
                     <div className="flex items-center gap-2 text-sm">
                       <CalendarRange className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       <span className="text-foreground">
                         {task.startDate ? format(parseISO(task.startDate), "MMM d, yyyy") : "—"}
+                        {task.startTime ? ` ${task.startTime}` : ""}
                         {" → "}
                         {task.endDate ? format(parseISO(task.endDate), "MMM d, yyyy") : "—"}
                       </span>

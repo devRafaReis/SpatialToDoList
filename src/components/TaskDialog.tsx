@@ -27,6 +27,64 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
+const HOURS   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
+
+const TimePickerPopover = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const h = value ? value.split(":")[0] : "";
+  const m = value ? value.split(":")[1] : "";
+  const hourRef = useRef<HTMLDivElement>(null);
+  const minRef  = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setTimeout(() => {
+      hourRef.current?.querySelector<HTMLElement>('[data-sel="true"]')?.scrollIntoView({ block: "center" });
+      minRef.current?.querySelector<HTMLElement>('[data-sel="true"]')?.scrollIntoView({ block: "center" });
+    }, 50);
+  }, [open]);
+
+  const pick = (newH: string, newM: string) => onChange(`${newH}:${newM}`);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full justify-start gap-2 px-3 font-normal text-left">
+          <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          {value ? <span>{value}</span> : <span className="text-muted-foreground">Pick time</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-2" align="start">
+        <div className="flex gap-0">
+          <div ref={hourRef} className="h-44 w-12 overflow-y-auto space-y-0.5 pr-1">
+            {HOURS.map((hh) => (
+              <button key={hh} type="button" data-sel={hh === h ? "true" : undefined}
+                onClick={() => pick(hh, m || "00")}
+                className={`w-full rounded px-1.5 py-1 text-sm text-center transition-colors ${hh === h ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`}
+              >{hh}</button>
+            ))}
+          </div>
+          <div className="w-px bg-border/40 mx-1" />
+          <div ref={minRef} className="h-44 w-12 overflow-y-auto space-y-0.5 pl-1">
+            {MINUTES.map((mm) => (
+              <button key={mm} type="button" data-sel={mm === m ? "true" : undefined}
+                onClick={() => pick(h || "00", mm)}
+                className={`w-full rounded px-1.5 py-1 text-sm text-center transition-colors ${mm === m ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`}
+              >{mm}</button>
+            ))}
+          </div>
+        </div>
+        {value && (
+          <button type="button" onClick={() => { onChange(""); setOpen(false); }}
+            className="mt-2 w-full text-center text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >Clear</button>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 interface TaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,6 +98,7 @@ interface TaskDialogProps {
     estimatedHours?: number,
     estimatedMinutes?: number,
     startDate?: string,
+    startTime?: string,
     endDate?: string,
     checklist?: ChecklistItem[],
     recurrence?: Recurrence,
@@ -55,6 +114,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
   const [estimatedHours, setEstimatedHours]     = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState("");
   const [startDate, setStartDate]               = useState("");
+  const [startTime, setStartTime]               = useState("");
   const [endDate, setEndDate]                   = useState("");
   const [checklist, setChecklist]               = useState<ChecklistItem[]>([]);
   const [newItemText, setNewItemText]           = useState("");
@@ -99,6 +159,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     setEstimatedHours(task?.estimatedHours?.toString() ?? "");
     setEstimatedMinutes(task?.estimatedMinutes?.toString() ?? "");
     setStartDate(task?.startDate ?? "");
+    setStartTime(task?.startTime ?? "");
     setEndDate(task?.endDate ?? "");
     setChecklist(task?.checklist ? task.checklist.map((i) => ({ ...i })) : []);
     setNewItemText("");
@@ -106,7 +167,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     setRecurrenceType(task?.recurrence?.type ?? "weekly");
     setRecurrenceLimitType(task?.recurrence?.limit !== undefined ? "count" : "forever");
     setRecurrenceLimitCount(task?.recurrence?.limit?.toString() ?? "3");
-    setPlanningOpen(!!(task?.estimatedHours || task?.estimatedMinutes || task?.startDate || task?.endDate));
+    setPlanningOpen(!!(task?.estimatedHours || task?.estimatedMinutes || task?.startDate || task?.startTime || task?.endDate));
     setChecklistOpen(!!(task?.checklist && task.checklist.length > 0));
     setRecurrenceOpen(!!task?.recurrence);
   }, [open, task]);
@@ -145,6 +206,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
       hrs,
       min,
       startDate || undefined,
+      startTime || undefined,
       endDate || undefined,
       checklist.length > 0 ? checklist : undefined,
       recurrence,
@@ -241,11 +303,12 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
             >
               <CalendarRange className="h-3.5 w-3.5 shrink-0" />
               Planning (optional)
-              {!planningOpen && (estimatedHours || estimatedMinutes || startDate || endDate) && (
+              {!planningOpen && (estimatedHours || estimatedMinutes || startDate || startTime || endDate) && (
                 <span className="ml-1 text-[10px] text-primary/70">
                   {[estimatedHours && `${estimatedHours}h`, estimatedMinutes && `${estimatedMinutes}m`].filter(Boolean).join(" ")}
                   {(startDate || endDate) && (estimatedHours || estimatedMinutes) ? " · " : ""}
                   {startDate && format(parseISO(startDate), "MMM d")}
+                  {startDate && startTime ? ` ${startTime}` : ""}
                   {startDate && endDate ? " → " : ""}
                   {endDate && format(parseISO(endDate), "MMM d")}
                 </span>
@@ -315,6 +378,9 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                           />
                         </PopoverContent>
                       </Popover>
+                      <div className="mt-1">
+                        <TimePickerPopover value={startTime} onChange={setStartTime} />
+                      </div>
                     </div>
                     <div className="flex-1 space-y-0.5">
                       <p className="text-[10px] text-muted-foreground/60">End</p>

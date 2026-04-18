@@ -21,6 +21,7 @@ export interface Task {
   estimatedHours?: number;
   estimatedMinutes?: number;
   startDate?: string;
+  startTime?: string;
   endDate?: string;
   checklist?: ChecklistItem[];
   recurrence?: Recurrence;

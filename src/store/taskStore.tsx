@@ -36,8 +36,8 @@ function buildNextOccurrence(task: Task, firstBoardId: string): Task | null {
 interface TaskContextValue {
   tasks: Task[];
   boards: Column[];
-  addTask: (title: string, description: string, status?: TaskStatus, priority?: TaskPriority, estimatedHours?: number, estimatedMinutes?: number, startDate?: string, endDate?: string, checklist?: ChecklistItem[], recurrence?: Recurrence) => string;
-  updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "endDate" | "checklist" | "recurrence">>) => void;
+  addTask: (title: string, description: string, status?: TaskStatus, priority?: TaskPriority, estimatedHours?: number, estimatedMinutes?: number, startDate?: string, startTime?: string, endDate?: string, checklist?: ChecklistItem[], recurrence?: Recurrence) => string;
+  updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "startTime" | "endDate" | "checklist" | "recurrence">>) => void;
   deleteTask: (id: string) => void;
   deleteAllTasks: () => void;
   moveTask: (taskId: string, newStatus: TaskStatus, newOrder: number) => void;
@@ -71,7 +71,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; children: React.React
     title: string, description: string,
     status?: TaskStatus, priority?: TaskPriority,
     estimatedHours?: number, estimatedMinutes?: number,
-    startDate?: string, endDate?: string, checklist?: ChecklistItem[],
+    startDate?: string, startTime?: string, endDate?: string, checklist?: ChecklistItem[],
     recurrence?: Recurrence,
   ) => {
     const now = new Date().toISOString();
@@ -79,13 +79,13 @@ export const TaskProvider: React.FC<{ workspaceId: string; children: React.React
       id: crypto.randomUUID(), title, description,
       status: status ?? "todo",
       priority, order: Date.now(), createdAt: now, updatedAt: now,
-      estimatedHours, estimatedMinutes, startDate, endDate, checklist, recurrence,
+      estimatedHours, estimatedMinutes, startDate, startTime, endDate, checklist, recurrence,
     };
     setTasks((prev) => [...prev, newTask]);
     return newTask.id;
   }, []);
 
-  const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "endDate" | "checklist" | "recurrence">>) => {
+  const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "startTime" | "endDate" | "checklist" | "recurrence">>) => {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t));
   }, []);
 
