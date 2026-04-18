@@ -937,15 +937,11 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         </span>
                       ) : null;
                     })()}
-                    {task.recurrence && (() => {
+                    {task.recurrence?.enabled && (() => {
                       const label: Record<string, string> = { daily: "daily", "daily-weekdays": "Mon–Fri", weekly: "weekly", monthly: "monthly", "every-n-days": `every ${task.recurrence.interval ?? 2}d` };
                       const limitStr = task.recurrence.limit !== undefined ? ` · ${task.recurrence.limit}×` : "";
                       return (
-                        <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none ${
-                          task.recurrence.enabled
-                            ? "bg-sky-500/15 text-sky-400 border-sky-500/30"
-                            : "bg-muted/30 text-muted-foreground border-border/30 opacity-60"
-                        }`}>
+                        <span className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none bg-sky-500/15 text-sky-400 border-sky-500/30">
                           <RefreshCw className="h-2 w-2" />
                           {(label[task.recurrence.type] ?? task.recurrence.type) + limitStr}
                         </span>
