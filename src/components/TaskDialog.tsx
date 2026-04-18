@@ -27,6 +27,52 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
+function parseEstimatedTime(input: string): { hours?: number; minutes?: number } {
+  const s = input.trim().toLowerCase().replace(/\s+/g, "");
+  if (!s) return {};
+  // "1h30m" or "1h30"
+  const hm = s.match(/^(\d+)h(\d+)m?$/);
+  if (hm) {
+    const h = parseInt(hm[1], 10);
+    const m = parseInt(hm[2], 10);
+    return { hours: h || undefined, minutes: m || undefined };
+  }
+  // "1h"
+  const hOnly = s.match(/^(\d+)h$/);
+  if (hOnly) return { hours: parseInt(hOnly[1], 10) || undefined };
+  // "30m" or "90m" (normalise to h+m)
+  const mOnly = s.match(/^(\d+)m$/);
+  if (mOnly) {
+    const total = parseInt(mOnly[1], 10);
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    return { hours: h || undefined, minutes: m || undefined };
+  }
+  // "1:30"
+  const colon = s.match(/^(\d+):(\d{1,2})$/);
+  if (colon) {
+    const h = parseInt(colon[1], 10);
+    const m = parseInt(colon[2], 10);
+    return { hours: h || undefined, minutes: m || undefined };
+  }
+  // "1.5" or "1.5h" (decimal hours)
+  const dec = s.match(/^(\d+\.?\d*)h?$/);
+  if (dec) {
+    const total = parseFloat(dec[1]);
+    const h = Math.floor(total);
+    const m = Math.round((total % 1) * 60);
+    return { hours: h || undefined, minutes: m || undefined };
+  }
+  return {};
+}
+
+function formatEstimatedTime(hours?: number, minutes?: number): string {
+  const parts: string[] = [];
+  if (hours) parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  return parts.join(" ");
+}
+
 const HOURS   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 
@@ -111,8 +157,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
   const [description, setDescription]           = useState("");
   const [status, setStatus]                     = useState<TaskStatus>("");
   const [priority, setPriority]                 = useState<TaskPriority | undefined>(undefined);
-  const [estimatedHours, setEstimatedHours]     = useState("");
-  const [estimatedMinutes, setEstimatedMinutes] = useState("");
+  const [estimatedTime, setEstimatedTime]       = useState("");
   const [startDate, setStartDate]               = useState("");
   const [startTime, setStartTime]               = useState("");
   const [endDate, setEndDate]                   = useState("");
@@ -156,8 +201,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     setDescription(task?.description ?? "");
     setStatus(task?.status ?? defaultStatus ?? boards[0]?.id ?? "");
     setPriority(task?.priority ?? undefined);
-    setEstimatedHours(task?.estimatedHours?.toString() ?? "");
-    setEstimatedMinutes(task?.estimatedMinutes?.toString() ?? "");
+    setEstimatedTime(formatEstimatedTime(task?.estimatedHours, task?.estimatedMinutes));
     setStartDate(task?.startDate ?? "");
     setStartTime(task?.startTime ?? "");
     setEndDate(task?.endDate ?? "");
@@ -168,6 +212,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     setRecurrenceLimitType(task?.recurrence?.limit !== undefined ? "count" : "forever");
     setRecurrenceLimitCount(task?.recurrence?.limit?.toString() ?? "3");
     setPlanningOpen(!!(task?.estimatedHours || task?.estimatedMinutes || task?.startDate || task?.startTime || task?.endDate));
+
     setChecklistOpen(!!(task?.checklist && task.checklist.length > 0));
     setRecurrenceOpen(!!task?.recurrence);
   }, [open, task]);
@@ -190,8 +235,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
 
   const handleSave = () => {
     if (!title.trim()) return;
-    const hrs = estimatedHours !== "" ? parseInt(estimatedHours, 10) : undefined;
-    const min = estimatedMinutes !== "" ? parseInt(estimatedMinutes, 10) : undefined;
+    const { hours: hrs, minutes: min } = parseEstimatedTime(estimatedTime);
     const limitVal = recurrenceLimitType === "count" && recurrenceLimitCount !== ""
       ? Math.max(1, parseInt(recurrenceLimitCount, 10))
       : undefined;
@@ -303,10 +347,10 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
             >
               <CalendarRange className="h-3.5 w-3.5 shrink-0" />
               Planning (optional)
-              {!planningOpen && (estimatedHours || estimatedMinutes || startDate || startTime || endDate) && (
+              {!planningOpen && (estimatedTime || startDate || startTime || endDate) && (
                 <span className="ml-1 text-[10px] text-primary/70">
-                  {[estimatedHours && `${estimatedHours}h`, estimatedMinutes && `${estimatedMinutes}m`].filter(Boolean).join(" ")}
-                  {(startDate || endDate) && (estimatedHours || estimatedMinutes) ? " · " : ""}
+                  {estimatedTime}
+                  {(startDate || endDate) && estimatedTime ? " · " : ""}
                   {startDate && format(parseISO(startDate), "MMM d")}
                   {startDate && startTime ? ` ${startTime}` : ""}
                   {startDate && endDate ? " → " : ""}
@@ -323,31 +367,24 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                   <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
                     <Clock className="h-3 w-3" /> Estimated time
                   </p>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        min={0}
-                        max={999}
-                        value={estimatedHours}
-                        onChange={(e) => setEstimatedHours(e.target.value)}
-                        className="pr-10"
-                      />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">h</span>
-                    </div>
-                    <div className="relative flex-1">
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        min={0}
-                        max={59}
-                        value={estimatedMinutes}
-                        onChange={(e) => setEstimatedMinutes(e.target.value)}
-                        className="pr-10"
-                      />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">m</span>
-                    </div>
+                  <div className="relative">
+                    <Input
+                      placeholder="e.g. 1h30m, 90m, 1.5h, 1:30"
+                      value={estimatedTime}
+                      onChange={(e) => setEstimatedTime(e.target.value)}
+                      onBlur={() => {
+                        const { hours, minutes } = parseEstimatedTime(estimatedTime);
+                        setEstimatedTime(formatEstimatedTime(hours, minutes));
+                      }}
+                      className="pr-8"
+                    />
+                    {estimatedTime && (
+                      <button
+                        type="button"
+                        onClick={() => setEstimatedTime("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground text-xs"
+                      >✕</button>
+                    )}
                   </div>
                 </div>
 
