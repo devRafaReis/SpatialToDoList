@@ -603,7 +603,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
 
 ```json
 {
-  "generatedAt": "2026-04-18T01:02:25.328Z",
+  "generatedAt": "2026-04-18T02:03:47.575Z",
   "totalFiles": 52,
   "files": [
     {
@@ -681,7 +681,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 529
+      "linesOfCode": 539
     },
     {
       "path": "src/components/SettingsDialog.tsx",
@@ -742,10 +742,11 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useSettings",
         "useTaskContext",
         "useState",
+        "useMemo",
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 1194
+      "linesOfCode": 1292
     },
     {
       "path": "src/components/TaskDialog.tsx",
@@ -1055,7 +1056,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useState"
       ],
       "apiCalls": [],
-      "linesOfCode": 174
+      "linesOfCode": 176
     },
     {
       "path": "src/hooks/use-mobile.tsx",
@@ -1224,7 +1225,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 85
+      "linesOfCode": 86
     },
     {
       "path": "src/vite-env.d.ts",

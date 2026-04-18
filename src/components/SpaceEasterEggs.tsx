@@ -1,11 +1,15 @@
 import { useEffect, useRef } from "react";
 
-type EffectType = "supernova" | "ufo" | "nebula" | "xwing";
+type EffectType = "supernova" | "ufo" | "nebula" | "xwing" | "astronaut" | "satellite";
 
 // ── Timing ────────────────────────────────────────────────────────────────────
 const TEST_MODE  = false;       // ← mude para false em produção
 const MIN_GAP_MS = TEST_MODE ? 3_000  : 60_000;
 const MAX_GAP_MS = TEST_MODE ? 6_000  : 180_000;
+
+// Nebulas têm timer próprio e aparecem com mais frequência, podendo coexistir com outros efeitos
+const NEBULA_MIN_GAP_MS = TEST_MODE ? 2_000  : 20_000;
+const NEBULA_MAX_GAP_MS = TEST_MODE ? 5_000  : 45_000;
 
 const SUPERNOVA_DURATION = 3200;
 const NEBULA_DURATION    = 7000;
@@ -82,8 +86,8 @@ function drawXWing(
 }
 
 // ── UFO ───────────────────────────────────────────────────────────────────────
-const UFO_SCALE      = 0.22; // ← ajuste o tamanho do disco voador
-const SUPERNOVA_SCALE = 0.22; // ← ajuste o tamanho da supernova
+const UFO_SCALE      = 0.17;
+const SUPERNOVA_SCALE = 0.17;
 
 function drawUFO(
   ctx: CanvasRenderingContext2D,
@@ -179,7 +183,6 @@ function drawSupernova(
   ctx.scale(SUPERNOVA_SCALE, SUPERNOVA_SCALE);
   ctx.translate(-cx, -cy);
 
-  // Fase 1 — Flash central (0–9%): branco puro com blend aditivo
   if (p < 0.09) {
     const t  = p / 0.09;
     const fr = 2 + t * 28;
@@ -198,13 +201,12 @@ function drawSupernova(
     ctx.restore();
   }
 
-  // Fase 2 — Shell expansivo colorido (5–88%)
   if (p > 0.05 && p < 0.90) {
     const sp    = Math.max(0, Math.min(1, (p - 0.05) / 0.83));
     const shellR = 6 + sp * 68;
     const fade  = p > 0.62 ? Math.max(0, 1 - (p - 0.62) / 0.38) : 1;
-    const hue   = 18 + sp * 22;       // laranja → amarelo conforme expande
-    const lit   = 88 - sp * 28;       // clareia no início, escurece no fim
+    const hue   = 18 + sp * 22;
+    const lit   = 88 - sp * 28;
     ctx.save();
     ctx.globalCompositeOperation = "screen";
     const shellG = ctx.createRadialGradient(cx, cy, shellR * 0.65, cx, cy, shellR * 1.35);
@@ -219,7 +221,6 @@ function drawSupernova(
     ctx.restore();
   }
 
-  // Fase 3 — Raios radiais / spikes (3–48%)
   if (p > 0.03 && p < 0.48) {
     const sp     = Math.min(1, (p - 0.03) / 0.45);
     const spikeA = (1 - sp) * 0.70;
@@ -246,11 +247,9 @@ function drawSupernova(
     ctx.restore();
   }
 
-  // Fase 4 — 48 partículas com trail (5–96%)
   if (p > 0.05 && p < 0.96) {
     const pp = Math.min(1, (p - 0.05) / 0.88);
     for (let i = 0; i < 48; i++) {
-      // "random" determinístico por índice
       const baseAngle  = (i / 48) * Math.PI * 2;
       const jitter     = ((i * 7 + 3) % 11) / 11 * 0.38 - 0.19;
       const angle      = baseAngle + jitter;
@@ -266,7 +265,6 @@ function drawSupernova(
       const py  = cy + Math.sin(angle) * dist;
       const tx  = cx + Math.cos(angle) * trailStart;
       const ty  = cy + Math.sin(angle) * trailStart;
-      // Trail
       const tg = ctx.createLinearGradient(tx, ty, px, py);
       tg.addColorStop(0, `hsla(${hue},100%,82%,0)`);
       tg.addColorStop(1, `hsla(${hue},100%,92%,${pA * 0.65})`);
@@ -276,7 +274,6 @@ function drawSupernova(
       ctx.strokeStyle = tg;
       ctx.lineWidth   = 0.7 + (i % 3) * 0.35;
       ctx.stroke();
-      // Cabeça
       ctx.beginPath();
       ctx.arc(px, py, 1.1 + (i % 4) * 0.45, 0, Math.PI * 2);
       ctx.fillStyle = `hsla(${hue},100%,94%,${pA})`;
@@ -284,7 +281,6 @@ function drawSupernova(
     }
   }
 
-  // Fase 5 — Glowing remnant (42–100%)
   if (p > 0.42) {
     const rp   = (p - 0.42) / 0.58;
     const remR = 18 + rp * 30;
@@ -344,18 +340,237 @@ function drawNebula(
   }
 }
 
+// ── Astronaut ─────────────────────────────────────────────────────────────────
+const ASTRONAUT_SCALE = 0.65; // ← ajuste o tamanho do astronauta
+
+function drawAstronaut(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number,
+  elapsed: number, alpha: number,
+) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.globalAlpha = alpha;
+  // Slow zero-g tumble
+  ctx.rotate(elapsed * 0.00022);
+
+  const SC = ASTRONAUT_SCALE;
+
+  // Jetpack thruster glow
+  const jPulse = 0.4 + 0.6 * Math.abs(Math.sin(elapsed * 0.007));
+  const jg = ctx.createRadialGradient(0, 11 * SC, 0, 0, 15 * SC, 9 * SC);
+  jg.addColorStop(0, `rgba(100,180,255,${jPulse * 0.65})`);
+  jg.addColorStop(1, "rgba(60,120,255,0)");
+  ctx.fillStyle = jg;
+  ctx.beginPath();
+  ctx.ellipse(0, 14 * SC, 4 * SC, 7 * SC, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Torso
+  ctx.fillStyle = "#e8e8e8";
+  ctx.beginPath();
+  ctx.roundRect(-6 * SC, -4 * SC, 12 * SC, 14 * SC, 3 * SC);
+  ctx.fill();
+
+  // PLSS backpack (slightly darker)
+  ctx.fillStyle = "#d0d0d0";
+  ctx.beginPath();
+  ctx.roundRect(-5 * SC, -2 * SC, 10 * SC, 8 * SC, 2 * SC);
+  ctx.fill();
+
+  // NASA-style patch (blue circle on chest)
+  ctx.fillStyle = "rgba(20,80,200,0.82)";
+  ctx.beginPath();
+  ctx.arc(-1 * SC, 2 * SC, 2.4 * SC, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  ctx.beginPath();
+  ctx.arc(-1 * SC, 2 * SC, 1.2 * SC, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Helmet
+  ctx.fillStyle = "#f0f0f0";
+  ctx.beginPath();
+  ctx.arc(0, -11 * SC, 8 * SC, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Visor
+  const vg = ctx.createRadialGradient(-2 * SC, -13 * SC, 1, 0, -11 * SC, 7 * SC);
+  vg.addColorStop(0, "rgba(200,235,255,0.95)");
+  vg.addColorStop(0.55, "rgba(80,160,230,0.88)");
+  vg.addColorStop(1, "rgba(40,90,180,0.55)");
+  ctx.fillStyle = vg;
+  ctx.beginPath();
+  ctx.arc(0, -11 * SC, 6 * SC, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Visor reflection glint
+  ctx.fillStyle = "rgba(255,255,255,0.38)";
+  ctx.beginPath();
+  ctx.ellipse(-1.5 * SC, -13.5 * SC, 2 * SC, 1.2 * SC, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Arms
+  ctx.fillStyle = "#dcdcdc";
+  ctx.beginPath();
+  ctx.roundRect(-11 * SC, -3 * SC, 5.5 * SC, 9 * SC, 2 * SC);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(5.5 * SC, -3 * SC, 5.5 * SC, 9 * SC, 2 * SC);
+  ctx.fill();
+
+  // Gloves
+  ctx.fillStyle = "#b8c8d0";
+  ctx.beginPath();
+  ctx.arc(-8 * SC, 7 * SC, 3 * SC, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(8 * SC, 7 * SC, 3 * SC, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs
+  ctx.fillStyle = "#dcdcdc";
+  ctx.beginPath();
+  ctx.roundRect(-5.5 * SC, 9 * SC, 4.5 * SC, 9 * SC, 2 * SC);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(1 * SC, 9 * SC, 4.5 * SC, 9 * SC, 2 * SC);
+  ctx.fill();
+
+  // Boots
+  ctx.fillStyle = "#b8b8b8";
+  ctx.beginPath();
+  ctx.roundRect(-6 * SC, 17 * SC, 5.5 * SC, 3.5 * SC, 1.5 * SC);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(0.5 * SC, 17 * SC, 5.5 * SC, 3.5 * SC, 1.5 * SC);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ── Satellite ─────────────────────────────────────────────────────────────────
+const SATELLITE_SCALE = 0.60; // ← ajuste o tamanho do satélite
+
+function drawSatellite(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number,
+  elapsed: number, alpha: number,
+  orbitAngle: number,
+) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.globalAlpha = alpha;
+  // Slow tumble
+  ctx.rotate(orbitAngle + elapsed * 0.00032);
+
+  const SC = SATELLITE_SCALE;
+
+  // Horizontal strut connecting solar panels
+  ctx.fillStyle = "#686878";
+  ctx.fillRect(-26 * SC, -1.5 * SC, 52 * SC, 3 * SC);
+
+  // Left solar panel
+  ctx.fillStyle = "#1a388a";
+  ctx.fillRect(-26 * SC, -6 * SC, 14 * SC, 12 * SC);
+  ctx.strokeStyle = "rgba(80,160,255,0.32)";
+  ctx.lineWidth   = 0.6;
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-26 * SC + i * 3.5 * SC, -6 * SC);
+    ctx.lineTo(-26 * SC + i * 3.5 * SC,  6 * SC);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(-26 * SC, 0); ctx.lineTo(-12 * SC, 0);
+  ctx.stroke();
+  // Solar sheen
+  const lSheen = 0.12 + 0.08 * Math.sin(elapsed * 0.0018 + 0.5);
+  ctx.fillStyle = `rgba(100,180,255,${lSheen})`;
+  ctx.fillRect(-26 * SC, -6 * SC, 14 * SC, 12 * SC);
+
+  // Right solar panel
+  ctx.fillStyle = "#1a388a";
+  ctx.fillRect(12 * SC, -6 * SC, 14 * SC, 12 * SC);
+  ctx.strokeStyle = "rgba(80,160,255,0.32)";
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(12 * SC + i * 3.5 * SC, -6 * SC);
+    ctx.lineTo(12 * SC + i * 3.5 * SC,  6 * SC);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(12 * SC, 0); ctx.lineTo(26 * SC, 0);
+  ctx.stroke();
+  const rSheen = 0.12 + 0.08 * Math.sin(elapsed * 0.0018 - 0.5);
+  ctx.fillStyle = `rgba(100,180,255,${rSheen})`;
+  ctx.fillRect(12 * SC, -6 * SC, 14 * SC, 12 * SC);
+
+  // Main satellite body
+  const bodyG = ctx.createLinearGradient(-6 * SC, -9 * SC, 6 * SC, 9 * SC);
+  bodyG.addColorStop(0,   "#c8c8d4");
+  bodyG.addColorStop(0.5, "#888898");
+  bodyG.addColorStop(1,   "#585868");
+  ctx.fillStyle = bodyG;
+  ctx.beginPath();
+  ctx.roundRect(-6 * SC, -9 * SC, 12 * SC, 18 * SC, 2.5 * SC);
+  ctx.fill();
+
+  // Body detail lines
+  ctx.strokeStyle = "rgba(200,200,220,0.28)";
+  ctx.lineWidth   = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(-5 * SC, -2 * SC); ctx.lineTo(5 * SC, -2 * SC);
+  ctx.moveTo(-5 * SC,  3 * SC); ctx.lineTo(5 * SC,  3 * SC);
+  ctx.stroke();
+
+  // Antenna mast
+  ctx.strokeStyle = "#8888a0";
+  ctx.lineWidth   = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(0, -9 * SC);
+  ctx.lineTo(0, -17 * SC);
+  ctx.stroke();
+
+  // Dish parabola
+  ctx.strokeStyle = "#b0b0c0";
+  ctx.lineWidth   = 1.6;
+  ctx.beginPath();
+  ctx.arc(0, -15 * SC, 5 * SC, Math.PI + 0.45, -0.45);
+  ctx.stroke();
+
+  // Dish center
+  ctx.fillStyle = "#c0c0d0";
+  ctx.beginPath();
+  ctx.arc(0, -15 * SC, 1.5 * SC, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Status LED (blinking red)
+  const blink = Math.sin(elapsed * 0.007) > 0.3;
+  ctx.shadowColor = blink ? "rgba(255,80,80,0.9)" : "transparent";
+  ctx.shadowBlur  = blink ? 5 : 0;
+  ctx.fillStyle   = blink ? "rgba(255,80,80,0.95)" : "rgba(255,80,80,0.22)";
+  ctx.beginPath();
+  ctx.arc(3.5 * SC, -4 * SC, 1.5 * SC, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.restore();
+}
+
 // ── Effect types ──────────────────────────────────────────────────────────────
-type BaseEff   = { type: EffectType; startTime: number; x: number; y: number };
-type UFOEff    = BaseEff & { type: "ufo";      startX: number; facingRight: boolean; speed: number; duration: number };
-type NovaEff   = BaseEff & { type: "supernova" };
-type NebEff    = BaseEff & { type: "nebula";   blobs: NebulaBlob[] };
-type XWingEff  = BaseEff & { type: "xwing";    startX: number; facingRight: boolean; speed: number; duration: number };
-type AnyEff    = UFOEff | NovaEff | NebEff | XWingEff;
+type BaseEff      = { type: EffectType; startTime: number; x: number; y: number };
+type UFOEff       = BaseEff & { type: "ufo";       startX: number; facingRight: boolean; speed: number; duration: number };
+type NovaEff      = BaseEff & { type: "supernova" };
+type NebEff       = BaseEff & { type: "nebula";    blobs: NebulaBlob[] };
+type XWingEff     = BaseEff & { type: "xwing";     startX: number; facingRight: boolean; speed: number; duration: number };
+type AstroEff     = BaseEff & { type: "astronaut"; startX: number; startY: number; dx: number; dy: number; speed: number; duration: number };
+type SatEff       = BaseEff & { type: "satellite"; startX: number; startY: number; dx: number; dy: number; speed: number; duration: number; orbitAngle: number };
+type AnyEff       = UFOEff | NovaEff | XWingEff | AstroEff | SatEff;
 
 const effectDuration = (e: AnyEff) => {
   if (e.type === "supernova") return SUPERNOVA_DURATION;
-  if (e.type === "nebula")    return NEBULA_DURATION;
-  return e.duration; // ufo e xwing calculam a própria duração
+  return (e as UFOEff).duration;
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -373,12 +588,25 @@ const SpaceEasterEggs = () => {
     let nextAt                      = -1;
     let lastType: EffectType | null = null;
 
+    // Nebula runs on its own independent timer, can overlap other effects
+    let nebula: NebEff | null = null;
+    let nebulaNextAt          = -1;
+
     const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
 
     const pickType = (): EffectType => {
-      const all: EffectType[] = ["supernova", "ufo", "nebula", "xwing"];
+      const all: EffectType[] = ["supernova", "ufo", "xwing", "astronaut", "satellite"];
       const pool = lastType ? all.filter((t) => t !== lastType) : all;
       return pool[Math.floor(Math.random() * pool.length)];
+    };
+
+    const nebulaNextGap = () => NEBULA_MIN_GAP_MS + Math.random() * (NEBULA_MAX_GAP_MS - NEBULA_MIN_GAP_MS);
+
+    const spawnNebula = (now: number) => {
+      const W = canvas.width;
+      const H = canvas.height;
+      const m = 130;
+      nebula = { type: "nebula", startTime: now, x: m + Math.random() * (W - 2 * m), y: m + Math.random() * (H - 2 * m), blobs: makeNebulaBlobs() };
     };
 
     const spawnFlyby = (type: "ufo" | "xwing", now: number): UFOEff | XWingEff => {
@@ -389,10 +617,45 @@ const SpaceEasterEggs = () => {
       const startX      = facingRight ? -margin : W + margin;
       const y           = H * 0.06 + Math.random() * H * 0.42;
       const speed       = type === "xwing"
-        ? 1.2 + Math.random() * 0.4   // X-Wing: rápido (px/ms)
-        : 0.095 + Math.random() * 0.055; // UFO: lento
+        ? 1.2 + Math.random() * 0.4
+        : 0.095 + Math.random() * 0.055;
       const duration    = (W + 2 * margin) / speed;
       return { type, startTime: now, x: 0, y, startX, facingRight, speed, duration };
+    };
+
+    // Spawns effects that can travel in any direction (horizontal, vertical, diagonal)
+    const spawnTraversal = (type: "astronaut" | "satellite", now: number): AstroEff | SatEff => {
+      const W      = canvas.width;
+      const H      = canvas.height;
+      const margin = 120;
+
+      const edgePoint = (edge: number) => {
+        switch (edge) {
+          case 0: return { x: -margin,     y: H * 0.1 + Math.random() * H * 0.8 }; // left
+          case 1: return { x: W + margin,  y: H * 0.1 + Math.random() * H * 0.8 }; // right
+          case 2: return { x: W * 0.1 + Math.random() * W * 0.8, y: -margin };      // top
+          default: return { x: W * 0.1 + Math.random() * W * 0.8, y: H + margin };  // bottom
+        }
+      };
+
+      const startEdge = Math.floor(Math.random() * 4);
+      const exitEdge  = [0, 1, 2, 3].filter((e) => e !== startEdge)[Math.floor(Math.random() * 3)];
+      const start     = edgePoint(startEdge);
+      const end       = edgePoint(exitEdge);
+      const dist      = Math.hypot(end.x - start.x, end.y - start.y);
+
+      const speed =
+        type === "astronaut" ? 0.055 + Math.random() * 0.03 :
+                               0.07  + Math.random() * 0.04;
+
+      const nx       = (end.x - start.x) / dist;
+      const ny       = (end.y - start.y) / dist;
+      const duration = dist / speed;
+      const base     = { startTime: now, x: 0, y: 0, startX: start.x, startY: start.y,
+                         dx: nx * speed, dy: ny * speed, speed, duration };
+
+      if (type === "satellite") return { ...base, type, orbitAngle: Math.random() * Math.PI * 2 };
+      return { ...base, type }; // astronaut
     };
 
     const spawnEffect = (now: number) => {
@@ -403,12 +666,11 @@ const SpaceEasterEggs = () => {
 
       if (type === "ufo" || type === "xwing") {
         effect = spawnFlyby(type, now);
+      } else if (type === "astronaut" || type === "satellite") {
+        effect = spawnTraversal(type, now);
       } else if (type === "supernova") {
         const m = 110;
         effect  = { type: "supernova", startTime: now, x: m + Math.random() * (W - 2 * m), y: m + Math.random() * (H * 0.68) };
-      } else {
-        const m = 130;
-        effect  = { type: "nebula", startTime: now, x: m + Math.random() * (W - 2 * m), y: m + Math.random() * (H - 2 * m), blobs: makeNebulaBlobs() };
       }
     };
 
@@ -416,6 +678,23 @@ const SpaceEasterEggs = () => {
 
     const draw = (time: number) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Nebula: independent timer, can coexist with other effects
+      if (nebulaNextAt === -1) nebulaNextAt = time + nebulaNextGap();
+      if (!nebula && time >= nebulaNextAt) spawnNebula(time);
+      if (nebula) {
+        const ne = nebula as NebEff;
+        const neElapsed  = time - ne.startTime;
+        const neProgress = neElapsed / NEBULA_DURATION;
+        if (neProgress >= 1) {
+          nebula = null;
+          nebulaNextAt = time + nebulaNextGap();
+        } else {
+          const fadeIn  = Math.min(1, neProgress / 0.10);
+          const fadeOut = neProgress > 0.86 ? Math.max(0, 1 - (neProgress - 0.86) / 0.14) : 1;
+          drawNebula(ctx, ne.x, ne.y, neElapsed, fadeIn * fadeOut, ne.blobs);
+        }
+      }
 
       if (nextAt === -1) nextAt = time + nextGap();
       if (!effect && time >= nextAt) spawnEffect(time);
@@ -430,10 +709,18 @@ const SpaceEasterEggs = () => {
           nextAt = time + nextGap();
         } else if (effect.type === "supernova") {
           drawSupernova(ctx, effect.x, effect.y, elapsed);
-        } else if (effect.type === "nebula") {
-          const fadeIn  = Math.min(1, progress / 0.10);
+        } else if (effect.type === "astronaut") {
+          const fadeIn  = Math.min(1, elapsed / 700);
           const fadeOut = progress > 0.86 ? Math.max(0, 1 - (progress - 0.86) / 0.14) : 1;
-          drawNebula(ctx, effect.x, effect.y, elapsed, fadeIn * fadeOut, effect.blobs);
+          const cx = effect.startX + effect.dx * elapsed;
+          const cy = effect.startY + effect.dy * elapsed;
+          drawAstronaut(ctx, cx, cy, elapsed, fadeIn * fadeOut);
+        } else if (effect.type === "satellite") {
+          const fadeIn  = Math.min(1, elapsed / 600);
+          const fadeOut = progress > 0.86 ? Math.max(0, 1 - (progress - 0.86) / 0.14) : 1;
+          const cx = effect.startX + effect.dx * elapsed;
+          const cy = effect.startY + effect.dy * elapsed;
+          drawSatellite(ctx, cx, cy, elapsed, fadeIn * fadeOut, effect.orbitAngle);
         } else {
           const fadeIn  = Math.min(1, elapsed / 380);
           const fadeOut = progress > 0.86 ? Math.max(0, 1 - (progress - 0.86) / 0.14) : 1;
