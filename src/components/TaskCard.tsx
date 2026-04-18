@@ -909,6 +909,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
               style={snapshot.isDragging && !isDeleting ? {
                 boxShadow: "0 0 0 2px hsla(265,60%,72%,0.5), 0 0 18px hsla(265,85%,75%,0.65), 0 0 45px hsla(265,80%,65%,0.3)"
               } : undefined}
+              onDoubleClick={() => !isDeleting && !isTeleporting && setViewOpen(true)}
             >
               {snapshot.isDragging && animationsEnabled && <DragParticles />}
               <CardContent className="flex items-start gap-2 p-3">
@@ -1136,9 +1137,26 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-lg md:max-w-xl rounded-lg flex flex-col" style={{ maxHeight: "min(90dvh, 520px)" }}>
           <DialogHeader className="space-y-2 shrink-0">
-            <DialogTitle className="text-base leading-snug break-all pr-6">
-              {task.title}
-            </DialogTitle>
+            <div className="flex items-start justify-between gap-2 pr-6">
+              <DialogTitle className="text-base leading-snug break-all flex-1">
+                {task.title}
+              </DialogTitle>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 text-accent-foreground/70 hover:text-primary -mt-0.5"
+                    onClick={() => { setViewOpen(false); onEdit(task); }}
+                    aria-label="Edit task"
+                    tabIndex={-1}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Edit task</TooltipContent>
+              </Tooltip>
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               {(() => {
                 const col = boards.find((c) => c.id === task.status);
