@@ -359,12 +359,22 @@ const KanbanColumn = ({
                 maxLength={20}
                 className="flex-1 min-w-0 bg-transparent border-b border-primary/60 text-sm font-semibold text-foreground outline-none py-0.5"
               />
-              <button onClick={commitRename} className="text-primary hover:text-primary/80 shrink-0">
-                <Check className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={cancelRename} className="text-muted-foreground hover:text-foreground shrink-0">
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button onClick={commitRename} className="rounded p-0.5 text-primary hover:text-primary/80 hover:bg-primary/15 transition-colors shrink-0" aria-label="Confirm rename">
+                    <Check className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Confirm</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button onClick={cancelRename} className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0" aria-label="Cancel rename">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Cancel</TooltipContent>
+              </Tooltip>
             </div>
           ) : (
             <h2

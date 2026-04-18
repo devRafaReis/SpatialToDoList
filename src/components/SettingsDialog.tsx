@@ -68,7 +68,7 @@ const SettingsDialog = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-7 w-7 ${boardLayout === "vertical" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                    className={`h-7 w-7 transition-colors ${boardLayout === "vertical" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent/60"}`}
                     onClick={() => setBoardLayout("vertical")}
                     aria-label="Vertical columns"
                     disabled={isMobile}
@@ -83,7 +83,7 @@ const SettingsDialog = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-7 w-7 ${boardLayout === "horizontal" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                    className={`h-7 w-7 transition-colors ${boardLayout === "horizontal" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent/60"}`}
                     onClick={() => setBoardLayout("horizontal")}
                     aria-label="Horizontal swimlane"
                     disabled={isMobile}

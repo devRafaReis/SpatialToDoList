@@ -96,7 +96,7 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
                   <button
                     key={p.id}
                     onClick={() => togglePriority(p.id)}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all ${p.badgeClass} ${
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all hover:scale-[1.05] hover:brightness-110 cursor-pointer ${p.badgeClass} ${
                       dimmed ? "opacity-30" : ""
                     } ${active ? "ring-1 ring-current ring-offset-1 ring-offset-background" : ""}`}
                   >
@@ -121,12 +121,12 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
                   <button
                     key={b.id}
                     onClick={() => toggleBoard(b.id)}
-                    className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-all ${
+                    className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
                       active
-                        ? "bg-primary/20 border-primary/50 text-primary ring-1 ring-primary/40 ring-offset-1 ring-offset-background"
+                        ? "bg-primary/20 border-primary/50 text-primary ring-1 ring-primary/40 ring-offset-1 ring-offset-background hover:bg-primary/30"
                         : dimmed
                         ? "border-border/30 text-muted-foreground opacity-30"
-                        : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
+                        : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground hover:bg-muted/40"
                     }`}
                   >
                     {b.title}

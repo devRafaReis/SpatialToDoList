@@ -88,17 +88,19 @@ const WorkspaceSwitcher = () => {
               <span className="flex-1 truncate">{ws.name}</span>
               <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
-                  className="rounded p-0.5 hover:bg-accent"
+                  className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   onClick={(e) => { e.stopPropagation(); openRename(ws.id, ws.name); }}
                   aria-label="Rename workspace"
+                  title="Rename"
                 >
                   <Pencil className="h-3 w-3" />
                 </button>
                 {workspaces.length > 1 && (
                   <button
-                    className="rounded p-0.5 hover:bg-destructive/20 hover:text-destructive"
+                    className="rounded p-0.5 text-muted-foreground hover:bg-destructive/20 hover:text-destructive transition-colors"
                     onClick={(e) => { e.stopPropagation(); openDelete(ws.id, ws.name); }}
                     aria-label="Delete workspace"
+                    title="Delete"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
