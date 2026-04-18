@@ -603,7 +603,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
 
 ```json
 {
-  "generatedAt": "2026-04-18T02:03:47.575Z",
+  "generatedAt": "2026-04-18T13:23:53.452Z",
   "totalFiles": 52,
   "files": [
     {
@@ -665,7 +665,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 712
+      "linesOfCode": 726
     },
     {
       "path": "src/components/KanbanColumn.tsx",
@@ -705,7 +705,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 464
+      "linesOfCode": 751
     },
     {
       "path": "src/components/StarParticles.tsx",

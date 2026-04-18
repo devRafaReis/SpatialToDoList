@@ -9,7 +9,7 @@ import StarParticles from "@/components/StarParticles";
 import SpaceEasterEggs from "@/components/SpaceEasterEggs";
 import { useSettings } from "@/store/settingsStore";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { Plus, RotateCcw, Trash2, SlidersHorizontal } from "lucide-react";
+import { Plus, RotateCcw, Trash2, Columns } from "lucide-react";
 import FilterPopover from "@/components/FilterPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // ---------------------------------------------------------------------------
 // Board-level black hole — covers the full viewport, much larger than the
@@ -344,7 +351,7 @@ const KanbanBoard = () => {
   const [filter, setFilter] = useState<TaskFilter>(EMPTY_FILTER);
   const [addingBoard, setAddingBoard] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState("");
-  const [addingBoardTop, setAddingBoardTop] = useState(false);
+  const [addBoardDialogOpen, setAddBoardDialogOpen] = useState(false);
   const [newBoardTitleTop, setNewBoardTitleTop] = useState("");
   const [newBoardId, setNewBoardId] = useState<string | null>(null);
   const newTaskTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -396,7 +403,7 @@ const KanbanBoard = () => {
     if (!trimmed) return;
     const id = addBoard(trimmed);
     setNewBoardTitleTop("");
-    setAddingBoardTop(false);
+    setAddBoardDialogOpen(false);
     if (newBoardTimerRef.current) clearTimeout(newBoardTimerRef.current);
     setNewBoardId(id);
     newBoardTimerRef.current = setTimeout(() => {
@@ -495,32 +502,15 @@ const KanbanBoard = () => {
             <FilterPopover filter={filter} onChange={setFilter} boards={boards} />
             <Button size="sm" onClick={() => handleAddTask()} className="h-8 gap-1.5">
               <Plus className="h-3.5 w-3.5" />
+              <span className="sm:hidden">Task</span>
               <span className="hidden sm:inline">New Task</span>
             </Button>
             <div className="h-4 w-px bg-border/40 hidden sm:block" />
-            {addingBoardTop ? (
-              <>
-                <Input
-                  autoFocus
-                  placeholder="Board name…"
-                  value={newBoardTitleTop}
-                  onChange={(e) => setNewBoardTitleTop(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddBoardTop();
-                    if (e.key === "Escape") { setAddingBoardTop(false); setNewBoardTitleTop(""); }
-                  }}
-                  maxLength={20}
-                  className="h-8 w-36 sm:w-48 text-sm"
-                />
-                <Button size="sm" onClick={handleAddBoardTop} disabled={!newBoardTitleTop.trim()} className="h-8">Add</Button>
-                <Button size="sm" variant="ghost" onClick={() => { setAddingBoardTop(false); setNewBoardTitleTop(""); }} className="h-8">Cancel</Button>
-              </>
-            ) : (
-              <Button variant="ghost" size="sm" onClick={() => setAddingBoardTop(true)} className="h-8 gap-1.5 text-muted-foreground/70 text-xs">
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Add board</span>
-              </Button>
-            )}
+            <Button variant="ghost" size="sm" onClick={() => setAddBoardDialogOpen(true)} className="h-8 gap-1.5 text-muted-foreground/70 text-xs">
+              <Columns className="h-3.5 w-3.5" />
+              <span className="sm:hidden">Board</span>
+              <span className="hidden sm:inline">Add board</span>
+            </Button>
           </div>
           <div className="flex items-center gap-1">
             {totalTasks > 0 && (
@@ -664,6 +654,30 @@ const KanbanBoard = () => {
         </DragDropContext>
         <TaskDialog open={dialogOpen} onOpenChange={setDialogOpen} task={editingTask} defaultStatus={defaultTaskStatus} onSave={handleSave} />
       </div>
+
+      <Dialog open={addBoardDialogOpen} onOpenChange={(open) => { setAddBoardDialogOpen(open); if (!open) setNewBoardTitleTop(""); }}>
+        <DialogContent className="w-[90vw] max-w-sm rounded-lg" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>New board</DialogTitle>
+          </DialogHeader>
+          <Input
+            autoFocus
+            placeholder="Board name…"
+            value={newBoardTitleTop}
+            onChange={(e) => setNewBoardTitleTop(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAddBoardTop();
+              if (e.key === "Escape") { setAddBoardDialogOpen(false); setNewBoardTitleTop(""); }
+            }}
+            maxLength={20}
+            className="mt-1"
+          />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => { setAddBoardDialogOpen(false); setNewBoardTitleTop(""); }}>Cancel</Button>
+            <Button onClick={handleAddBoardTop} disabled={!newBoardTitleTop.trim()}>Add</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
         <AlertDialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md rounded-lg">
