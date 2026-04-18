@@ -469,11 +469,11 @@ const KanbanBoard = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = (title: string, description: string, status?: TaskStatus, priority?: Task["priority"], estimatedHours?: number, estimatedMinutes?: number, startDate?: string, startTime?: string, endDate?: string, checklist?: ChecklistItem[], recurrence?: Task["recurrence"]) => {
+  const handleSave = (title: string, description: string, status?: TaskStatus, priority?: Task["priority"], estimatedHours?: number, estimatedMinutes?: number, startDate?: string, startTime?: string, endDate?: string, endTime?: string, checklist?: ChecklistItem[], recurrence?: Task["recurrence"]) => {
     if (editingTask) {
-      updateTask(editingTask.id, { title, description, priority, estimatedHours, estimatedMinutes, startDate, startTime, endDate, checklist, recurrence });
+      updateTask(editingTask.id, { title, description, priority, estimatedHours, estimatedMinutes, startDate, startTime, endDate, endTime, checklist, recurrence });
     } else {
-      const id = addTask(title, description, status, priority, estimatedHours, estimatedMinutes, startDate, startTime, endDate, checklist, recurrence);
+      const id = addTask(title, description, status, priority, estimatedHours, estimatedMinutes, startDate, startTime, endDate, endTime, checklist, recurrence);
       if (newTaskTimerRef.current) clearTimeout(newTaskTimerRef.current);
       setNewTaskId(id);
       newTaskTimerRef.current = setTimeout(() => {

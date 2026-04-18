@@ -103,7 +103,7 @@ const TimePickerPopover = ({ value, onChange }: { value: string; onChange: (v: s
       </PopoverTrigger>
       <PopoverContent className="w-auto p-2" align="start">
         <div className="flex gap-0">
-          <div ref={hourRef} className="h-44 w-12 overflow-y-auto space-y-0.5 pr-1">
+          <div ref={hourRef} className="h-44 w-12 overflow-y-scroll space-y-0.5 pr-1" onWheel={(e) => e.stopPropagation()}>
             {HOURS.map((hh) => (
               <button key={hh} type="button" data-sel={hh === h ? "true" : undefined}
                 onClick={() => pick(hh, m || "00")}
@@ -112,7 +112,7 @@ const TimePickerPopover = ({ value, onChange }: { value: string; onChange: (v: s
             ))}
           </div>
           <div className="w-px bg-border/40 mx-1" />
-          <div ref={minRef} className="h-44 w-12 overflow-y-auto space-y-0.5 pl-1">
+          <div ref={minRef} className="h-44 w-12 overflow-y-scroll space-y-0.5 pl-1" onWheel={(e) => e.stopPropagation()}>
             {MINUTES.map((mm) => (
               <button key={mm} type="button" data-sel={mm === m ? "true" : undefined}
                 onClick={() => pick(h || "00", mm)}
@@ -146,6 +146,7 @@ interface TaskDialogProps {
     startDate?: string,
     startTime?: string,
     endDate?: string,
+    endTime?: string,
     checklist?: ChecklistItem[],
     recurrence?: Recurrence,
   ) => void;
@@ -161,6 +162,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
   const [startDate, setStartDate]               = useState("");
   const [startTime, setStartTime]               = useState("");
   const [endDate, setEndDate]                   = useState("");
+  const [endTime, setEndTime]                   = useState("");
   const [checklist, setChecklist]               = useState<ChecklistItem[]>([]);
   const [newItemText, setNewItemText]           = useState("");
   const [recurrenceEnabled, setRecurrenceEnabled]     = useState(false);
@@ -205,13 +207,14 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     setStartDate(task?.startDate ?? "");
     setStartTime(task?.startTime ?? "");
     setEndDate(task?.endDate ?? "");
+    setEndTime(task?.endTime ?? "");
     setChecklist(task?.checklist ? task.checklist.map((i) => ({ ...i })) : []);
     setNewItemText("");
     setRecurrenceEnabled(task?.recurrence?.enabled ?? false);
     setRecurrenceType(task?.recurrence?.type ?? "weekly");
     setRecurrenceLimitType(task?.recurrence?.limit !== undefined ? "count" : "forever");
     setRecurrenceLimitCount(task?.recurrence?.limit?.toString() ?? "3");
-    setPlanningOpen(!!(task?.estimatedHours || task?.estimatedMinutes || task?.startDate || task?.startTime || task?.endDate));
+    setPlanningOpen(!!(task?.estimatedHours || task?.estimatedMinutes || task?.startDate || task?.startTime || task?.endDate || task?.endTime));
 
     setChecklistOpen(!!(task?.checklist && task.checklist.length > 0));
     setRecurrenceOpen(!!task?.recurrence);
@@ -252,6 +255,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
       startDate || undefined,
       startTime || undefined,
       endDate || undefined,
+      endTime || undefined,
       checklist.length > 0 ? checklist : undefined,
       recurrence,
     );
@@ -438,6 +442,9 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                           />
                         </PopoverContent>
                       </Popover>
+                      <div className="mt-1">
+                        <TimePickerPopover value={endTime} onChange={setEndTime} />
+                      </div>
                     </div>
                   </div>
                 </div>

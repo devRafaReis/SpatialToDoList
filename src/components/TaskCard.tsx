@@ -1064,7 +1064,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
               {/* Planning footer — always rendered for uniform card height */}
               {(() => {
                 const hasTime    = task.estimatedHours != null || task.estimatedMinutes != null;
-                const hasDate    = !!(task.startDate || task.startTime || task.endDate);
+                const hasDate    = !!(task.startDate || task.startTime || task.endDate || task.endTime);
                 const hasPlanning = hasTime || hasDate;
                 const footer = (
                   <div className={`flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-1.5 min-h-[27px] cursor-default ${hasPlanning ? "border-t border-border/20" : ""}`}>
@@ -1082,6 +1082,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         {task.startTime ? ` ${task.startTime}` : ""}
                         {" → "}
                         {task.endDate ? format(parseISO(task.endDate), "MMM d") : "—"}
+                        {task.endTime ? ` ${task.endTime}` : ""}
                       </span>
                     )}
                   </div>
@@ -1105,6 +1106,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                           {task.startTime ? ` ${task.startTime}` : ""}
                           {" → "}
                           {task.endDate ? format(parseISO(task.endDate), "MMM d, yyyy") : "—"}
+                          {task.endTime ? ` ${task.endTime}` : ""}
                         </p>
                       )}
                     </TooltipContent>
@@ -1214,7 +1216,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
               })()}
 
               {/* Planning section — always visible below description */}
-              {(task.estimatedHours != null || task.estimatedMinutes != null || task.startDate || task.startTime || task.endDate) && (
+              {(task.estimatedHours != null || task.estimatedMinutes != null || task.startDate || task.startTime || task.endDate || task.endTime) && (
                 <div className="space-y-2 rounded-md border border-border/40 bg-muted/20 p-3">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <CalendarRange className="h-3.5 w-3.5" />
@@ -1232,7 +1234,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       <span className="text-muted-foreground text-xs">estimated</span>
                     </div>
                   )}
-                  {(task.startDate || task.startTime || task.endDate) && (
+                  {(task.startDate || task.startTime || task.endDate || task.endTime) && (
                     <div className="flex items-center gap-2 text-sm">
                       <CalendarRange className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       <span className="text-foreground">
@@ -1240,6 +1242,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         {task.startTime ? ` ${task.startTime}` : ""}
                         {" → "}
                         {task.endDate ? format(parseISO(task.endDate), "MMM d, yyyy") : "—"}
+                        {task.endTime ? ` ${task.endTime}` : ""}
                       </span>
                     </div>
                   )}
