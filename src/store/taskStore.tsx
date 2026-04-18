@@ -81,18 +81,19 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
 
   // Tracks task IDs deleted while logged in so cloud sync can remove them
   const pendingDeletesRef = useRef<Set<string>>(new Set());
-  // Becomes true after the initial cloud load (or immediately if no userId)
-  const cloudLoadDoneRef = useRef(!userId);
+  // True after the initial cloud load finishes (success or error). Using state
+  // so that effects with it in their deps re-run when the load completes.
+  const [cloudLoadDone, setCloudLoadDone] = useState(!userId);
 
   // ── Cloud load on mount ───────────────────────────────────────────────────
   useEffect(() => {
     if (!userId) {
-      cloudLoadDoneRef.current = true;
+      setCloudLoadDone(true);
       setCloudLoading(false);
       return;
     }
     setCloudLoading(true);
-    cloudLoadDoneRef.current = false;
+    setCloudLoadDone(false);
     Promise.all([fetchTasks(userId, workspaceId), fetchBoards(userId, workspaceId)])
       .then(([cloudTasks, cloudBoards]) => {
         if (cloudBoards.length > 0) {
@@ -114,10 +115,13 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
           const localTasks = storage.getTasks();
           if (localTasks.length > 0) upsertTasks(userId, workspaceId, localTasks).catch(console.error);
         }
-        cloudLoadDoneRef.current = true;
       })
       .catch(console.error)
-      .finally(() => setCloudLoading(false));
+      .finally(() => {
+        // Always mark load as done — even on error — so the debounced syncs can fire.
+        setCloudLoadDone(true);
+        setCloudLoading(false);
+      });
   }, [userId, workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Persist to localStorage ───────────────────────────────────────────────
@@ -126,7 +130,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
 
   // ── Debounced sync tasks → Supabase ───────────────────────────────────────
   useEffect(() => {
-    if (!userId || !cloudLoadDoneRef.current) return;
+    if (!userId || !cloudLoadDone) return;
     const deletes = [...pendingDeletesRef.current];
     pendingDeletesRef.current.clear();
 
@@ -135,7 +139,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
       setSyncError(null);
       try {
         await Promise.all(deletes.map((id) => deleteTaskRemote(id)));
-        await upsertTasks(userId, workspaceId, tasks);
+        if (tasks.length > 0) await upsertTasks(userId, workspaceId, tasks);
         setSyncStatus("idle");
       } catch (e) {
         deletes.forEach((id) => pendingDeletesRef.current.add(id));
@@ -150,16 +154,16 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
       clearTimeout(timer);
       deletes.forEach((id) => pendingDeletesRef.current.add(id));
     };
-  }, [tasks, userId, workspaceId]);
+  }, [tasks, userId, workspaceId, cloudLoadDone]);
 
   // ── Debounced sync boards → Supabase ─────────────────────────────────────
   useEffect(() => {
-    if (!userId || !cloudLoadDoneRef.current) return;
+    if (!userId || !cloudLoadDone) return;
     const timer = setTimeout(() => {
       syncBoards(userId, workspaceId, boards).catch(console.error);
     }, 600);
     return () => clearTimeout(timer);
-  }, [boards, userId, workspaceId]);
+  }, [boards, userId, workspaceId, cloudLoadDone]);
 
   // ── Manual sync ──────────────────────────────────────────────────────────
   const forceSyncNow = useCallback(async () => {
@@ -171,7 +175,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; userId?: string; chil
       pendingDeletesRef.current.clear();
       await Promise.all(deletes.map((id) => deleteTaskRemote(id)));
       await syncBoards(userId, workspaceId, boards);
-      await upsertTasks(userId, workspaceId, tasks);
+      if (tasks.length > 0) await upsertTasks(userId, workspaceId, tasks);
       setSyncStatus("idle");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

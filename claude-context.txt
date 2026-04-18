@@ -603,7 +603,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
 
 ```json
 {
-  "generatedAt": "2026-04-18T19:07:40.799Z",
+  "generatedAt": "2026-04-18T20:14:16.097Z",
   "totalFiles": 57,
   "files": [
     {
@@ -656,11 +656,12 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "hooks": [
         "useAuth",
+        "useTaskContext",
         "useState",
         "useSettings"
       ],
       "apiCalls": [],
-      "linesOfCode": 100
+      "linesOfCode": 131
     },
     {
       "path": "src/components/KanbanBoard.tsx",
@@ -1141,7 +1142,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 7
+      "linesOfCode": 11
     },
     {
       "path": "src/lib/utils.ts",
@@ -1188,7 +1189,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       "exports": [],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 165
+      "linesOfCode": 185
     },
     {
       "path": "src/services/taskStorage.ts",
@@ -1245,7 +1246,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 269
+      "linesOfCode": 308
     },
     {
       "path": "src/store/workspaceStore.tsx",
