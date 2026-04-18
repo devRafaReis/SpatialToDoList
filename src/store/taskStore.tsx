@@ -1,12 +1,43 @@
-import React, { createContext, useContext, useCallback, useState, useEffect } from "react";
-import { Task, TaskPriority, TaskStatus, ChecklistItem, Column, DEFAULT_COLUMNS } from "@/types/task";
-import { taskStorage } from "@/services/taskStorage";
+import React, { createContext, useContext, useCallback, useState, useEffect, useMemo } from "react";
+import { addDays, addWeeks, addMonths, parseISO, format, getDay } from "date-fns";
+import { Task, TaskPriority, TaskStatus, ChecklistItem, Column, DEFAULT_COLUMNS, Recurrence, RecurrenceType } from "@/types/task";
+import { createWorkspaceStorage } from "@/services/taskStorage";
+
+function shiftDate(dateStr: string, type: RecurrenceType): string {
+  const d = parseISO(dateStr);
+  if (type === "daily") return format(addDays(d, 1), "yyyy-MM-dd");
+  if (type === "daily-weekdays") {
+    let next = addDays(d, 1);
+    while (getDay(next) === 0 || getDay(next) === 6) next = addDays(next, 1);
+    return format(next, "yyyy-MM-dd");
+  }
+  if (type === "weekly") return format(addWeeks(d, 1), "yyyy-MM-dd");
+  return format(addMonths(d, 1), "yyyy-MM-dd");
+}
+
+function buildNextOccurrence(task: Task, firstBoardId: string): Task | null {
+  const rec = task.recurrence!;
+  if (rec.limit !== undefined && rec.limit <= 0) return null;
+  const now = new Date().toISOString();
+  return {
+    ...task,
+    id: crypto.randomUUID(),
+    status: firstBoardId,
+    order: Date.now() + 1,
+    createdAt: now,
+    updatedAt: now,
+    startDate: task.startDate ? shiftDate(task.startDate, rec.type) : undefined,
+    endDate:   task.endDate   ? shiftDate(task.endDate,   rec.type) : undefined,
+    checklist: task.checklist?.map((i) => ({ ...i, done: false })),
+    recurrence: { ...rec, limit: rec.limit !== undefined ? rec.limit - 1 : undefined },
+  };
+}
 
 interface TaskContextValue {
   tasks: Task[];
   boards: Column[];
-  addTask: (title: string, description: string, status?: TaskStatus, priority?: TaskPriority, estimatedHours?: number, estimatedMinutes?: number, startDate?: string, endDate?: string, checklist?: ChecklistItem[]) => string;
-  updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "endDate" | "checklist">>) => void;
+  addTask: (title: string, description: string, status?: TaskStatus, priority?: TaskPriority, estimatedHours?: number, estimatedMinutes?: number, startDate?: string, endDate?: string, checklist?: ChecklistItem[], recurrence?: Recurrence) => string;
+  updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "endDate" | "checklist" | "recurrence">>) => void;
   deleteTask: (id: string) => void;
   deleteAllTasks: () => void;
   moveTask: (taskId: string, newStatus: TaskStatus, newOrder: number) => void;
@@ -27,12 +58,13 @@ export const useTaskContext = () => {
   return ctx;
 };
 
-export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [tasks,  setTasks]  = useState<Task[]>(()   => taskStorage.getTasks());
-  const [boards, setBoards] = useState<Column[]>(() => taskStorage.getBoards());
+export const TaskProvider: React.FC<{ workspaceId: string; children: React.ReactNode }> = ({ workspaceId, children }) => {
+  const storage = useMemo(() => createWorkspaceStorage(workspaceId), [workspaceId]);
+  const [tasks,  setTasks]  = useState<Task[]>(()   => storage.getTasks());
+  const [boards, setBoards] = useState<Column[]>(() => storage.getBoards());
 
-  useEffect(() => { taskStorage.saveTasks(tasks);   }, [tasks]);
-  useEffect(() => { taskStorage.saveBoards(boards); }, [boards]);
+  useEffect(() => { storage.saveTasks(tasks);   }, [tasks]);
+  useEffect(() => { storage.saveBoards(boards); }, [boards]);
 
   // ── Task CRUD ──────────────────────────────────────────────────────────────
   const addTask = useCallback((
@@ -40,19 +72,20 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     status?: TaskStatus, priority?: TaskPriority,
     estimatedHours?: number, estimatedMinutes?: number,
     startDate?: string, endDate?: string, checklist?: ChecklistItem[],
+    recurrence?: Recurrence,
   ) => {
     const now = new Date().toISOString();
     const newTask: Task = {
       id: crypto.randomUUID(), title, description,
       status: status ?? "todo",
       priority, order: Date.now(), createdAt: now, updatedAt: now,
-      estimatedHours, estimatedMinutes, startDate, endDate, checklist,
+      estimatedHours, estimatedMinutes, startDate, endDate, checklist, recurrence,
     };
     setTasks((prev) => [...prev, newTask]);
     return newTask.id;
   }, []);
 
-  const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "endDate" | "checklist">>) => {
+  const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "estimatedHours" | "estimatedMinutes" | "startDate" | "endDate" | "checklist" | "recurrence">>) => {
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t));
   }, []);
 
@@ -60,8 +93,16 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteAllTasks = useCallback(() => setTasks([]), []);
 
   const moveTask = useCallback((taskId: string, newStatus: TaskStatus, newOrder: number) => {
-    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: newStatus, order: newOrder, updatedAt: new Date().toISOString() } : t));
-  }, []);
+    setTasks((prev) => {
+      const task = prev.find((t) => t.id === taskId);
+      const isLastBoard = boards.length > 0 && boards[boards.length - 1].id === newStatus;
+      const shouldRecur = isLastBoard && task?.recurrence?.enabled;
+      const updated = prev.map((t) => t.id === taskId ? { ...t, status: newStatus, order: newOrder, updatedAt: new Date().toISOString() } : t);
+      if (!shouldRecur) return updated;
+      const next = buildNextOccurrence(task!, boards[0].id);
+      return next ? [...updated, next] : updated;
+    });
+  }, [boards]);
 
   const reorderTasks = useCallback((status: TaskStatus, orderedIds: string[]) => {
     setTasks((prev) => prev.map((t) => {
@@ -75,13 +116,21 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     taskId: string, sourceStatus: TaskStatus, destStatus: TaskStatus,
     destIndex: number, sourceIds: string[], destIds: string[],
   ) => {
-    setTasks((prev) => prev.map((t) => {
-      if (t.id === taskId) return { ...t, status: destStatus, order: destIndex, updatedAt: new Date().toISOString() };
-      if (t.status === destStatus) { const idx = destIds.indexOf(t.id); return idx >= 0 ? { ...t, order: idx } : t; }
-      if (t.status === sourceStatus) { const idx = sourceIds.indexOf(t.id); return idx >= 0 ? { ...t, order: idx } : t; }
-      return t;
-    }));
-  }, []);
+    setTasks((prev) => {
+      const task = prev.find((t) => t.id === taskId);
+      const isLastBoard = boards.length > 0 && boards[boards.length - 1].id === destStatus;
+      const shouldRecur = isLastBoard && task?.recurrence?.enabled;
+      const updated = prev.map((t) => {
+        if (t.id === taskId) return { ...t, status: destStatus, order: destIndex, updatedAt: new Date().toISOString() };
+        if (t.status === destStatus) { const idx = destIds.indexOf(t.id); return idx >= 0 ? { ...t, order: idx } : t; }
+        if (t.status === sourceStatus) { const idx = sourceIds.indexOf(t.id); return idx >= 0 ? { ...t, order: idx } : t; }
+        return t;
+      });
+      if (!shouldRecur) return updated;
+      const next = buildNextOccurrence(task!, boards[0].id);
+      return next ? [...updated, next] : updated;
+    });
+  }, [boards]);
 
   // ── Board CRUD ─────────────────────────────────────────────────────────────
   const addBoard = useCallback((title: string) => {

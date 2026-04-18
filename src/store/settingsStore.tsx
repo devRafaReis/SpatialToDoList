@@ -6,18 +6,22 @@ type SettingsContextType = {
   animationsEnabled: boolean;
   lightMode: boolean;
   boardLayout: BoardLayout;
+  checklistExpandedByDefault: boolean;
   setAnimationsEnabled: (v: boolean) => void;
   setLightMode: (v: boolean) => void;
   setBoardLayout: (v: BoardLayout) => void;
+  setChecklistExpandedByDefault: (v: boolean) => void;
 };
 
 const SettingsContext = createContext<SettingsContextType>({
   animationsEnabled: true,
   lightMode: false,
   boardLayout: "horizontal",
+  checklistExpandedByDefault: false,
   setAnimationsEnabled: () => {},
   setLightMode: () => {},
   setBoardLayout: () => {},
+  setChecklistExpandedByDefault: () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
@@ -30,6 +34,9 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const [boardLayout, setBoardLayoutState] = useState<BoardLayout>(() => {
     return (localStorage.getItem("spatialTodo_boardLayout") as BoardLayout) ?? "horizontal";
   });
+  const [checklistExpandedByDefault, setChecklistExpandedByDefaultState] = useState<boolean>(() => {
+    return localStorage.getItem("spatialTodo_checklistExpanded") === "true";
+  });
 
   // Apply light class on mount (persisted value)
   useEffect(() => {
@@ -39,6 +46,11 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const setBoardLayout = (v: BoardLayout) => {
     setBoardLayoutState(v);
     localStorage.setItem("spatialTodo_boardLayout", v);
+  };
+
+  const setChecklistExpandedByDefault = (v: boolean) => {
+    setChecklistExpandedByDefaultState(v);
+    localStorage.setItem("spatialTodo_checklistExpanded", String(v));
   };
 
   const setAnimationsEnabled = (v: boolean) => {
@@ -60,7 +72,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   return (
-    <SettingsContext.Provider value={{ animationsEnabled, lightMode, boardLayout, setAnimationsEnabled, setLightMode, setBoardLayout }}>
+    <SettingsContext.Provider value={{ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault }}>
       {children}
     </SettingsContext.Provider>
   );

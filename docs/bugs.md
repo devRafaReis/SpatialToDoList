@@ -2,7 +2,7 @@
 
 ## `CometTrail.tsx` — defined but never imported
 
-`src/components/CometTrail.tsx` implements a cursor-following particle trail intended for use during drag operations. It is not imported by any component. The drag visual effect currently used is `DragParticles` (a canvas mounted inside `TaskCard` while `snapshot.isDragging` is true).
+`src/components/CometTrail.tsx` implements a cursor-following particle trail intended for drag operations. It is not imported anywhere. The active drag visual is `DragParticles` (mounted inside `TaskCard` while `snapshot.isDragging` is true).
 
 **Impact:** None — dead code only.  
 **Location:** [src/components/CometTrail.tsx](../src/components/CometTrail.tsx)
@@ -11,28 +11,19 @@
 
 ## `NavLink.tsx` — defined but never used
 
-`src/components/NavLink.tsx` wraps `react-router-dom`'s `NavLink` with an `activeClassName` API. There is currently no navigation UI in the app (single-page board only).
+`src/components/NavLink.tsx` wraps `react-router-dom`'s `NavLink`. There is no navigation UI in the app (single-page board only).
 
 **Impact:** None — dead code only.  
 **Location:** [src/components/NavLink.tsx](../src/components/NavLink.tsx)
 
 ---
 
-## `updateTask` implementation doesn't enforce `priority` in its type
+## `@tanstack/react-query` installed but unused
 
-The `TaskContextValue` interface includes `priority` in the `updateTask` signature, but the implementation's type annotation omits it. `priority` updates work at runtime via object spread, but static analysis won't catch invalid priority values passed to `updateTask`.
+`QueryClient` is mounted in `App.tsx` but all task state flows through React Context and localStorage. No queries are made.
 
-**Impact:** Low — works correctly at runtime, but type-unsafe.  
-**Location:** [src/store/taskStore.tsx:46](../src/store/taskStore.tsx)
-
----
-
-## `@tanstack/react-query` installed but unused for task data
-
-`QueryClient` is mounted in `App.tsx` but all task state goes through React Context and localStorage. If queries are added later, they will share this client.
-
-**Impact:** Adds ~50kB to bundle unnecessarily.  
-**Location:** [src/App.tsx:1](../src/App.tsx)
+**Impact:** Adds ~50 kB to the bundle unnecessarily.  
+**Location:** [src/App.tsx](../src/App.tsx)
 
 ---
 
@@ -46,9 +37,33 @@ Listed as a production dependency. `TaskDialog` uses `useState` directly.
 
 ## Order field resets to small integers after any drag
 
-After the first drag-and-drop, all tasks in the affected columns have `order` values of 0, 1, 2 … Newly created tasks use `order = Date.now()` (~1.7 trillion), so they always sort after existing tasks. This is consistent but the mixed scale is non-obvious.
+After the first drag-and-drop, all tasks in the affected boards have `order` values of 0, 1, 2 … New tasks use `order = Date.now()` (~1.7 trillion), so they always sort after existing tasks. This is consistent but the mixed scale is non-obvious.
 
 **Impact:** Functionally harmless. Tasks remain correctly ordered.
+
+---
+
+## Recurrence trigger is position-based, not semantic
+
+The recurrence auto-creation fires when a task is moved to the **last board by array position**, not to a board semantically marked as "done". If the user reorders boards so that "To Do" is last, moving a recurring task there will trigger a new occurrence in the first board.
+
+**Impact:** Unexpected behavior if boards are reordered in a non-standard way. Users should keep "done"-type boards last.
+
+---
+
+## Recurrence dates: no start-date fallback
+
+If a recurring task has no `endDate` and no `startDate`, the auto-created copy will also have no dates (no shift is applied). The recurrence still fires (a new copy is created in the first board) but without date progression — the task just reappears without any due date.
+
+**Impact:** Low. Tasks without dates are still valid; users who want date tracking must set an end date on recurring tasks.
+
+---
+
+## Legacy localStorage keys not cleaned up after migration
+
+On first load, `workspaceStore` migrates `kanban-tasks` and `kanban-boards` to `kanban-tasks_default` / `kanban-boards_default`. The original keys (`kanban-tasks`, `kanban-boards`) are not deleted — they remain in localStorage indefinitely.
+
+**Impact:** Minimal storage overhead; no functional impact.
 
 ---
 
@@ -56,4 +71,4 @@ After the first drag-and-drop, all tasks in the affected columns have `order` va
 
 `src/test/example.test.ts` contains only a `1 + 1 = 2` assertion. There are no component, hook, or integration tests.
 
-**Impact:** Regressions in task CRUD, drag-drop logic, or storage are undetected by CI.
+**Impact:** Regressions in task CRUD, drag-drop logic, recurrence, workspace switching, or storage are undetected by CI.

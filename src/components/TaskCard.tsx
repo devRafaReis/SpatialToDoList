@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, PRIORITIES } from "@/types/task";
 import { Card, CardContent } from "@/components/ui/card";
@@ -438,13 +438,12 @@ const BigBangCanvas = () => {
 
     let animId: number;
 
-    // Delay matches the Dialog close animation (~200ms) so the canvas starts
-    // only after the overlay has fully faded — otherwise the flash and rings
-    // play hidden behind the dialog's black backdrop (z-50 > canvas z-30).
-    const delayId = setTimeout(() => {
-      const start = performance.now();
+    // No internal delay needed — the parent captures entryPos only after the
+    // TaskDialog has fully closed (~210ms), so this canvas mounts at the right
+    // moment and can start drawing on the first frame.
+    const start = performance.now();
 
-      const draw = (now: number) => {
+    const draw = (now: number) => {
         const elapsed = now - start;
         const p = Math.min(1, elapsed / DURATION);
 
@@ -510,11 +509,9 @@ const BigBangCanvas = () => {
         if (p < 1) animId = requestAnimationFrame(draw);
       };
 
-      animId = requestAnimationFrame(draw);
-    }, 210);
+    animId = requestAnimationFrame(draw);
 
     return () => {
-      clearTimeout(delayId);
       cancelAnimationFrame(animId);
     };
   }, []);
@@ -525,8 +522,7 @@ const BigBangCanvas = () => {
       width={380}
       height={220}
       aria-hidden="true"
-      className="pointer-events-none absolute"
-      style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 30 }}
+      className="pointer-events-none block"
     />
   );
 };
@@ -661,13 +657,7 @@ const BlackHoleCanvas = ({ onComplete }: { onComplete: () => void }) => {
       ref={canvasRef}
       width={300}
       height={220}
-      className="pointer-events-none absolute"
-      style={{
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        zIndex: 20,
-      }}
+      className="pointer-events-none block"
       aria-hidden="true"
     />
   );
@@ -687,15 +677,18 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: TaskCardProps) => {
-  const { animationsEnabled } = useSettings();
+  const { animationsEnabled, checklistExpandedByDefault } = useSettings();
   const { updateTask, boards } = useTaskContext();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
+  const [checklistExpanded, setChecklistExpanded] = useState(() => checklistExpandedByDefault);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTeleporting, setIsTeleporting] = useState(false);
   const [teleportDest, setTeleportDest] = useState<TaskStatus | null>(null);
   const [exitPos, setExitPos] = useState<{ x: number; y: number } | null>(null);
   const [entryPos, setEntryPos] = useState<{ x: number; y: number } | null>(null);
+  // cardRef sits on the absolute inset-0 overlay; its parentElement is the
+  // in-flow Draggable wrapper — used for reliable getBoundingClientRect.
   const cardRef = useRef<HTMLDivElement>(null);
   const otherColumns = boards.filter((col) => col.id !== task.status);
 
@@ -706,13 +699,42 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   };
 
-  // Capture position when card first appears as portal destination or new task
+  // Portal-in (card moved from another column) — no dialog is involved, so we
+  // can capture the position immediately after the browser paints.
   useLayoutEffect(() => {
-    if ((isPortalIn || isNew) && animationsEnabled) {
-      setEntryPos(getCardCenter());
-    }
+    if (!isPortalIn || !animationsEnabled) return;
+    (cardRef.current?.parentElement ?? cardRef.current)?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
+    const id = requestAnimationFrame(() => {
+      const pos = getCardCenter();
+      if (pos) setEntryPos(pos);
+    });
+    return () => cancelAnimationFrame(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPortalIn, isNew]);
+  }, [isPortalIn]);
+
+  // New task (created from TaskDialog) — the dialog's close animation runs for
+  // ~200ms while Radix still holds scrollbar-compensation padding-right on the
+  // body. Delaying the capture by 210ms ensures we read the card's final
+  // viewport position. BigBangCanvas removes its matching internal delay so the
+  // animation starts the moment entryPos is ready.
+  useLayoutEffect(() => {
+    if (!isNew || !animationsEnabled) return;
+    (cardRef.current?.parentElement ?? cardRef.current)?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
+    const id = setTimeout(() => {
+      requestAnimationFrame(() => {
+        const pos = getCardCenter();
+        if (pos) setEntryPos(pos);
+      });
+    }, 210);
+    return () => clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew]);
 
   const toggleChecklistItem = (itemId: string) => {
     const updated = (task.checklist ?? []).map((i) =>
@@ -735,21 +757,26 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
     if (teleportDest) flushSync(() => onMove(task.id, teleportDest));
   };
 
+  const handleDeleteClick = () => setDeleteOpen(true);
+
   const handleConfirmDelete = () => {
     setDeleteOpen(false);
     if (!animationsEnabled) {
       onDelete(task.id);
       return;
     }
-    setExitPos(getCardCenter());
-    setIsDeleting(true);
+    // Wait for AlertDialog close animation (~200ms) and Radix scrollbar-
+    // compensation removal before capturing position and starting animation.
+    setTimeout(() => {
+      setExitPos(getCardCenter());
+      setIsDeleting(true);
+    }, 220);
   };
 
   return (
     <>
       <Draggable draggableId={task.id} index={index} isDragDisabled={isDeleting || isTeleporting}>
         {(provided, snapshot) => (
-          // Wrapper owns the DnD ref/props; canvas + card live inside it
           <div
             ref={provided.innerRef}
             {...provided.draggableProps}
@@ -769,7 +796,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
               document.body
             )}
             {isDeleting && animationsEnabled && exitPos && createPortal(
-              <div style={{ position: "fixed", left: exitPos.x - 190, top: exitPos.y - 110, pointerEvents: "none", zIndex: 200 }}>
+              <div style={{ position: "fixed", left: exitPos.x - 150, top: exitPos.y - 110, pointerEvents: "none", zIndex: 200 }}>
                 <BlackHoleCanvas onComplete={() => onDelete(task.id)} />
               </div>,
               document.body
@@ -810,22 +837,38 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <p className={`font-medium text-sm text-foreground leading-snug cursor-default ${
-                        task.description || (task.checklist && task.checklist.length > 0) ? "line-clamp-1" : "line-clamp-2"
+                        task.description ? "line-clamp-1" : "line-clamp-2"
                       }`}>{task.title}</p>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
                       {task.title}
                     </TooltipContent>
                   </Tooltip>
-                  {task.priority && (() => {
-                    const p = PRIORITIES.find((pr) => pr.id === task.priority);
-                    return p ? (
-                      <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none ${p.badgeClass}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${p.dotClass}`} />
-                        {p.label}
-                      </span>
-                    ) : null;
-                  })()}
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    {task.priority && (() => {
+                      const p = PRIORITIES.find((pr) => pr.id === task.priority);
+                      return p ? (
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none ${p.badgeClass}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${p.dotClass}`} />
+                          {p.label}
+                        </span>
+                      ) : null;
+                    })()}
+                    {task.recurrence && (() => {
+                      const label: Record<string, string> = { daily: "daily", "daily-weekdays": "Mon–Fri", weekly: "weekly", monthly: "monthly" };
+                      const limitStr = task.recurrence.limit !== undefined ? ` · ${task.recurrence.limit}×` : "";
+                      return (
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none ${
+                          task.recurrence.enabled
+                            ? "bg-sky-500/15 text-sky-400 border-sky-500/30"
+                            : "bg-muted/30 text-muted-foreground border-border/30 opacity-60"
+                        }`}>
+                          <RefreshCw className="h-2 w-2" />
+                          {(label[task.recurrence.type] ?? task.recurrence.type) + limitStr}
+                        </span>
+                      );
+                    })()}
+                  </div>
                   {task.description && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -835,34 +878,6 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         {task.description.length > 180
                           ? <>{task.description.slice(0, 180)}… <span className="text-muted-foreground/60 italic">Open card to read more.</span></>
                           : task.description}
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                  {task.checklist && task.checklist.length > 0 && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="mt-1 flex items-center gap-1.5 cursor-default">
-                          <ListChecks className="h-3 w-3 shrink-0 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">
-                            {task.checklist.filter((i) => i.done).length}/{task.checklist.length}
-                          </span>
-                          <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-primary/70 transition-all duration-300"
-                              style={{ width: `${(task.checklist.filter((i) => i.done).length / task.checklist.length) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-64">
-                        <ul className="space-y-1">
-                          {task.checklist.map((item) => (
-                            <li key={item.id} className={`flex items-center gap-1.5 text-xs ${item.done ? "line-through text-muted-foreground/70" : ""}`}>
-                              <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${item.done ? "bg-primary/50" : "bg-primary"}`} />
-                              {item.text}
-                            </li>
-                          ))}
-                        </ul>
                       </TooltipContent>
                     </Tooltip>
                   )}
@@ -905,7 +920,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-300" onClick={() => setDeleteOpen(true)} aria-label="Delete">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-300" onClick={handleDeleteClick} aria-label="Delete">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
@@ -913,6 +928,54 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                   </Tooltip>
                 </div>
               </CardContent>
+
+              {/* Inline checklist */}
+              {task.checklist && task.checklist.length > 0 && (() => {
+                const doneCount = task.checklist.filter((i) => i.done).length;
+                const pct = (doneCount / task.checklist.length) * 100;
+                return (
+                  <div className="border-t border-border/20">
+                    <button
+                      onClick={() => setChecklistExpanded((v) => !v)}
+                      className="w-full flex items-center gap-1.5 px-3 py-1.5 hover:bg-accent/20 transition-colors"
+                    >
+                      <ListChecks className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {doneCount}/{task.checklist.length}
+                      </span>
+                      <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden mx-0.5">
+                        <div
+                          className="h-full rounded-full bg-primary/70 transition-all duration-300"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform duration-200 ${checklistExpanded ? "rotate-180" : ""}`} />
+                    </button>
+                    {checklistExpanded && (
+                      <div className="px-3 pb-2 space-y-1.5">
+                        {task.checklist.map((item) => (
+                          <div key={item.id} className="flex items-start gap-2">
+                            <Checkbox
+                              id={`cl-${task.id}-${item.id}`}
+                              checked={item.done}
+                              onCheckedChange={() => toggleChecklistItem(item.id)}
+                              className="h-3.5 w-3.5 mt-0.5 shrink-0"
+                            />
+                            <label
+                              htmlFor={`cl-${task.id}-${item.id}`}
+                              className={`text-xs cursor-pointer leading-snug select-none ${
+                                item.done ? "line-through text-muted-foreground/50" : "text-foreground"
+                              }`}
+                            >
+                              {item.text}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Planning footer — always rendered for uniform card height */}
               {(() => {
@@ -1023,6 +1086,29 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                   <p className="text-sm text-muted-foreground/50 italic">No description.</p>
                 )}
               </div>
+
+              {/* Recurrence section */}
+              {task.recurrence && (() => {
+                const typeLabel: Record<string, string> = { daily: "Daily (every day)", "daily-weekdays": "Daily (Mon–Fri)", weekly: "Weekly", monthly: "Monthly" };
+                const limitLabel = task.recurrence.limit !== undefined
+                  ? `${task.recurrence.limit} repetition${task.recurrence.limit !== 1 ? "s" : ""} left`
+                  : "Forever";
+                return (
+                  <div className="space-y-1.5 rounded-md border border-border/40 bg-muted/20 p-3">
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Recurrence
+                      <span className={`ml-auto text-[10px] ${task.recurrence.enabled ? "text-sky-400" : "text-muted-foreground/50"}`}>
+                        {task.recurrence.enabled ? "enabled" : "disabled"}
+                      </span>
+                    </p>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-foreground">{typeLabel[task.recurrence.type] ?? task.recurrence.type}</span>
+                      <span className="text-xs text-muted-foreground">{limitLabel}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Planning section — always visible below description */}
               {(task.estimatedHours != null || task.estimatedMinutes != null || task.startDate || task.endDate) && (

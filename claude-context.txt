@@ -11,12 +11,13 @@
 | Runtime | Bun |
 | Framework | React 18 + TypeScript |
 | Build | Vite 5 + `@vitejs/plugin-react-swc` |
-| Styling | Tailwind CSS 3 + CSS variables (dark-only theme) |
+| Styling | Tailwind CSS 3 + CSS variables (dark galaxy / light mode) |
 | UI components | shadcn/ui (`src/components/ui/`) via Radix UI primitives |
 | Drag-and-drop | `@hello-pangea/dnd` |
-| Routing | react-router-dom v6 |
-| State | React Context (`TaskProvider`) |
-| Persistence | `localStorage` (key: `kanban-tasks`) |
+| Routing | react-router-dom v6 (future v7 flags enabled) |
+| Date math | date-fns |
+| State | React Context (`WorkspaceProvider` → `SettingsProvider` → `TaskProvider`) |
+| Persistence | `localStorage` namespaced by workspace |
 | Testing | Vitest + jsdom + Testing Library |
 
 ## Application Structure
@@ -24,110 +25,239 @@
 Single-page app with 2 routes:
 
 ```
-/ → Index → TaskProvider → KanbanBoard
+/ → Index → TaskProvider(key=workspaceId) → KanbanBoard
 * → NotFound
 ```
 
-`App.tsx` mounts `QueryClientProvider` + `TooltipProvider` + toast providers globally. **Note:** `@tanstack/react-query` is installed but not used for task data; all data flows through React Context.
+`App.tsx` mounts providers in this order:
+
+```
+QueryClientProvider
+  └── WorkspaceProvider     (workspace list + active workspace)
+        └── SettingsProvider  (animations, theme, layout, checklist defaults)
+              └── TooltipProvider
+                    └── BrowserRouter → Routes
+```
+
+**Note:** `@tanstack/react-query` is installed but not used for task data; all data flows through React Context.
 
 ## Data Flow
 
+### Task data
+
 ```
-TaskProvider  (src/store/taskStore.tsx)
-  └── React Context: Task[] + CRUD handlers
-        └── useEffect syncs to localStorage on every state change
-              └── taskStorage (src/services/taskStorage.ts)
-                    └── localStorageService (current impl)
-                          └── JSON.parse / JSON.stringify under key "kanban-tasks"
+WorkspaceProvider  (src/store/workspaceStore.tsx)
+  └── activeWorkspaceId  →  TaskProvider key prop
+        └── TaskProvider (src/store/taskStore.tsx)
+              └── React Context: Task[] + Board[] + CRUD handlers
+                    └── useEffect syncs to localStorage on every state change
+                          └── createWorkspaceStorage(workspaceId)
+                                └── kanban-tasks_<workspaceId>
+                                    kanban-boards_<workspaceId>
 ```
 
 Components read state via `useTaskContext()` → `useTasks()`:
 
 ```
 useTasks()  (src/hooks/useTasks.ts)
-  ├── Calls useTaskContext() for raw tasks + actions
+  ├── Calls useTaskContext() for raw tasks + boards + actions
   └── Returns tasksByStatus: Record<TaskStatus, Task[]>  (memoized, sorted by task.order)
 ```
+
+### Workspace switching
+
+`TaskProvider` receives `workspaceId` as a prop and is mounted with `key={activeWorkspaceId}` in `Index.tsx`. When the active workspace changes, React unmounts and remounts `TaskProvider` entirely — `useState` initializers re-run and load the new workspace's data from localStorage. No explicit reset logic is needed.
+
+### Settings data
+
+```
+SettingsProvider  (src/store/settingsStore.tsx)
+  └── localStorage keys:
+        spatialTodo_animations       ("true" / "false")
+        spatialTodo_lightMode        ("true" / "false")
+        spatialTodo_boardLayout      ("horizontal" / "vertical")
+        spatialTodo_checklistExpanded ("true" / "false")
+```
+
+### Workspace data
+
+```
+WorkspaceProvider  (src/store/workspaceStore.tsx)
+  └── localStorage keys:
+        spatialTodo_workspaces       (JSON: Workspace[])
+        spatialTodo_activeWorkspace  (string: workspace id)
+```
+
+On first load (no `spatialTodo_workspaces` key): creates default workspace `{ id: "default", name: "Personal" }` and migrates legacy keys `kanban-tasks` / `kanban-boards` to `kanban-tasks_default` / `kanban-boards_default`.
 
 ## Component Tree
 
 ```
 KanbanBoard
   ├── StarParticles          (canvas — twinkling stars + periodic comet)
-  ├── NyanCatEasterEgg       (canvas — pixel-art Nyan Cat every 5 min)
-  ├── Header                 (title + "Nova Tarefa" button)
+  ├── SpaceEasterEggs        (canvas — pixel-art Nyan Cat every 5 min)
+  ├── Header
+  │     ├── WorkspaceSwitcher  (dropdown: switch/create/rename/delete workspaces)
+  │     ├── FilterPopover      (filter by priority, board, start date, end date)
+  │     └── SettingsDialog     (animations, layout, checklist defaults, light mode)
   ├── DragDropContext        (@hello-pangea/dnd)
-  │     └── KanbanColumn ×4  (todo / doing / done / cancelled)
-  │           └── TaskCard   (Draggable — shows title, priority badge, description)
-  │                 ├── DragParticles      (canvas — active while card is dragged)
-  │                 ├── BigBangCanvas      (canvas — burst effect on new card creation)
-  │                 ├── BlackHoleCanvas    (canvas — black hole on delete)
-  │                 ├── PortalExitCanvas   (canvas — swirl on move-to-column)
-  │                 └── PortalEntryCanvas  (canvas — scatter on arrival)
-  └── TaskDialog             (create/edit modal — plain useState, NOT React Hook Form)
+  │     └── KanbanColumn ×N  (dynamic boards — droppable)
+  │           └── TaskCard   (Draggable)
+  │                 ├── DragParticles       (canvas — active while dragging)
+  │                 ├── BigBangCanvas       (canvas — burst on new card)
+  │                 ├── BlackHoleCanvas     (canvas — vortex on delete)
+  │                 ├── PortalExitCanvas    (canvas — swirl on move out)
+  │                 ├── PortalEntryCanvas   (canvas — scatter on arrival)
+  │                 └── Inline checklist    (checkbox items + progress bar)
+  ├── BoardBlackHoleCanvas   (canvas — full-board black hole on board delete)
+  └── TaskDialog             (create/edit modal — planning, checklist, recurrence)
 ```
 
 ## Task Data Model
 
 ```typescript
 interface Task {
-  id: string;          // crypto.randomUUID()
+  id: string;               // crypto.randomUUID()
   title: string;
   description: string;
-  status: TaskStatus;  // "todo" | "doing" | "done" | "cancelled"
-  priority?: TaskPriority; // "low" | "medium" | "high" | "critical" — optional
-  order: number;       // Date.now() on creation; index after reorder
-  userId?: string;     // defined but never set — reserved for multi-user
-  createdAt: string;   // ISO timestamp
-  updatedAt: string;   // ISO timestamp
+  status: TaskStatus;       // board id string (dynamic)
+  priority?: TaskPriority;  // "low" | "medium" | "high" | "critical"
+  order: number;            // Date.now() on creation; array index after reorder
+  userId?: string;          // reserved, never populated
+  createdAt: string;        // ISO timestamp
+  updatedAt: string;        // ISO timestamp
+  estimatedHours?: number;
+  estimatedMinutes?: number;
+  startDate?: string;       // "yyyy-MM-dd"
+  endDate?: string;         // "yyyy-MM-dd"
+  checklist?: ChecklistItem[];
+  recurrence?: Recurrence;
+}
+
+interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+type RecurrenceType = "daily" | "daily-weekdays" | "weekly" | "monthly";
+
+interface Recurrence {
+  type: RecurrenceType;
+  enabled: boolean;
+  limit?: number;  // undefined = forever; decrements on each auto-creation; stops at 0
 }
 ```
 
+## Board (Column) Data Model
+
+```typescript
+interface Column {
+  id: string;    // "todo" / "doing" / "done" for defaults; "board-<uuid>" for custom
+  title: string;
+}
+```
+
+`TaskStatus` is a plain `string` (the board id). There are no fixed status values — all boards are user-configurable.
+
+## Workspace Data Model
+
+```typescript
+interface Workspace {
+  id: string;   // "default" for the first workspace; "ws-<uuid>" for subsequent
+  name: string;
+}
+```
+
+## Recurrence Logic
+
+When a task with `recurrence.enabled = true` is moved to the **last board** (by position in the boards array), `buildNextOccurrence` is called inside `setTasks`:
+
+1. If `limit` is defined and `≤ 0`: no new task is created (recurrence exhausted).
+2. Otherwise: a new `Task` is created with:
+   - New `id` and `createdAt`/`updatedAt`
+   - `status` = first board's id
+   - `startDate`/`endDate` shifted forward by the interval (skipping weekends for `daily-weekdays`)
+   - All checklist items reset to `done: false`
+   - `recurrence.limit` decremented by 1 (if it was defined)
+
+This logic runs inside both `moveTask` (button-triggered moves) and `moveTaskBetweenColumns` (drag-drop moves).
+
 ## Drag-and-Drop Logic
 
-Handled entirely in `KanbanBoard.handleDragEnd`:
+Handled in `KanbanBoard.handleDragEnd`:
 
-- **Same column**: `reorderTasks(status, reorderedIds)` — splices id array, updates `order` as array index.
-- **Cross-column**: `moveTaskBetweenColumns(taskId, src, dest, destIndex, srcIds, destIds)` — updates moved task's `status` + `order`, and re-numbers both columns.
+- **Card in same board**: `reorderTasks(status, reorderedIds)` — splices id array, updates `order` as array index.
+- **Card cross-board**: `moveTaskBetweenColumns(taskId, src, dest, destIndex, srcIds, destIds)` — updates moved task's `status` + `order`, re-numbers both boards. If destination is the last board and task is recurring, auto-creates next occurrence.
+- **Board reorder**: `reorderBoards(orderedIds)`.
+
+## Filter Logic
+
+`KanbanBoard` holds a `filter: TaskFilter` state. Two memos derive the visible data:
+
+```typescript
+const visibleBoards = useMemo(…)         // boards matching filter.boards (or all)
+const filteredTasksByStatus = useMemo(…) // tasks per board after all filter criteria applied
+```
+
+`FilterPopover` renders the filter UI; `Header` passes filter state down to it.
+
+## Animation Architecture
+
+Canvas effects are rendered via `createPortal(…, document.body)` at `position: fixed` coordinates derived from `getBoundingClientRect()`. Key timing details:
+
+- **New card (BigBang):** position captured 210ms after dialog closes (waits for Radix scrollbar-compensation padding-right to be removed).
+- **Deleted card (BlackHole):** position captured 220ms after AlertDialog closes, same reason.
+- **Moved card (Portal):** position captured immediately in the same frame as the button click (no dialog involved).
+- All canvases use `display: block` (not `position: absolute`) so the portal div sizes to the canvas — centering math is `left: x - canvasWidth/2`.
 
 ## Theme
 
-Dark galaxy theme, CSS-variables-only (no light mode). Defined in `src/index.css`:
-- Background: `hsl(230 25% 9%)` with radial gradient nebula overlays
-- Primary: `hsl(260 50% 60%)` (violet-purple)
-- Custom utilities: `.glass`, `.glass-column`, `.glass-drag` (glassmorphism)
-- Card animation keyframes: `card-portal-out`, `card-portal-in`, `card-big-bang-in`, `card-suck-in`
+Two themes toggled via `lightMode` setting:
+
+| | Dark (default) | Light |
+|---|---|---|
+| Title | "Spatial ToDoList" | "Boring ToDoList" |
+| Background | `hsl(230 25% 9%)` + nebula gradient | white / light gray |
+| Animations | Enabled by default | Disabled and locked |
+| CSS class | (none) | `document.documentElement.classList → "light"` |
+
+Custom utilities: `.glass`, `.glass-column`, `.glass-drag` (glassmorphism).  
+Card animation keyframes: `card-portal-out`, `card-portal-in`, `card-big-bang-in`, `card-suck-in`.
 
 ## File Map
 
 ```
 src/
-  App.tsx                   — Router + providers root
-  main.tsx                  — ReactDOM.createRoot entry
-  index.css                 — Global styles, CSS vars, animation keyframes
-  types/task.ts             — Task, TaskStatus, TaskPriority, COLUMNS, PRIORITIES
-  store/taskStore.tsx       — Context, TaskProvider, CRUD operations
-  services/taskStorage.ts   — TaskStorageService interface + localStorageService
-  hooks/useTasks.ts         — Grouped/sorted tasks consumer hook
-  hooks/use-mobile.tsx      — Breakpoint hook (shadcn default)
-  hooks/use-toast.ts        — Toast hook (shadcn default)
-  lib/utils.ts              — cn() helper (clsx + tailwind-merge)
-  pages/Index.tsx           — Route component: wraps KanbanBoard in TaskProvider
-  pages/NotFound.tsx        — 404 page
+  App.tsx                    — Router + providers root
+  main.tsx                   — ReactDOM.createRoot entry
+  index.css                  — Global styles, CSS vars, animation keyframes
+  types/task.ts              — All types: Task, Recurrence, Workspace, TaskFilter, Column, PRIORITIES
+  store/
+    taskStore.tsx            — TaskProvider, CRUD, drag-drop handlers, recurrence auto-creation
+    settingsStore.tsx        — SettingsProvider (animations, lightMode, boardLayout, checklist)
+    workspaceStore.tsx       — WorkspaceProvider, CRUD, migration of legacy localStorage keys
+  services/taskStorage.ts    — createWorkspaceStorage(id): TaskStorageService
+  hooks/useTasks.ts          — Grouped/sorted tasks + all context actions
+  hooks/useIsMobile.ts       — Breakpoint hook
+  lib/utils.ts               — cn() helper (clsx + tailwind-merge)
+  pages/Index.tsx            — Route /: mounts TaskProvider with key + workspaceId
+  pages/NotFound.tsx         — 404 page
   components/
-    KanbanBoard.tsx         — Board orchestrator, drag-drop context, dialog state
-    KanbanColumn.tsx        — Droppable column wrapper
-    TaskCard.tsx            — Draggable card + all canvas effect sub-components
-    TaskDialog.tsx          — Create/edit modal (local state, no RHF)
-    Header.tsx              — App title + add-task button
-    StarParticles.tsx       — Full-screen background canvas (stars + comet)
-    NyanCatEasterEgg.tsx    — Full-screen overlay canvas (Nyan Cat easter egg)
-    CometTrail.tsx          — Cursor-following particle trail during drag (defined, unused)
-    NavLink.tsx             — Router NavLink wrapper (defined, currently unused)
-    ui/                     — shadcn/ui generated components (do not hand-edit)
+    KanbanBoard.tsx          — Board orchestrator, drag-drop, filter state, board management
+    KanbanColumn.tsx         — Droppable column, collapse toggle, BigBang/BlackHole animations
+    TaskCard.tsx             — Draggable card, inline checklist, recurrence badge, canvas effects
+    TaskDialog.tsx           — Create/edit modal (planning, checklist, recurrence sections)
+    Header.tsx               — WorkspaceSwitcher + FilterPopover + SettingsDialog + add-task button
+    FilterPopover.tsx        — Filter UI (priority chips, board chips, date range inputs)
+    WorkspaceSwitcher.tsx    — Workspace dropdown with create/rename/delete + confirmation
+    SettingsDialog.tsx       — Settings panel (animations, layout, checklist, light mode)
+    StarParticles.tsx        — Full-screen background canvas (stars + comet)
+    SpaceEasterEggs.tsx      — Full-screen overlay canvas (Nyan Cat easter egg)
+    ui/                      — shadcn/ui generated components (do not hand-edit)
   test/
-    setup.ts                — window.matchMedia mock for jsdom
-    example.test.ts         — Placeholder test
+    setup.ts                 — window.matchMedia mock for jsdom
+    example.test.ts          — Placeholder test
 ```
 
 ---
@@ -138,7 +268,7 @@ src/
 
 ## `CometTrail.tsx` — defined but never imported
 
-`src/components/CometTrail.tsx` implements a cursor-following particle trail intended for use during drag operations. It is not imported by any component. The drag visual effect currently used is `DragParticles` (a canvas mounted inside `TaskCard` while `snapshot.isDragging` is true).
+`src/components/CometTrail.tsx` implements a cursor-following particle trail intended for drag operations. It is not imported anywhere. The active drag visual is `DragParticles` (mounted inside `TaskCard` while `snapshot.isDragging` is true).
 
 **Impact:** None — dead code only.  
 **Location:** [src/components/CometTrail.tsx](../src/components/CometTrail.tsx)
@@ -147,28 +277,19 @@ src/
 
 ## `NavLink.tsx` — defined but never used
 
-`src/components/NavLink.tsx` wraps `react-router-dom`'s `NavLink` with an `activeClassName` API. There is currently no navigation UI in the app (single-page board only).
+`src/components/NavLink.tsx` wraps `react-router-dom`'s `NavLink`. There is no navigation UI in the app (single-page board only).
 
 **Impact:** None — dead code only.  
 **Location:** [src/components/NavLink.tsx](../src/components/NavLink.tsx)
 
 ---
 
-## `updateTask` implementation doesn't enforce `priority` in its type
+## `@tanstack/react-query` installed but unused
 
-The `TaskContextValue` interface includes `priority` in the `updateTask` signature, but the implementation's type annotation omits it. `priority` updates work at runtime via object spread, but static analysis won't catch invalid priority values passed to `updateTask`.
+`QueryClient` is mounted in `App.tsx` but all task state flows through React Context and localStorage. No queries are made.
 
-**Impact:** Low — works correctly at runtime, but type-unsafe.  
-**Location:** [src/store/taskStore.tsx:46](../src/store/taskStore.tsx)
-
----
-
-## `@tanstack/react-query` installed but unused for task data
-
-`QueryClient` is mounted in `App.tsx` but all task state goes through React Context and localStorage. If queries are added later, they will share this client.
-
-**Impact:** Adds ~50kB to bundle unnecessarily.  
-**Location:** [src/App.tsx:1](../src/App.tsx)
+**Impact:** Adds ~50 kB to the bundle unnecessarily.  
+**Location:** [src/App.tsx](../src/App.tsx)
 
 ---
 
@@ -182,9 +303,33 @@ Listed as a production dependency. `TaskDialog` uses `useState` directly.
 
 ## Order field resets to small integers after any drag
 
-After the first drag-and-drop, all tasks in the affected columns have `order` values of 0, 1, 2 … Newly created tasks use `order = Date.now()` (~1.7 trillion), so they always sort after existing tasks. This is consistent but the mixed scale is non-obvious.
+After the first drag-and-drop, all tasks in the affected boards have `order` values of 0, 1, 2 … New tasks use `order = Date.now()` (~1.7 trillion), so they always sort after existing tasks. This is consistent but the mixed scale is non-obvious.
 
 **Impact:** Functionally harmless. Tasks remain correctly ordered.
+
+---
+
+## Recurrence trigger is position-based, not semantic
+
+The recurrence auto-creation fires when a task is moved to the **last board by array position**, not to a board semantically marked as "done". If the user reorders boards so that "To Do" is last, moving a recurring task there will trigger a new occurrence in the first board.
+
+**Impact:** Unexpected behavior if boards are reordered in a non-standard way. Users should keep "done"-type boards last.
+
+---
+
+## Recurrence dates: no start-date fallback
+
+If a recurring task has no `endDate` and no `startDate`, the auto-created copy will also have no dates (no shift is applied). The recurrence still fires (a new copy is created in the first board) but without date progression — the task just reappears without any due date.
+
+**Impact:** Low. Tasks without dates are still valid; users who want date tracking must set an end date on recurring tasks.
+
+---
+
+## Legacy localStorage keys not cleaned up after migration
+
+On first load, `workspaceStore` migrates `kanban-tasks` and `kanban-boards` to `kanban-tasks_default` / `kanban-boards_default`. The original keys (`kanban-tasks`, `kanban-boards`) are not deleted — they remain in localStorage indefinitely.
+
+**Impact:** Minimal storage overhead; no functional impact.
 
 ---
 
@@ -192,7 +337,7 @@ After the first drag-and-drop, all tasks in the affected columns have `order` va
 
 `src/test/example.test.ts` contains only a `1 + 1 = 2` assertion. There are no component, hook, or integration tests.
 
-**Impact:** Regressions in task CRUD, drag-drop logic, or storage are undetected by CI.
+**Impact:** Regressions in task CRUD, drag-drop logic, recurrence, workspace switching, or storage are undetected by CI.
 
 ---
 
@@ -200,21 +345,67 @@ After the first drag-and-drop, all tasks in the affected columns have `order` va
 
 # Design Decisions
 
-## Storage: localStorage with swap-ready interface
+## Storage: workspace-namespaced localStorage with swap-ready interface
 
-`taskStorage.ts` exports a `TaskStorageService` interface and a `localStorageService` implementation. The active service is assigned to `taskStorage` as a single export.
+`taskStorage.ts` exports `createWorkspaceStorage(workspaceId): TaskStorageService`. Each workspace gets its own localStorage keys:
 
-**To migrate to an API:** create `apiStorageService: TaskStorageService` and change the last line of `taskStorage.ts`. No other file needs to change.
+```
+kanban-tasks_<workspaceId>
+kanban-boards_<workspaceId>
+```
 
-**Current behaviour:** every React state update triggers a `useEffect` that calls `taskStorage.saveTasks(tasks)`, serialising the full task array to JSON.
+**To migrate to an API:** implement `TaskStorageService` with HTTP calls, replace `createWorkspaceStorage` with your factory. No other file needs changing.
+
+**Current behaviour:** every React state update triggers a `useEffect` that serialises the full task or board array to JSON.
+
+---
+
+## Workspace isolation via React `key` prop
+
+`TaskProvider` is mounted with `key={activeWorkspaceId}` in `Index.tsx`. When the workspace changes, React fully unmounts and remounts `TaskProvider` — the `useState` initializers re-run and load the new workspace's data. This is simpler and safer than trying to reset state imperatively inside a running provider.
+
+---
+
+## Boards are dynamic, not fixed columns
+
+`TaskStatus` is `string` (a board id), not a union of fixed values. The default boards (`todo`, `doing`, `done`) are created on first load but can be renamed, reordered, or deleted. Custom boards get ids in the format `board-<uuid>`.
+
+There is no hardcoded concept of "done" or "completion" — the recurrence system uses **last board by position** as the completion trigger.
+
+---
+
+## Recurrence: last-board trigger, immutable limit countdown
+
+When a recurring task is moved to the last board (rightmost in the boards array), `buildNextOccurrence` runs inside `setTasks`:
+
+- The `limit` field is decremented on each auto-creation and embedded in the new task. The original task retains its value unchanged. The new task carries the decremented count so the chain halts automatically at 0 with no external state.
+- `daily-weekdays` skips Saturday and Sunday by repeatedly adding 1 day until a weekday is reached.
+
+This approach is self-contained: the recurrence state travels with the task, requires no scheduler, no cron, and no server.
 
 ---
 
 ## State: React Context, not a global store library
 
-Task state lives in `TaskProvider` (React Context + `useState`). There is no Redux, Zustand, or Jotai. All mutations go through `useCallback`-wrapped handlers exposed via context.
+Task, workspace, and settings state each live in their own `Provider` (React Context + `useState`). No Redux, Zustand, or Jotai. All mutations go through `useCallback`-wrapped handlers exposed via context.
 
-`@tanstack/react-query` is installed (scaffolding default) but is not used for task data.
+`@tanstack/react-query` is installed (scaffolding default) but is not used for any data fetching.
+
+---
+
+## Animation: portal canvases at fixed viewport coordinates
+
+Canvas animations (BigBang, BlackHole, Portal) are rendered via `createPortal(…, document.body)` at `position: fixed`. Coordinates come from `getBoundingClientRect()` on the card element.
+
+Key subtlety: Radix UI adds `padding-right` to `<body>` (scrollbar compensation) while dialogs are open. Position capture must be delayed ~210–220ms after dialog close so the layout has settled. `BigBangCanvas` and `BlackHoleCanvas` account for this; `PortalExitCanvas` does not need to (no dialog is involved).
+
+Canvas divs use `display: block` so the portal container sizes to the canvas. Centering: `left = x - canvasWidth/2`.
+
+---
+
+## Auto-expand board on task creation
+
+`KanbanColumn` watches `newTaskId` (a prop from `KanbanBoard`). If a task with that id belongs to a collapsed board, the board auto-expands so the BigBang animation is visible. This avoids animating inside a collapsed (invisible) column.
 
 ---
 
@@ -222,49 +413,27 @@ Task state lives in `TaskProvider` (React Context + `useState`). There is no Red
 
 - **New task:** `order = Date.now()` — guarantees new tasks sort to the bottom of a column.
 - **After reorder / cross-column move:** `order` is reassigned as the array index (0, 1, 2 …).
-- Implication: after any drag, orders become small integers. New tasks created after a drag will have large `Date.now()` values, placing them at the bottom regardless of column size.
+- Recurrence auto-created tasks use `order = Date.now() + 1` to sort after existing tasks.
 
----
-
-## `updateTask` type inconsistency
-
-The `TaskContextValue` interface declares:
-
-```typescript
-updateTask: (id: string, updates: Partial<Pick<Task, "title" | "description" | "priority">>) => void;
-```
-
-The implementation narrows to `title | description` only:
-
-```typescript
-const updateTask = useCallback((id: string, updates: Partial<Pick<Task, "title" | "description">>) => { … })
-```
-
-`KanbanBoard` passes `priority` in the update object. This works at runtime (spread includes any key), but TypeScript does not enforce priority updates through the implementation signature. Strict mode is off, so no error is raised.
+After any drag, orders become small integers. New tasks will have large `Date.now()` values, always placing them at the bottom. This is consistent but the mixed scale is non-obvious.
 
 ---
 
 ## TaskDialog: plain useState, not React Hook Form
 
-`react-hook-form` is listed as a dependency but `TaskDialog.tsx` manages form state with four `useState` calls. This is intentional simplicity for the current form complexity (2 inputs + 2 selects).
+`react-hook-form` is listed as a dependency but `TaskDialog.tsx` manages all form state with `useState`. Each logical section (planning, checklist, recurrence) is a collapsible accordion-style panel.
 
 ---
 
-## Animation approach: per-card Canvas elements
+## Light mode: CSS class toggle, animations disabled
 
-Rather than CSS-only animations, visual effects (black hole, portal, big bang, drag particles) are rendered on `<canvas>` elements mounted inside each `TaskCard`. Each canvas:
-- Mounts when its trigger condition becomes true
-- Runs its own `requestAnimationFrame` loop
-- Calls an `onComplete` callback (for delete/portal) to fire the actual state mutation after the animation finishes
-- Unmounts automatically via React state
-
-This defers the destructive state changes (delete, move) until the animation completes, keeping the card visible during the effect.
+Light mode is toggled by adding/removing the `light` class on `document.documentElement`. The SettingsProvider also forcibly disables animations when light mode is on (animations are thematically tied to the dark galaxy aesthetic). Animations cannot be re-enabled while light mode is active.
 
 ---
 
-## UI language: Portuguese (pt-BR)
+## Workspace deletion: data purged immediately
 
-All user-facing text (button labels, dialog titles, confirmation messages) is written in Brazilian Portuguese. Priority labels: Baixa / Média / Alta / Crítica.
+When a workspace is deleted, `deleteWorkspace` in `workspaceStore.tsx` calls `localStorage.removeItem` for both storage keys (`kanban-tasks_<id>` and `kanban-boards_<id>`) synchronously, then removes the workspace from the list. The deletion confirmation dialog shows the task count by reading from localStorage before the delete. There is no soft-delete or undo.
 
 ---
 
@@ -276,13 +445,13 @@ All user-facing text (button labels, dialog titles, confirmation messages) is wr
 
 ## shadcn/ui: do not hand-edit
 
-`src/components/ui/` is generated by `bunx shadcn@latest add <component>`. Edit via regeneration, not directly.
+`src/components/ui/` is generated by `bunx shadcn@latest add <component>`. Regenerate via CLI, do not edit directly.
 
 ---
 
 ## `userId` field: placeholder for future multi-user
 
-`Task.userId?: string` is declared in the type and persisted in localStorage, but is never populated by any code path. Reserved for a future authenticated multi-user implementation.
+`Task.userId?: string` is declared in the type and persisted to localStorage but is never populated by any code path. Reserved for a future authenticated multi-user implementation.
 
 ---
 
@@ -290,67 +459,106 @@ All user-facing text (button labels, dialog titles, confirmation messages) is wr
 
 # API / Storage Flow
 
-## Current State: localStorage only
+## Current State: localStorage only, namespaced by workspace
 
-There are **no HTTP requests** in this application. No `fetch`, `axios`, or `@tanstack/react-query` queries are made. All data is read from and written to `window.localStorage`.
+There are **no HTTP requests** in this application. All data is read from and written to `window.localStorage`.
 
-### Storage key
-
-```
-localStorage["kanban-tasks"]  →  JSON array of Task objects
-```
-
-### Read path
+### Storage keys
 
 ```
-Component mount
-  → TaskProvider useState initialiser
-  → taskStorage.getTasks()
-  → localStorageService.getTasks()
-  → JSON.parse(localStorage.getItem("kanban-tasks")) ?? []
+kanban-tasks_<workspaceId>   →  JSON array of Task objects
+kanban-boards_<workspaceId>  →  JSON array of Column objects
+
+spatialTodo_workspaces        →  JSON array of Workspace objects
+spatialTodo_activeWorkspace   →  string (active workspace id)
+spatialTodo_animations        →  "true" | "false"
+spatialTodo_lightMode         →  "true" | "false"
+spatialTodo_boardLayout       →  "horizontal" | "vertical"
+spatialTodo_checklistExpanded →  "true" | "false"
+```
+
+### Read path (tasks)
+
+```
+Index.tsx renders TaskProvider with key=workspaceId
+  → TaskProvider useState initializer
+  → createWorkspaceStorage(workspaceId).getTasks()
+  → JSON.parse(localStorage.getItem("kanban-tasks_<id>")) ?? []
   → Task[]
 ```
 
-### Write path
+### Write path (tasks)
 
 ```
-Any CRUD action (add / update / delete / move / reorder)
-  → setTasks(newState)            — React state update
-  → useEffect([tasks])            — fires after every render with changed tasks
-  → taskStorage.saveTasks(tasks)
-  → localStorageService.saveTasks(tasks)
-  → localStorage.setItem("kanban-tasks", JSON.stringify(tasks))
+Any CRUD action (add / update / delete / move / reorder / recurrence)
+  → setTasks(newState)                     — React state update
+  → useEffect([tasks])                     — fires after every render with changed tasks
+  → storage.saveTasks(tasks)               — storage = createWorkspaceStorage(workspaceId)
+  → localStorage.setItem("kanban-tasks_<id>", JSON.stringify(tasks))
 ```
 
 Note: the entire task array is serialised and written on **every change**, regardless of which task changed.
 
+### Workspace switching
+
+When `activeWorkspaceId` changes in `WorkspaceProvider`, `Index.tsx` re-renders `TaskProvider` with a new `key`. React unmounts the old provider (which has already saved its state) and mounts a fresh one that reads from the new workspace keys.
+
+### Migration from legacy keys
+
+On first load (no `spatialTodo_workspaces` in localStorage), `workspaceStore` runs a one-time migration:
+
+```
+localStorage["kanban-tasks"]   → copied to → localStorage["kanban-tasks_default"]
+localStorage["kanban-boards"]  → copied to → localStorage["kanban-boards_default"]
+```
+
+The original keys are preserved (not deleted) to avoid data loss.
+
 ### Storage abstraction
 
-`src/services/taskStorage.ts` defines:
+`src/services/taskStorage.ts` exports:
 
 ```typescript
 export interface TaskStorageService {
   getTasks(): Task[];
   saveTasks(tasks: Task[]): void;
+  getBoards(): Column[];
+  saveBoards(boards: Column[]): void;
 }
+
+export const createWorkspaceStorage = (workspaceId: string): TaskStorageService => { … }
 ```
 
-The active implementation is exported as `taskStorage`. To swap to an API:
+### Migrating to an API
 
-1. Create `apiStorageService: TaskStorageService` that calls your backend.
-2. Change the last line of `taskStorage.ts`:
-   ```typescript
-   export const taskStorage: TaskStorageService = apiStorageService;
-   ```
-3. No other file needs modification.
+1. Implement `TaskStorageService` with HTTP calls to your backend. The factory receives `workspaceId` which can map to a tenant, user, or project id.
+
+```typescript
+const createApiStorage = (workspaceId: string): TaskStorageService => ({
+  getTasks: async () => fetch(`/api/workspaces/${workspaceId}/tasks`).then(r => r.json()),
+  saveTasks: (tasks) => fetch(`/api/workspaces/${workspaceId}/tasks`, { method: "PUT", body: JSON.stringify(tasks) }),
+  getBoards: async () => fetch(`/api/workspaces/${workspaceId}/boards`).then(r => r.json()),
+  saveBoards: (boards) => fetch(`/api/workspaces/${workspaceId}/boards`, { method: "PUT", body: JSON.stringify(boards) }),
+});
+```
+
+2. Replace `createWorkspaceStorage` in `taskStore.tsx`:
+
+```typescript
+// Before:
+const storage = useMemo(() => createWorkspaceStorage(workspaceId), [workspaceId]);
+
+// After:
+const storage = useMemo(() => createApiStorage(workspaceId), [workspaceId]);
+```
+
+3. The save `useEffect`s become fire-and-forget HTTP calls. You may want to swap them for `@tanstack/react-query` mutations for proper loading/error states — `QueryClient` is already mounted in `App.tsx`.
+
+No other file needs modification.
 
 ### Error handling
 
-`localStorageService.getTasks()` catches JSON parse errors and returns `[]`. `saveTasks` has no error handling — if `localStorage` is full or unavailable, the write silently fails.
-
-### @tanstack/react-query
-
-`QueryClient` is instantiated and provided in `App.tsx` but is not used for any data fetching. It is available for future use.
+`localStorageService` catches JSON parse errors in reads and returns `[]` / `DEFAULT_COLUMNS`. Writes have no error handling — if `localStorage` is full or unavailable, writes silently fail.
 
 ---
 
@@ -395,8 +603,8 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
 
 ```json
 {
-  "generatedAt": "2026-04-17T02:48:21.421Z",
-  "totalFiles": 48,
+  "generatedAt": "2026-04-17T23:59:33.930Z",
+  "totalFiles": 52,
   "files": [
     {
       "path": "src/App.tsx",
@@ -405,7 +613,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 31
+      "linesOfCode": 34
     },
     {
       "path": "src/components/CometTrail.tsx",
@@ -420,6 +628,17 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       "linesOfCode": 153
     },
     {
+      "path": "src/components/FilterPopover.tsx",
+      "exports": [
+        "default:FilterPopover"
+      ],
+      "hooks": [
+        "useSettings"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 213
+    },
+    {
       "path": "src/components/Header.tsx",
       "exports": [
         "default:Header"
@@ -428,7 +647,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useSettings"
       ],
       "apiCalls": [],
-      "linesOfCode": 29
+      "linesOfCode": 21
     },
     {
       "path": "src/components/KanbanBoard.tsx",
@@ -440,11 +659,13 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useEffect",
         "useTasks",
         "useSettings",
+        "useIsMobile",
         "useState",
+        "useMemo",
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 517
+      "linesOfCode": 712
     },
     {
       "path": "src/components/KanbanColumn.tsx",
@@ -452,13 +673,15 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "default:KanbanColumn"
       ],
       "hooks": [
-        "useSettings",
-        "useState",
         "useRef",
-        "useEffect"
+        "useEffect",
+        "useSettings",
+        "useIsMobile",
+        "useState",
+        "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 226
+      "linesOfCode": 529
     },
     {
       "path": "src/components/SettingsDialog.tsx",
@@ -466,10 +689,11 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "default:SettingsDialog"
       ],
       "hooks": [
-        "useSettings"
+        "useSettings",
+        "useIsMobile"
       ],
       "apiCalls": [],
-      "linesOfCode": 113
+      "linesOfCode": 137
     },
     {
       "path": "src/components/SpaceEasterEggs.tsx",
@@ -517,10 +741,11 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useEffect",
         "useSettings",
         "useTaskContext",
-        "useState"
+        "useState",
+        "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 1067
+      "linesOfCode": 1190
     },
     {
       "path": "src/components/TaskDialog.tsx",
@@ -534,7 +759,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 408
+      "linesOfCode": 539
     },
     {
       "path": "src/components/ui/alert-dialog.tsx",
@@ -821,6 +1046,18 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       "linesOfCode": 4
     },
     {
+      "path": "src/components/WorkspaceSwitcher.tsx",
+      "exports": [
+        "default:WorkspaceSwitcher"
+      ],
+      "hooks": [
+        "useWorkspace",
+        "useState"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 174
+    },
+    {
       "path": "src/hooks/use-mobile.tsx",
       "exports": [
         "useIsMobile"
@@ -847,6 +1084,18 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "apiCalls": [],
       "linesOfCode": 187
+    },
+    {
+      "path": "src/hooks/useIsMobile.ts",
+      "exports": [
+        "useIsMobile"
+      ],
+      "hooks": [
+        "useState",
+        "useEffect"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 15
     },
     {
       "path": "src/hooks/useTasks.ts",
@@ -881,9 +1130,11 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       "exports": [
         "default:Index"
       ],
-      "hooks": [],
+      "hooks": [
+        "useWorkspace"
+      ],
       "apiCalls": [],
-      "linesOfCode": 13
+      "linesOfCode": 15
     },
     {
       "path": "src/pages/NotFound.tsx",
@@ -900,12 +1151,11 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
     {
       "path": "src/services/taskStorage.ts",
       "exports": [
-        "localStorageService",
-        "taskStorage"
+        "createWorkspaceStorage"
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 39
+      "linesOfCode": 34
     },
     {
       "path": "src/store/settingsStore.tsx",
@@ -919,7 +1169,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 70
+      "linesOfCode": 82
     },
     {
       "path": "src/store/taskStore.tsx",
@@ -929,12 +1179,27 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "hooks": [
         "useContext",
+        "useMemo",
         "useState",
         "useEffect",
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 127
+      "linesOfCode": 176
+    },
+    {
+      "path": "src/store/workspaceStore.tsx",
+      "exports": [
+        "DEFAULT_WORKSPACE_ID",
+        "WorkspaceProvider",
+        "useWorkspace"
+      ],
+      "hooks": [
+        "useState",
+        "useContext"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 85
     },
     {
       "path": "src/test/example.test.ts",
@@ -954,11 +1219,12 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       "path": "src/types/task.ts",
       "exports": [
         "PRIORITIES",
+        "EMPTY_FILTER",
         "DEFAULT_COLUMNS"
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 52
+      "linesOfCode": 84
     },
     {
       "path": "src/vite-env.d.ts",

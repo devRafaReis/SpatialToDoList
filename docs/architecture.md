@@ -7,12 +7,13 @@
 | Runtime | Bun |
 | Framework | React 18 + TypeScript |
 | Build | Vite 5 + `@vitejs/plugin-react-swc` |
-| Styling | Tailwind CSS 3 + CSS variables (dark-only theme) |
+| Styling | Tailwind CSS 3 + CSS variables (dark galaxy / light mode) |
 | UI components | shadcn/ui (`src/components/ui/`) via Radix UI primitives |
 | Drag-and-drop | `@hello-pangea/dnd` |
-| Routing | react-router-dom v6 |
-| State | React Context (`TaskProvider`) |
-| Persistence | `localStorage` (key: `kanban-tasks`) |
+| Routing | react-router-dom v6 (future v7 flags enabled) |
+| Date math | date-fns |
+| State | React Context (`WorkspaceProvider` → `SettingsProvider` → `TaskProvider`) |
+| Persistence | `localStorage` namespaced by workspace |
 | Testing | Vitest + jsdom + Testing Library |
 
 ## Application Structure
@@ -20,108 +21,237 @@
 Single-page app with 2 routes:
 
 ```
-/ → Index → TaskProvider → KanbanBoard
+/ → Index → TaskProvider(key=workspaceId) → KanbanBoard
 * → NotFound
 ```
 
-`App.tsx` mounts `QueryClientProvider` + `TooltipProvider` + toast providers globally. **Note:** `@tanstack/react-query` is installed but not used for task data; all data flows through React Context.
+`App.tsx` mounts providers in this order:
+
+```
+QueryClientProvider
+  └── WorkspaceProvider     (workspace list + active workspace)
+        └── SettingsProvider  (animations, theme, layout, checklist defaults)
+              └── TooltipProvider
+                    └── BrowserRouter → Routes
+```
+
+**Note:** `@tanstack/react-query` is installed but not used for task data; all data flows through React Context.
 
 ## Data Flow
 
+### Task data
+
 ```
-TaskProvider  (src/store/taskStore.tsx)
-  └── React Context: Task[] + CRUD handlers
-        └── useEffect syncs to localStorage on every state change
-              └── taskStorage (src/services/taskStorage.ts)
-                    └── localStorageService (current impl)
-                          └── JSON.parse / JSON.stringify under key "kanban-tasks"
+WorkspaceProvider  (src/store/workspaceStore.tsx)
+  └── activeWorkspaceId  →  TaskProvider key prop
+        └── TaskProvider (src/store/taskStore.tsx)
+              └── React Context: Task[] + Board[] + CRUD handlers
+                    └── useEffect syncs to localStorage on every state change
+                          └── createWorkspaceStorage(workspaceId)
+                                └── kanban-tasks_<workspaceId>
+                                    kanban-boards_<workspaceId>
 ```
 
 Components read state via `useTaskContext()` → `useTasks()`:
 
 ```
 useTasks()  (src/hooks/useTasks.ts)
-  ├── Calls useTaskContext() for raw tasks + actions
+  ├── Calls useTaskContext() for raw tasks + boards + actions
   └── Returns tasksByStatus: Record<TaskStatus, Task[]>  (memoized, sorted by task.order)
 ```
+
+### Workspace switching
+
+`TaskProvider` receives `workspaceId` as a prop and is mounted with `key={activeWorkspaceId}` in `Index.tsx`. When the active workspace changes, React unmounts and remounts `TaskProvider` entirely — `useState` initializers re-run and load the new workspace's data from localStorage. No explicit reset logic is needed.
+
+### Settings data
+
+```
+SettingsProvider  (src/store/settingsStore.tsx)
+  └── localStorage keys:
+        spatialTodo_animations       ("true" / "false")
+        spatialTodo_lightMode        ("true" / "false")
+        spatialTodo_boardLayout      ("horizontal" / "vertical")
+        spatialTodo_checklistExpanded ("true" / "false")
+```
+
+### Workspace data
+
+```
+WorkspaceProvider  (src/store/workspaceStore.tsx)
+  └── localStorage keys:
+        spatialTodo_workspaces       (JSON: Workspace[])
+        spatialTodo_activeWorkspace  (string: workspace id)
+```
+
+On first load (no `spatialTodo_workspaces` key): creates default workspace `{ id: "default", name: "Personal" }` and migrates legacy keys `kanban-tasks` / `kanban-boards` to `kanban-tasks_default` / `kanban-boards_default`.
 
 ## Component Tree
 
 ```
 KanbanBoard
   ├── StarParticles          (canvas — twinkling stars + periodic comet)
-  ├── NyanCatEasterEgg       (canvas — pixel-art Nyan Cat every 5 min)
-  ├── Header                 (title + "Nova Tarefa" button)
+  ├── SpaceEasterEggs        (canvas — pixel-art Nyan Cat every 5 min)
+  ├── Header
+  │     ├── WorkspaceSwitcher  (dropdown: switch/create/rename/delete workspaces)
+  │     ├── FilterPopover      (filter by priority, board, start date, end date)
+  │     └── SettingsDialog     (animations, layout, checklist defaults, light mode)
   ├── DragDropContext        (@hello-pangea/dnd)
-  │     └── KanbanColumn ×4  (todo / doing / done / cancelled)
-  │           └── TaskCard   (Draggable — shows title, priority badge, description)
-  │                 ├── DragParticles      (canvas — active while card is dragged)
-  │                 ├── BigBangCanvas      (canvas — burst effect on new card creation)
-  │                 ├── BlackHoleCanvas    (canvas — black hole on delete)
-  │                 ├── PortalExitCanvas   (canvas — swirl on move-to-column)
-  │                 └── PortalEntryCanvas  (canvas — scatter on arrival)
-  └── TaskDialog             (create/edit modal — plain useState, NOT React Hook Form)
+  │     └── KanbanColumn ×N  (dynamic boards — droppable)
+  │           └── TaskCard   (Draggable)
+  │                 ├── DragParticles       (canvas — active while dragging)
+  │                 ├── BigBangCanvas       (canvas — burst on new card)
+  │                 ├── BlackHoleCanvas     (canvas — vortex on delete)
+  │                 ├── PortalExitCanvas    (canvas — swirl on move out)
+  │                 ├── PortalEntryCanvas   (canvas — scatter on arrival)
+  │                 └── Inline checklist    (checkbox items + progress bar)
+  ├── BoardBlackHoleCanvas   (canvas — full-board black hole on board delete)
+  └── TaskDialog             (create/edit modal — planning, checklist, recurrence)
 ```
 
 ## Task Data Model
 
 ```typescript
 interface Task {
-  id: string;          // crypto.randomUUID()
+  id: string;               // crypto.randomUUID()
   title: string;
   description: string;
-  status: TaskStatus;  // "todo" | "doing" | "done" | "cancelled"
-  priority?: TaskPriority; // "low" | "medium" | "high" | "critical" — optional
-  order: number;       // Date.now() on creation; index after reorder
-  userId?: string;     // defined but never set — reserved for multi-user
-  createdAt: string;   // ISO timestamp
-  updatedAt: string;   // ISO timestamp
+  status: TaskStatus;       // board id string (dynamic)
+  priority?: TaskPriority;  // "low" | "medium" | "high" | "critical"
+  order: number;            // Date.now() on creation; array index after reorder
+  userId?: string;          // reserved, never populated
+  createdAt: string;        // ISO timestamp
+  updatedAt: string;        // ISO timestamp
+  estimatedHours?: number;
+  estimatedMinutes?: number;
+  startDate?: string;       // "yyyy-MM-dd"
+  endDate?: string;         // "yyyy-MM-dd"
+  checklist?: ChecklistItem[];
+  recurrence?: Recurrence;
+}
+
+interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+type RecurrenceType = "daily" | "daily-weekdays" | "weekly" | "monthly";
+
+interface Recurrence {
+  type: RecurrenceType;
+  enabled: boolean;
+  limit?: number;  // undefined = forever; decrements on each auto-creation; stops at 0
 }
 ```
 
+## Board (Column) Data Model
+
+```typescript
+interface Column {
+  id: string;    // "todo" / "doing" / "done" for defaults; "board-<uuid>" for custom
+  title: string;
+}
+```
+
+`TaskStatus` is a plain `string` (the board id). There are no fixed status values — all boards are user-configurable.
+
+## Workspace Data Model
+
+```typescript
+interface Workspace {
+  id: string;   // "default" for the first workspace; "ws-<uuid>" for subsequent
+  name: string;
+}
+```
+
+## Recurrence Logic
+
+When a task with `recurrence.enabled = true` is moved to the **last board** (by position in the boards array), `buildNextOccurrence` is called inside `setTasks`:
+
+1. If `limit` is defined and `≤ 0`: no new task is created (recurrence exhausted).
+2. Otherwise: a new `Task` is created with:
+   - New `id` and `createdAt`/`updatedAt`
+   - `status` = first board's id
+   - `startDate`/`endDate` shifted forward by the interval (skipping weekends for `daily-weekdays`)
+   - All checklist items reset to `done: false`
+   - `recurrence.limit` decremented by 1 (if it was defined)
+
+This logic runs inside both `moveTask` (button-triggered moves) and `moveTaskBetweenColumns` (drag-drop moves).
+
 ## Drag-and-Drop Logic
 
-Handled entirely in `KanbanBoard.handleDragEnd`:
+Handled in `KanbanBoard.handleDragEnd`:
 
-- **Same column**: `reorderTasks(status, reorderedIds)` — splices id array, updates `order` as array index.
-- **Cross-column**: `moveTaskBetweenColumns(taskId, src, dest, destIndex, srcIds, destIds)` — updates moved task's `status` + `order`, and re-numbers both columns.
+- **Card in same board**: `reorderTasks(status, reorderedIds)` — splices id array, updates `order` as array index.
+- **Card cross-board**: `moveTaskBetweenColumns(taskId, src, dest, destIndex, srcIds, destIds)` — updates moved task's `status` + `order`, re-numbers both boards. If destination is the last board and task is recurring, auto-creates next occurrence.
+- **Board reorder**: `reorderBoards(orderedIds)`.
+
+## Filter Logic
+
+`KanbanBoard` holds a `filter: TaskFilter` state. Two memos derive the visible data:
+
+```typescript
+const visibleBoards = useMemo(…)         // boards matching filter.boards (or all)
+const filteredTasksByStatus = useMemo(…) // tasks per board after all filter criteria applied
+```
+
+`FilterPopover` renders the filter UI; `Header` passes filter state down to it.
+
+## Animation Architecture
+
+Canvas effects are rendered via `createPortal(…, document.body)` at `position: fixed` coordinates derived from `getBoundingClientRect()`. Key timing details:
+
+- **New card (BigBang):** position captured 210ms after dialog closes (waits for Radix scrollbar-compensation padding-right to be removed).
+- **Deleted card (BlackHole):** position captured 220ms after AlertDialog closes, same reason.
+- **Moved card (Portal):** position captured immediately in the same frame as the button click (no dialog involved).
+- All canvases use `display: block` (not `position: absolute`) so the portal div sizes to the canvas — centering math is `left: x - canvasWidth/2`.
 
 ## Theme
 
-Dark galaxy theme, CSS-variables-only (no light mode). Defined in `src/index.css`:
-- Background: `hsl(230 25% 9%)` with radial gradient nebula overlays
-- Primary: `hsl(260 50% 60%)` (violet-purple)
-- Custom utilities: `.glass`, `.glass-column`, `.glass-drag` (glassmorphism)
-- Card animation keyframes: `card-portal-out`, `card-portal-in`, `card-big-bang-in`, `card-suck-in`
+Two themes toggled via `lightMode` setting:
+
+| | Dark (default) | Light |
+|---|---|---|
+| Title | "Spatial ToDoList" | "Boring ToDoList" |
+| Background | `hsl(230 25% 9%)` + nebula gradient | white / light gray |
+| Animations | Enabled by default | Disabled and locked |
+| CSS class | (none) | `document.documentElement.classList → "light"` |
+
+Custom utilities: `.glass`, `.glass-column`, `.glass-drag` (glassmorphism).  
+Card animation keyframes: `card-portal-out`, `card-portal-in`, `card-big-bang-in`, `card-suck-in`.
 
 ## File Map
 
 ```
 src/
-  App.tsx                   — Router + providers root
-  main.tsx                  — ReactDOM.createRoot entry
-  index.css                 — Global styles, CSS vars, animation keyframes
-  types/task.ts             — Task, TaskStatus, TaskPriority, COLUMNS, PRIORITIES
-  store/taskStore.tsx       — Context, TaskProvider, CRUD operations
-  services/taskStorage.ts   — TaskStorageService interface + localStorageService
-  hooks/useTasks.ts         — Grouped/sorted tasks consumer hook
-  hooks/use-mobile.tsx      — Breakpoint hook (shadcn default)
-  hooks/use-toast.ts        — Toast hook (shadcn default)
-  lib/utils.ts              — cn() helper (clsx + tailwind-merge)
-  pages/Index.tsx           — Route component: wraps KanbanBoard in TaskProvider
-  pages/NotFound.tsx        — 404 page
+  App.tsx                    — Router + providers root
+  main.tsx                   — ReactDOM.createRoot entry
+  index.css                  — Global styles, CSS vars, animation keyframes
+  types/task.ts              — All types: Task, Recurrence, Workspace, TaskFilter, Column, PRIORITIES
+  store/
+    taskStore.tsx            — TaskProvider, CRUD, drag-drop handlers, recurrence auto-creation
+    settingsStore.tsx        — SettingsProvider (animations, lightMode, boardLayout, checklist)
+    workspaceStore.tsx       — WorkspaceProvider, CRUD, migration of legacy localStorage keys
+  services/taskStorage.ts    — createWorkspaceStorage(id): TaskStorageService
+  hooks/useTasks.ts          — Grouped/sorted tasks + all context actions
+  hooks/useIsMobile.ts       — Breakpoint hook
+  lib/utils.ts               — cn() helper (clsx + tailwind-merge)
+  pages/Index.tsx            — Route /: mounts TaskProvider with key + workspaceId
+  pages/NotFound.tsx         — 404 page
   components/
-    KanbanBoard.tsx         — Board orchestrator, drag-drop context, dialog state
-    KanbanColumn.tsx        — Droppable column wrapper
-    TaskCard.tsx            — Draggable card + all canvas effect sub-components
-    TaskDialog.tsx          — Create/edit modal (local state, no RHF)
-    Header.tsx              — App title + add-task button
-    StarParticles.tsx       — Full-screen background canvas (stars + comet)
-    NyanCatEasterEgg.tsx    — Full-screen overlay canvas (Nyan Cat easter egg)
-    CometTrail.tsx          — Cursor-following particle trail during drag (defined, unused)
-    NavLink.tsx             — Router NavLink wrapper (defined, currently unused)
-    ui/                     — shadcn/ui generated components (do not hand-edit)
+    KanbanBoard.tsx          — Board orchestrator, drag-drop, filter state, board management
+    KanbanColumn.tsx         — Droppable column, collapse toggle, BigBang/BlackHole animations
+    TaskCard.tsx             — Draggable card, inline checklist, recurrence badge, canvas effects
+    TaskDialog.tsx           — Create/edit modal (planning, checklist, recurrence sections)
+    Header.tsx               — WorkspaceSwitcher + FilterPopover + SettingsDialog + add-task button
+    FilterPopover.tsx        — Filter UI (priority chips, board chips, date range inputs)
+    WorkspaceSwitcher.tsx    — Workspace dropdown with create/rename/delete + confirmation
+    SettingsDialog.tsx       — Settings panel (animations, layout, checklist, light mode)
+    StarParticles.tsx        — Full-screen background canvas (stars + comet)
+    SpaceEasterEggs.tsx      — Full-screen overlay canvas (Nyan Cat easter egg)
+    ui/                      — shadcn/ui generated components (do not hand-edit)
   test/
-    setup.ts                — window.matchMedia mock for jsdom
-    example.test.ts         — Placeholder test
+    setup.ts                 — window.matchMedia mock for jsdom
+    example.test.ts          — Placeholder test
 ```

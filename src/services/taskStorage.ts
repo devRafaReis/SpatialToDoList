@@ -1,8 +1,5 @@
 import { Task, Column, DEFAULT_COLUMNS } from "@/types/task";
 
-const TASKS_KEY  = "kanban-tasks";
-const BOARDS_KEY = "kanban-boards";
-
 export interface TaskStorageService {
   getTasks(): Task[];
   saveTasks(tasks: Task[]): void;
@@ -10,29 +7,27 @@ export interface TaskStorageService {
   saveBoards(boards: Column[]): void;
 }
 
-export const localStorageService: TaskStorageService = {
+export const createWorkspaceStorage = (workspaceId: string): TaskStorageService => ({
   getTasks(): Task[] {
     try {
-      const raw = localStorage.getItem(TASKS_KEY);
+      const raw = localStorage.getItem(`kanban-tasks_${workspaceId}`);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
     }
   },
   saveTasks(tasks: Task[]): void {
-    localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+    localStorage.setItem(`kanban-tasks_${workspaceId}`, JSON.stringify(tasks));
   },
   getBoards(): Column[] {
     try {
-      const raw = localStorage.getItem(BOARDS_KEY);
+      const raw = localStorage.getItem(`kanban-boards_${workspaceId}`);
       return raw ? JSON.parse(raw) : DEFAULT_COLUMNS;
     } catch {
       return DEFAULT_COLUMNS;
     }
   },
   saveBoards(boards: Column[]): void {
-    localStorage.setItem(BOARDS_KEY, JSON.stringify(boards));
+    localStorage.setItem(`kanban-boards_${workspaceId}`, JSON.stringify(boards));
   },
-};
-
-export const taskStorage: TaskStorageService = localStorageService;
+});

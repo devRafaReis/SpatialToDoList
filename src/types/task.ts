@@ -23,6 +23,7 @@ export interface Task {
   startDate?: string;
   endDate?: string;
   checklist?: ChecklistItem[];
+  recurrence?: Recurrence;
 }
 
 export interface Priority {
@@ -39,9 +40,40 @@ export const PRIORITIES: Priority[] = [
   { id: "critical", label: "Critical", badgeClass: "bg-red-500/15 text-red-400 border-red-500/30",             dotClass: "bg-red-400"     },
 ];
 
+export type RecurrenceType = "daily" | "daily-weekdays" | "weekly" | "monthly";
+
+export interface Recurrence {
+  type: RecurrenceType;
+  enabled: boolean;
+  limit?: number; // undefined = forever; decrements on each auto-creation
+}
+
 export interface Column {
   id: string;
   title: string;
+}
+
+export interface TaskFilter {
+  priorities: TaskPriority[];
+  boards: string[];
+  startDateFrom: string;
+  startDateTo: string;
+  endDateFrom: string;
+  endDateTo: string;
+}
+
+export const EMPTY_FILTER: TaskFilter = {
+  priorities: [],
+  boards: [],
+  startDateFrom: "",
+  startDateTo: "",
+  endDateFrom: "",
+  endDateTo: "",
+};
+
+export interface Workspace {
+  id: string;
+  name: string;
 }
 
 export const DEFAULT_COLUMNS: Column[] = [

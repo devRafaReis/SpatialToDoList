@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import { Clock, CalendarRange, CalendarIcon, Plus, Trash2, ListChecks, ChevronDown } from "lucide-react";
+import { Clock, CalendarRange, CalendarIcon, Plus, Trash2, ListChecks, ChevronDown, RefreshCw } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { Task, TaskStatus, TaskPriority, ChecklistItem, PRIORITIES } from "@/types/task";
+import { Task, TaskStatus, TaskPriority, ChecklistItem, PRIORITIES, Recurrence, RecurrenceType } from "@/types/task";
 import { useTaskContext } from "@/store/taskStore";
 import {
   Dialog,
@@ -24,6 +24,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface TaskDialogProps {
   open: boolean;
@@ -40,6 +42,7 @@ interface TaskDialogProps {
     startDate?: string,
     endDate?: string,
     checklist?: ChecklistItem[],
+    recurrence?: Recurrence,
   ) => void;
 }
 
@@ -55,9 +58,15 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
   const [endDate, setEndDate]                   = useState("");
   const [checklist, setChecklist]               = useState<ChecklistItem[]>([]);
   const [newItemText, setNewItemText]           = useState("");
+  const [recurrenceEnabled, setRecurrenceEnabled]     = useState(false);
+  const [recurrenceType, setRecurrenceType]           = useState<RecurrenceType>("weekly");
+  const [recurrenceLimitType, setRecurrenceLimitType] = useState<"forever" | "count">("forever");
+  const [recurrenceLimitCount, setRecurrenceLimitCount] = useState("3");
+  const [recurrenceOpen, setRecurrenceOpen]           = useState(false);
   const newItemInputRef                         = useRef<HTMLInputElement>(null);
   const planningRef                             = useRef<HTMLDivElement>(null);
   const checklistRef                            = useRef<HTMLDivElement>(null);
+  const recurrenceRef                           = useRef<HTMLDivElement>(null);
   const [planningOpen, setPlanningOpen]         = useState(false);
   const [checklistOpen, setChecklistOpen]       = useState(false);
 
@@ -71,6 +80,12 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     const next = !checklistOpen;
     setChecklistOpen(next);
     if (next) setTimeout(() => checklistRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+  };
+
+  const toggleRecurrence = () => {
+    const next = !recurrenceOpen;
+    setRecurrenceOpen(next);
+    if (next) setTimeout(() => recurrenceRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   };
 
   const isEditing = !!task;
@@ -87,8 +102,13 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     setEndDate(task?.endDate ?? "");
     setChecklist(task?.checklist ? task.checklist.map((i) => ({ ...i })) : []);
     setNewItemText("");
+    setRecurrenceEnabled(task?.recurrence?.enabled ?? false);
+    setRecurrenceType(task?.recurrence?.type ?? "weekly");
+    setRecurrenceLimitType(task?.recurrence?.limit !== undefined ? "count" : "forever");
+    setRecurrenceLimitCount(task?.recurrence?.limit?.toString() ?? "3");
     setPlanningOpen(!!(task?.estimatedHours || task?.estimatedMinutes || task?.startDate || task?.endDate));
     setChecklistOpen(!!(task?.checklist && task.checklist.length > 0));
+    setRecurrenceOpen(!!task?.recurrence);
   }, [open, task]);
 
   const addChecklistItem = () => {
@@ -111,6 +131,12 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     if (!title.trim()) return;
     const hrs = estimatedHours !== "" ? parseInt(estimatedHours, 10) : undefined;
     const min = estimatedMinutes !== "" ? parseInt(estimatedMinutes, 10) : undefined;
+    const limitVal = recurrenceLimitType === "count" && recurrenceLimitCount !== ""
+      ? Math.max(1, parseInt(recurrenceLimitCount, 10))
+      : undefined;
+    const recurrence: Recurrence | undefined = recurrenceOpen
+      ? { type: recurrenceType, enabled: recurrenceEnabled, limit: limitVal }
+      : undefined;
     onSave(
       title.trim(),
       description.trim(),
@@ -121,6 +147,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
       startDate || undefined,
       endDate || undefined,
       checklist.length > 0 ? checklist : undefined,
+      recurrence,
     );
     onOpenChange(false);
   };
@@ -387,6 +414,109 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
+              </div>
+            )}
+          </div>
+          {/* Recurrence */}
+          <div ref={recurrenceRef} className="rounded-md border border-border/40 bg-muted/20">
+            <button
+              type="button"
+              onClick={toggleRecurrence}
+              className="flex w-full items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5 shrink-0" />
+              Recurrence
+              {recurrenceOpen && (() => {
+                const typeLabel: Record<string, string> = { daily: "daily", "daily-weekdays": "Mon–Fri", weekly: "weekly", monthly: "monthly" };
+                const limitLabel = recurrenceLimitType === "count" && recurrenceLimitCount ? ` · ${recurrenceLimitCount}×` : recurrenceLimitType === "forever" ? " · ∞" : "";
+                return (
+                  <span className={`ml-1 text-[10px] ${recurrenceEnabled ? "text-primary/70" : "text-muted-foreground/50"}`}>
+                    {recurrenceEnabled ? `${typeLabel[recurrenceType] ?? recurrenceType}${limitLabel}` : "disabled"}
+                  </span>
+                );
+              })()}
+              <ChevronDown className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${recurrenceOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {recurrenceOpen && (
+              <div className="space-y-3 border-t border-border/30 px-2.5 pb-2.5 pt-2">
+                {/* Enable toggle */}
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="recurrence-enabled" className="text-xs text-muted-foreground cursor-pointer">
+                    {recurrenceEnabled ? "Enabled" : "Disabled"}
+                  </Label>
+                  <Switch
+                    id="recurrence-enabled"
+                    checked={recurrenceEnabled}
+                    onCheckedChange={setRecurrenceEnabled}
+                  />
+                </div>
+
+                {/* Frequency */}
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-muted-foreground">Frequency</p>
+                  <Select value={recurrenceType} onValueChange={(v) => setRecurrenceType(v as RecurrenceType)} disabled={!recurrenceEnabled}>
+                    <SelectTrigger className={recurrenceEnabled ? "" : "opacity-50"}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily (every day)</SelectItem>
+                      <SelectItem value="daily-weekdays">Daily (Mon – Fri)</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Repetitions */}
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-muted-foreground">Repetitions</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={!recurrenceEnabled}
+                      onClick={() => setRecurrenceLimitType("forever")}
+                      className={`flex-1 rounded-md border px-3 py-1.5 text-xs transition-colors ${
+                        recurrenceLimitType === "forever"
+                          ? "border-primary/60 bg-primary/10 text-primary"
+                          : "border-border/40 text-muted-foreground hover:border-border"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      Forever
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!recurrenceEnabled}
+                      onClick={() => setRecurrenceLimitType("count")}
+                      className={`flex-1 rounded-md border px-3 py-1.5 text-xs transition-colors ${
+                        recurrenceLimitType === "count"
+                          ? "border-primary/60 bg-primary/10 text-primary"
+                          : "border-border/40 text-muted-foreground hover:border-border"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      Set limit
+                    </button>
+                  </div>
+                  {recurrenceLimitType === "count" && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={999}
+                        value={recurrenceLimitCount}
+                        onChange={(e) => setRecurrenceLimitCount(e.target.value)}
+                        className="h-8 text-sm"
+                        disabled={!recurrenceEnabled}
+                        placeholder="3"
+                      />
+                      <span className="text-xs text-muted-foreground shrink-0">repetitions</span>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-[10px] text-muted-foreground/60">
+                  When moved to the last board, a new copy is created in the first board with the next date.
+                </p>
               </div>
             )}
           </div>

@@ -11,9 +11,11 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSettings } from "@/store/settingsStore";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const SettingsDialog = () => {
-  const { animationsEnabled, lightMode, boardLayout, setAnimationsEnabled, setLightMode, setBoardLayout } = useSettings();
+  const { animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault } = useSettings();
+  const isMobile = useIsMobile();
 
   return (
     <Dialog>
@@ -27,7 +29,7 @@ const SettingsDialog = () => {
         </TooltipTrigger>
         <TooltipContent>Settings</TooltipContent>
       </Tooltip>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
@@ -49,11 +51,15 @@ const SettingsDialog = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-4">
+          <div className={`flex items-center justify-between gap-4 ${isMobile ? "opacity-40" : ""}`}>
             <div className="flex flex-col gap-0.5">
               <Label className="text-sm font-medium">Board layout</Label>
               <span className="text-xs text-muted-foreground">
-                {boardLayout === "horizontal" ? "Swimlane — tasks flow horizontally." : "Columns — tasks stack vertically."}
+                {isMobile
+                  ? "Not available on mobile. Boards always stack vertically."
+                  : boardLayout === "horizontal"
+                  ? "Swimlane — tasks flow horizontally."
+                  : "Columns — tasks stack vertically."}
               </span>
             </div>
             <div className="flex items-center gap-1 rounded-md border border-border/40 p-0.5">
@@ -65,6 +71,7 @@ const SettingsDialog = () => {
                     className={`h-7 w-7 ${boardLayout === "vertical" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
                     onClick={() => setBoardLayout("vertical")}
                     aria-label="Vertical columns"
+                    disabled={isMobile}
                   >
                     <LayoutList className="h-4 w-4" />
                   </Button>
@@ -79,6 +86,7 @@ const SettingsDialog = () => {
                     className={`h-7 w-7 ${boardLayout === "horizontal" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
                     onClick={() => setBoardLayout("horizontal")}
                     aria-label="Horizontal swimlane"
+                    disabled={isMobile}
                   >
                     <LayoutPanelTop className="h-4 w-4" />
                   </Button>
@@ -86,6 +94,22 @@ const SettingsDialog = () => {
                 <TooltipContent>Horizontal swimlane</TooltipContent>
               </Tooltip>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor="checklist-toggle" className="text-sm font-medium">
+                Expand checklists
+              </Label>
+              <span className="text-xs text-muted-foreground">
+                Show checklist items expanded by default on all cards.
+              </span>
+            </div>
+            <Switch
+              id="checklist-toggle"
+              checked={checklistExpandedByDefault}
+              onCheckedChange={setChecklistExpandedByDefault}
+            />
           </div>
 
           <div className="flex items-center justify-between gap-4">
