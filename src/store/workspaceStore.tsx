@@ -1,14 +1,13 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Workspace } from "@/types/task";
-import { useAuth } from "@/store/authStore";
+import { useAuth } from "@/store/authContext";
 import {
   fetchWorkspaces,
   upsertWorkspace,
   deleteWorkspaceRemote,
 } from "@/services/supabaseStorage";
 import { STORAGE_KEYS } from "@/constants/storageKeys";
-
-export const DEFAULT_WORKSPACE_ID = "default";
+import { WorkspaceContext, DEFAULT_WORKSPACE_ID } from "@/store/workspaceContext";
 
 function initWorkspaces(): { workspaces: Workspace[]; activeId: string } {
   const raw = localStorage.getItem(STORAGE_KEYS.WORKSPACES);
@@ -31,17 +30,6 @@ function initWorkspaces(): { workspaces: Workspace[]; activeId: string } {
     return { workspaces: [{ id: DEFAULT_WORKSPACE_ID, name: "Personal" }], activeId: DEFAULT_WORKSPACE_ID };
   }
 }
-
-type WorkspaceContextType = {
-  workspaces: Workspace[];
-  activeWorkspaceId: string;
-  setActiveWorkspace: (id: string) => void;
-  addWorkspace: (name: string) => void;
-  renameWorkspace: (id: string, name: string) => void;
-  deleteWorkspace: (id: string) => void;
-};
-
-const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
 
 export const WorkspaceProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -109,10 +97,4 @@ export const WorkspaceProvider = ({ children }: { children: React.ReactNode }) =
       {children}
     </WorkspaceContext.Provider>
   );
-};
-
-export const useWorkspace = () => {
-  const ctx = useContext(WorkspaceContext);
-  if (!ctx) throw new Error("useWorkspace must be inside WorkspaceProvider");
-  return ctx;
 };

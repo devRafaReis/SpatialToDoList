@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useSettings } from "@/store/settingsStore";
+import { useSettings } from "@/store/settingsContext";
 import { useTaskContext } from "@/store/taskContext";
 
 // ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TaskFilter, TaskPriority, PRIORITIES, Column, EMPTY_FILTER } from "@/types/task";
-import { useSettings } from "@/store/settingsStore";
+import { useSettings } from "@/store/settingsContext";
 
 interface FilterPopoverProps {
   filter: TaskFilter;

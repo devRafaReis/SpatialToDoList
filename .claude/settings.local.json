@@ -25,7 +25,9 @@
       "Bash(~/.bun/bin/bun run *)",
       "Bash(dir \"c:\\\\Users\\\\rafael.reis\\\\Desktop\\\\projects\\\\SpatialToDoList-master\" /b)",
       "Bash(bun add *)",
-      "Bash(bunx shadcn@latest add avatar --yes)"
+      "Bash(bunx shadcn@latest add avatar --yes)",
+      "Bash(sed -i 's|import { useWorkspace } from \"@/store/workspaceStore\"|import { useWorkspace } from \"@/store/workspaceContext\"|g' src/components/WorkspaceSwitcher.tsx src/pages/Index.tsx)",
+      "Bash(sed -i 's|import { useSettings } from \"@/store/settingsStore\"|import { useSettings } from \"@/store/settingsContext\"|g' src/components/Header.tsx src/components/FilterPopover.tsx src/components/KanbanBoard.tsx src/components/KanbanColumn.tsx src/components/TaskCard.tsx src/components/SettingsDialog.tsx)"
     ]
   }
 }

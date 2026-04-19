@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useWorkspace } from "@/store/workspaceStore";
+import { useWorkspace } from "@/store/workspaceContext";
 import { createWorkspaceStorage } from "@/services/taskStorage";
 
 type EditMode = { type: "create" } | { type: "rename"; id: string; current: string };

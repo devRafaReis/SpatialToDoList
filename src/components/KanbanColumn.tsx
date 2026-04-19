@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Droppable, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
-import { useSettings } from "@/store/settingsStore";
+import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X, ArrowUpDown } from "lucide-react";
 import { Task, TaskStatus, Column } from "@/types/task";

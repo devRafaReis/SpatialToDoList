@@ -1,31 +1,8 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useAuth } from "@/store/authStore";
+import React, { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/store/authContext";
 import { fetchSettings, saveSettingsRemote } from "@/services/supabaseStorage";
 import { STORAGE_KEYS } from "@/constants/storageKeys";
-
-export type BoardLayout = "horizontal" | "vertical";
-
-type SettingsContextType = {
-  animationsEnabled: boolean;
-  lightMode: boolean;
-  boardLayout: BoardLayout;
-  checklistExpandedByDefault: boolean;
-  setAnimationsEnabled: (v: boolean) => void;
-  setLightMode: (v: boolean) => void;
-  setBoardLayout: (v: BoardLayout) => void;
-  setChecklistExpandedByDefault: (v: boolean) => void;
-};
-
-const SettingsContext = createContext<SettingsContextType>({
-  animationsEnabled: true,
-  lightMode: false,
-  boardLayout: "horizontal",
-  checklistExpandedByDefault: false,
-  setAnimationsEnabled: () => {},
-  setLightMode: () => {},
-  setBoardLayout: () => {},
-  setChecklistExpandedByDefault: () => {},
-});
+import { SettingsContext, BoardLayout } from "@/store/settingsContext";
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -121,5 +98,3 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     </SettingsContext.Provider>
   );
 };
-
-export const useSettings = () => useContext(SettingsContext);

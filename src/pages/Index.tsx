@@ -1,6 +1,6 @@
 import { TaskProvider } from "@/store/taskStore";
-import { useWorkspace } from "@/store/workspaceStore";
-import { useAuth } from "@/store/authStore";
+import { useWorkspace } from "@/store/workspaceContext";
+import { useAuth } from "@/store/authContext";
 import KanbanBoard from "@/components/KanbanBoard";
 
 const Index = () => {

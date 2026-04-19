@@ -1,30 +1,7 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-
-interface AuthContextValue {
-  user: User | null;
-  loading: boolean;
-  signingIn: boolean;
-  accessDenied: boolean;
-  deniedEmail: string;
-  clearAccessDenied: () => void;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextValue>({
-  user: null,
-  loading: true,
-  signingIn: false,
-  accessDenied: false,
-  deniedEmail: "",
-  clearAccessDenied: () => {},
-  signInWithGoogle: async () => {},
-  signOut: async () => {},
-});
-
-export const useAuth = () => useContext(AuthContext);
+import { AuthContext } from "@/store/authContext";
 
 async function isEmailAllowed(email: string): Promise<boolean> {
   const { data } = await supabase
@@ -62,8 +39,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const handleSession = async (sessionUser: User | null) => {
-    // Close popup if still open
-    try { popupRef.current?.close(); } catch { /* COOP blocks .closed and .close() on cross-origin popups */ }
+    // The popup closes itself via window.close() once the session is ready.
+    // Do not call popup.close() here — Google's COOP header makes it throw
+    // a console error even inside try/catch.
     popupRef.current = null;
 
     if (!sessionUser) {

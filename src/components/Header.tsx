@@ -3,8 +3,8 @@ import { LogIn, LogOut, Loader2, CloudOff, Cloud, RefreshCw } from "lucide-react
 import SettingsDialog from "@/components/SettingsDialog";
 import WorkspaceSwitcher from "@/components/WorkspaceSwitcher";
 import AccessRequestDialog from "@/components/AccessRequestDialog";
-import { useSettings } from "@/store/settingsStore";
-import { useAuth } from "@/store/authStore";
+import { useSettings } from "@/store/settingsContext";
+import { useAuth } from "@/store/authContext";
 import { useTaskContext } from "@/store/taskContext";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";

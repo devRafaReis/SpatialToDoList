@@ -10,7 +10,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useSettings } from "@/store/settingsStore";
+import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
 const SettingsDialog = () => {

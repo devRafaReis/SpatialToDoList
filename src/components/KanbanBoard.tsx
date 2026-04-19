@@ -7,7 +7,7 @@ import TaskDialog from "@/components/TaskDialog";
 import Header from "@/components/Header";
 import StarParticles from "@/components/StarParticles";
 import SpaceEasterEggs from "@/components/SpaceEasterEggs";
-import { useSettings } from "@/store/settingsStore";
+import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { Plus, RotateCcw, Trash2, Columns } from "lucide-react";
 import FilterPopover from "@/components/FilterPopover";

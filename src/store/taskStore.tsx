@@ -74,9 +74,9 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
         if (cloudBoards.length > 0) {
           setBoards(cloudBoards);
           storage.saveBoards(cloudBoards);
-        } else if (isFirstLogin) {
-          syncBoards(userId, workspaceId, storage.getBoards()).catch(console.error);
         }
+        // isFirstLogin: local boards stay as-is; debounced effect syncs them after cloudLoadDone=true.
+        // Direct syncBoards call here would race with that debounce and cause 409 conflicts.
 
         if (cloudTasks.length > 0) {
           // Merge: cloud is source of truth; push any local-only tasks up too
@@ -85,16 +85,13 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
           const merged = [...cloudTasks, ...localOnly];
           setTasks(merged);
           storage.saveTasks(merged);
-          if (localOnly.length > 0) syncTasks(userId, workspaceId, merged, workspaceName).catch(console.error);
-        } else if (isFirstLogin) {
-          // First login only — migrate local tasks to cloud
-          const localTasks = storage.getTasks();
-          if (localTasks.length > 0) syncTasks(userId, workspaceId, localTasks, workspaceName).catch(console.error);
-        } else {
+          // localOnly migration: debounced effect handles the sync after cloudLoadDone=true.
+        } else if (!isFirstLogin) {
           // Cloud is empty and boards exist → tasks were intentionally deleted
           setTasks([]);
           storage.saveTasks([]);
         }
+        // isFirstLogin with no tasks: local tasks stay as-is; debounced effect syncs them.
       })
       .catch(console.error)
       .finally(() => {

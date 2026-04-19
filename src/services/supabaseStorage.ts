@@ -41,8 +41,10 @@ export async function fetchBoards(userId: string, workspaceId: string): Promise<
 export async function syncBoards(userId: string, workspaceId: string, boards: Column[]): Promise<void> {
   await supabase.from("boards").delete().eq("workspace_id", workspaceId).eq("user_id", userId);
   if (boards.length === 0) return;
-  const { error } = await supabase.from("boards").insert(
-    boards.map((b, i) => ({ id: b.id, workspace_id: workspaceId, user_id: userId, title: b.title, position: i }))
+  // upsert instead of insert — concurrent calls with the same board IDs update rather than conflict (409)
+  const { error } = await supabase.from("boards").upsert(
+    boards.map((b, i) => ({ id: b.id, workspace_id: workspaceId, user_id: userId, title: b.title, position: i })),
+    { onConflict: "id" }
   );
   if (error) throw error;
 }
@@ -97,7 +99,7 @@ export async function syncTasks(userId: string, workspaceId: string, tasks: Task
   if (tasks.length === 0) return;
   const { error: insError } = await supabase
     .from("tasks")
-    .insert(tasks.map((t) => taskToDb(t, userId, workspaceId)));
+    .upsert(tasks.map((t) => taskToDb(t, userId, workspaceId)), { onConflict: "id" });
   if (insError) throw insError;
 }
 
