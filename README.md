@@ -45,7 +45,8 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Buraco negro ao deletar tarefa ou board
 - Portal de saída/entrada ao mover tarefa entre boards
 - Partículas ao arrastar card
-- Easter egg: Nyan Cat atravessa a tela a cada 5 minutos
+- **Easter eggs espaciais** — efeitos aleatórios em canvas overlay a cada 1–3 minutos: Supernova (explosão de partículas), OVNI (flyby horizontal), X-Wing (flyby horizontal), Astronauta (travessia diagonal tumbling), Satélite (travessia diagonal com LED piscando)
+- **Nebulosa** — nuvem colorida suave com timer independente (20–45 s), pode coexistir com outros efeitos
 
 ### Autenticação e sincronização na nuvem
 - Login com **Google** via popup (a página principal nunca redireciona)
