@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-04-18T21:17:54.854Z",
-  "totalFiles": 58,
+  "generatedAt": "2026-04-19T01:42:33.893Z",
+  "totalFiles": 67,
   "files": [
     {
       "path": "src/App.tsx",
@@ -19,8 +19,10 @@
       "hooks": [
         "useState"
       ],
-      "apiCalls": [],
-      "linesOfCode": 146
+      "apiCalls": [
+        "fetch"
+      ],
+      "linesOfCode": 156
     },
     {
       "path": "src/components/CometTrail.tsx",
@@ -480,6 +482,15 @@
       "linesOfCode": 176
     },
     {
+      "path": "src/constants/storageKeys.ts",
+      "exports": [
+        "STORAGE_KEYS"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 14
+    },
+    {
       "path": "src/hooks/use-mobile.tsx",
       "exports": [
         "useIsMobile"
@@ -532,6 +543,30 @@
       "linesOfCode": 23
     },
     {
+      "path": "src/lib/__tests__/recurrenceUtils.test.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 167
+    },
+    {
+      "path": "src/lib/__tests__/taskMerge.test.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 70
+    },
+    {
+      "path": "src/lib/recurrenceUtils.ts",
+      "exports": [
+        "shiftDate",
+        "buildNextOccurrence"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 34
+    },
+    {
       "path": "src/lib/supabase.ts",
       "exports": [
         "supabase"
@@ -539,6 +574,15 @@
       "hooks": [],
       "apiCalls": [],
       "linesOfCode": 11
+    },
+    {
+      "path": "src/lib/taskMerge.ts",
+      "exports": [
+        "mergeCloudAndLocalTasks"
+      ],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 13
     },
     {
       "path": "src/lib/utils.ts",
@@ -581,11 +625,18 @@
       "linesOfCode": 25
     },
     {
+      "path": "src/services/__tests__/taskStorage.test.ts",
+      "exports": [],
+      "hooks": [],
+      "apiCalls": [],
+      "linesOfCode": 97
+    },
+    {
       "path": "src/services/supabaseStorage.ts",
       "exports": [],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 205
+      "linesOfCode": 207
     },
     {
       "path": "src/services/taskStorage.ts",
@@ -594,38 +645,58 @@
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 34
+      "linesOfCode": 35
+    },
+    {
+      "path": "src/store/authContext.ts",
+      "exports": [
+        "AuthContext",
+        "useAuth"
+      ],
+      "hooks": [
+        "useContext"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 27
     },
     {
       "path": "src/store/authStore.tsx",
       "exports": [
-        "useAuth",
         "AuthProvider"
       ],
       "hooks": [
-        "useContext",
         "useState",
         "useRef",
         "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 158
+      "linesOfCode": 136
+    },
+    {
+      "path": "src/store/settingsContext.ts",
+      "exports": [
+        "SettingsContext",
+        "useSettings"
+      ],
+      "hooks": [
+        "useContext"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 28
     },
     {
       "path": "src/store/settingsStore.tsx",
       "exports": [
-        "SettingsProvider",
-        "useSettings"
+        "SettingsProvider"
       ],
       "hooks": [
         "useAuth",
         "useRef",
         "useState",
-        "useEffect",
-        "useContext"
+        "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 125
+      "linesOfCode": 101
     },
     {
       "path": "src/store/taskContext.ts",
@@ -651,23 +722,33 @@
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 272
+      "linesOfCode": 231
+    },
+    {
+      "path": "src/store/workspaceContext.ts",
+      "exports": [
+        "DEFAULT_WORKSPACE_ID",
+        "WorkspaceContext",
+        "useWorkspace"
+      ],
+      "hooks": [
+        "useContext"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 22
     },
     {
       "path": "src/store/workspaceStore.tsx",
       "exports": [
-        "DEFAULT_WORKSPACE_ID",
-        "WorkspaceProvider",
-        "useWorkspace"
+        "WorkspaceProvider"
       ],
       "hooks": [
         "useAuth",
         "useState",
-        "useEffect",
-        "useContext"
+        "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 120
+      "linesOfCode": 101
     },
     {
       "path": "src/test/example.test.ts",

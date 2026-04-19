@@ -9,10 +9,12 @@ bun dev              # Start dev server (port 8080)
 bun run build        # Production build
 bun run build:dev    # Development mode build
 bun run lint         # ESLint
-bun test             # Run all tests once
+bun run test         # Run all tests once (vitest + jsdom)
 bun run test:watch   # Run tests in watch mode
 bunx vitest src/path/to/specific.test.ts  # Run a single test file
 ```
+
+> **Note:** Always use `bun run test`, not `bun test`. The latter invokes Bun's native test runner which does not load the Vite/jsdom config and will fail on any test that touches `localStorage` or the DOM.
 
 ## Design System
 
@@ -58,7 +60,7 @@ AuthProvider → user (Supabase session)
 
 Components consume tasks via `useTaskContext()` → `useTasks()` hook which returns tasks grouped by status.
 
-`useTaskContext` lives in `src/store/taskContext.ts` (separate from `taskStore.tsx`) to satisfy Vite Fast Refresh — each file must export only React components or only hooks, not both.
+`useTaskContext` lives in `src/store/taskContext.ts` (separate from `taskStore.tsx`) to satisfy Vite Fast Refresh — each file must export only React components or only hooks, not both. The same pattern applies to all stores: every store has a companion `*Context.ts` file that holds the interface, context object, and hook, while the `*Store.tsx` file exports only the Provider component.
 
 Settings persist under `spatialTodo_*` keys locally and in `public.settings` table in Supabase when logged in. Workspace list persists under `spatialTodo_workspaces` / `spatialTodo_activeWorkspace` locally and in `public.workspaces` table when logged in.
 
@@ -69,12 +71,17 @@ All localStorage key strings are centralised in `src/constants/storageKeys.ts` (
 | File | Role |
 |---|---|
 | `src/lib/supabase.ts` | Supabase client singleton (anon key — safe for frontend) |
+| `src/lib/recurrenceUtils.ts` | Pure functions: `shiftDate`, `buildNextOccurrence` — extracted for testability |
+| `src/lib/taskMerge.ts` | Pure function: `mergeCloudAndLocalTasks` — cloud+local merge logic |
 | `src/constants/storageKeys.ts` | `STORAGE_KEYS` — all localStorage key strings in one place |
-| `src/store/authStore.tsx` | Auth context — Google OAuth popup, allowlist check, `accessDenied` state |
-| `src/store/taskContext.ts` | `TaskContextValue` interface, `TaskContext`, `useTaskContext` hook |
+| `src/store/authContext.ts` | `AuthContextValue`, `AuthContext`, `useAuth` hook |
+| `src/store/authStore.tsx` | `AuthProvider` only — Google OAuth popup, allowlist check, `accessDenied` state |
+| `src/store/taskContext.ts` | `TaskContextValue`, `TaskContext`, `useTaskContext` hook |
 | `src/store/taskStore.tsx` | `TaskProvider` only — task + board state, CRUD, drag-drop, recurrence, cloud sync |
-| `src/store/settingsStore.tsx` | Animations, light mode, board layout, checklist defaults + Supabase sync |
-| `src/store/workspaceStore.tsx` | Workspace list, active workspace, legacy migration, Supabase sync |
+| `src/store/settingsContext.ts` | `SettingsContextType`, `SettingsContext`, `useSettings` hook, `BoardLayout` type |
+| `src/store/settingsStore.tsx` | `SettingsProvider` only — animations, light mode, board layout, checklist defaults |
+| `src/store/workspaceContext.ts` | `WorkspaceContextType`, `WorkspaceContext`, `useWorkspace` hook, `DEFAULT_WORKSPACE_ID` |
+| `src/store/workspaceStore.tsx` | `WorkspaceProvider` only — workspace list, active workspace, legacy migration |
 | `src/services/taskStorage.ts` | `createWorkspaceStorage(id): TaskStorageService` — localStorage layer |
 | `src/services/supabaseStorage.ts` | All Supabase CRUD: workspaces, boards, tasks, settings |
 | `src/types/task.ts` | `Task`, `Recurrence`, `Workspace`, `TaskFilter`, `Column`, `PRIORITIES` |
@@ -127,7 +134,7 @@ interface Recurrence {
 }
 ```
 
-Trigger: task moved to the **last board** (by position). `buildNextOccurrence` in `taskStore.tsx` shifts dates, resets checklist, decrements `limit`. Returns `null` when `limit === 0` (no new task created).
+Trigger: task moved to the **last board** (by position). `buildNextOccurrence` in `src/lib/recurrenceUtils.ts` shifts dates, resets checklist, decrements `limit`. Returns `null` when `limit === 0` (no new task created).
 
 For `"every-n-days"`, `shiftDate` uses `addDays(d, interval ?? 2)`. The user sets the interval via a numeric input in TaskDialog's Recurrence section.
 
@@ -166,18 +173,19 @@ Date sort: ascending by `startDate` then `startTime`; tasks without a date go la
 - `accessDenied` auto-clears after 10 seconds
 - Popup detects it's an OAuth callback via `window.opener` and closes itself once session is ready
 - Popup monitoring uses `window.addEventListener("focus")` on the parent window — **not** `popup.closed` polling, which is blocked by Google's `Cross-Origin-Opener-Policy` headers
-- `handleSession` calls `popup?.close()` inside a try/catch — COOP also blocks `.closed` and `.close()` property access, so the guard is silent-catch only
+- `handleSession` does **not** call `popup.close()` — COOP makes even that throw a console error. The popup closes itself via `window.close()` once the session is ready (detected by the `useEffect` in the popup window)
 
 **Storage modes:**
 - Guest (no user): localStorage only — identical to pre-Supabase behavior
 - Logged in: localStorage as cache + Supabase as source of truth
-  - On workspace mount: fetch from Supabase
-    - Both boards and tasks empty → first login → migrate from localStorage
-    - Boards exist but tasks empty → intentional delete → `setTasks([])`
-    - Tasks exist → merge cloud tasks with any local-only tasks not yet synced
+  - On workspace mount: fetch from Supabase, then call `mergeCloudAndLocalTasks(cloudTasks, localTasks)`
+    - Cloud is source of truth; local-only tasks (e.g. created as guest while logged out) are always appended
+    - If boards exist in cloud, they override local boards
+    - Merged result is saved back to localStorage and to state
   - On every change (add, edit, delete, reorder): localStorage saves immediately; `syncTasks` runs after 600ms debounce
-  - `syncTasks` = delete all workspace tasks in Supabase + re-insert current state (same as `syncBoards`)
+  - `syncTasks` / `syncBoards` = delete all rows for that workspace + upsert current state (upsert avoids 409 on concurrent calls)
   - `cloudLoadDone` is React state (not a ref) so debounced effects always re-run after cloud load completes, even on fetch error
+  - Cloud load does **not** call `syncBoards`/`syncTasks` directly — all cloud writes go through the debounced effects to avoid race conditions
 - `settingsStore` uses a `cloudSyncReady` ref (simpler than state because settings sync is synchronous on user action). Set to `true` in `.finally()` so a failed `fetchSettings` still enables local-change syncing.
 
 **Sync status:**
@@ -237,8 +245,19 @@ delete from public.allowed_emails where email = 'email@example.com';
 ### Testing
 
 - Vitest + jsdom + Testing Library
-- Test setup (window.matchMedia mock) is in `src/test/setup.ts`
-- Currently only a placeholder test exists — component tests go in `src/**/*.test.tsx`
+- Vitest config is in `vite.config.ts` (`test.environment = "jsdom"`, `setupFiles = ["./src/test/setup.ts"]`)
+- Test setup (`window.matchMedia` mock) is in `src/test/setup.ts`
+- **Always run `bun run test`** — `bun test` uses Bun's native runner without jsdom and fails on localStorage tests
+
+Current test coverage:
+
+| File | What it tests |
+|---|---|
+| `src/lib/__tests__/recurrenceUtils.test.ts` | `shiftDate` (all types + weekend skip), `buildNextOccurrence` (limit, checklist reset, date shift) |
+| `src/lib/__tests__/taskMerge.test.ts` | `mergeCloudAndLocalTasks` — guest task preservation, deduplication, cloud-wins-on-conflict |
+| `src/services/__tests__/taskStorage.test.ts` | `createWorkspaceStorage` — localStorage CRUD, corrupted JSON fallbacks, workspace isolation |
+
+New unit tests go in `src/**/__tests__/*.test.ts`. Pure functions (no DOM, no React) go in `src/lib/__tests__/` or `src/services/__tests__/`. Component tests go in `src/**/*.test.tsx`.
 
 ### TypeScript
 

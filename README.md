@@ -51,7 +51,7 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Login com **Google** via popup (a página principal nunca redireciona)
 - Dados sincronizados automaticamente com **Supabase** quando logado — acessível de qualquer dispositivo
 - Modo **guest** totalmente funcional sem login, com dados salvos em `localStorage`
-- Na primeira vez que logar, dados locais são migrados automaticamente para a nuvem
+- Tasks criadas como guest **sempre são preservadas** ao logar — o merge cloud+local garante que nenhuma task local se perde
 - **Allowlist de acesso:** somente emails autorizados conseguem entrar; outros usuários podem enviar uma solicitação de acesso diretamente pelo app
 - Ao deslogar, o app volta ao modo guest com os dados locais
 - **Indicador de sync** no cabeçalho — mostra status em tempo real e permite forçar sincronização manual
@@ -75,7 +75,7 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 | Drag-and-drop | @hello-pangea/dnd |
 | Datas | date-fns |
 | Backend / Auth | Supabase (PostgreSQL + Google OAuth) |
-| Testes | Vitest + Testing Library |
+| Testes | Vitest + jsdom + Testing Library |
 
 ---
 
@@ -96,9 +96,11 @@ bun dev              # Inicia o servidor de desenvolvimento (porta 8080)
 bun run build        # Build de produção
 bun run build:dev    # Build em modo desenvolvimento
 bun run lint         # ESLint
-bun test             # Roda todos os testes uma vez
+bun run test         # Roda todos os testes uma vez (vitest + jsdom)
 bun run test:watch   # Testes em modo watch
 ```
+
+> **Atenção:** use `bun run test`, não `bun test`. O segundo usa o runner nativo do Bun sem jsdom e falha em testes que acessam `localStorage`.
 
 ---
 
@@ -111,18 +113,28 @@ src/
   index.css                  # Variáveis CSS, tema galaxy, keyframes de animação
   lib/
     supabase.ts              # Cliente Supabase (anon key)
+    recurrenceUtils.ts       # Funções puras: shiftDate, buildNextOccurrence
+    taskMerge.ts             # Função pura: mergeCloudAndLocalTasks
+    __tests__/
+      recurrenceUtils.test.ts
+      taskMerge.test.ts
   constants/
     storageKeys.ts           # Todas as chaves de localStorage centralizadas (STORAGE_KEYS)
   types/task.ts              # Task, TaskStatus, TaskPriority, Recurrence, Workspace, PRIORITIES
   store/
-    authStore.tsx            # Auth context — Google OAuth popup, allowlist, accessDenied
-    taskContext.ts           # TaskContextValue, TaskContext, useTaskContext (separado de taskStore para Fast Refresh)
+    authContext.ts           # AuthContextValue, AuthContext, useAuth
+    authStore.tsx            # AuthProvider — Google OAuth popup, allowlist, accessDenied
+    taskContext.ts           # TaskContextValue, TaskContext, useTaskContext
     taskStore.tsx            # TaskProvider — CRUD + drag-drop + recorrência + sync Supabase
-    settingsStore.tsx        # Configurações globais + sync Supabase
-    workspaceStore.tsx       # Workspaces CRUD + migração + sync Supabase
+    settingsContext.ts       # SettingsContextType, SettingsContext, useSettings, BoardLayout
+    settingsStore.tsx        # SettingsProvider — configurações globais + sync Supabase
+    workspaceContext.ts      # WorkspaceContextType, WorkspaceContext, useWorkspace, DEFAULT_WORKSPACE_ID
+    workspaceStore.tsx       # WorkspaceProvider — Workspaces CRUD + migração + sync Supabase
   services/
     taskStorage.ts           # Abstração localStorage — createWorkspaceStorage(id)
     supabaseStorage.ts       # CRUD Supabase: workspaces, boards, tasks, settings
+    __tests__/
+      taskStorage.test.ts
   hooks/useTasks.ts          # Tarefas agrupadas por status (memoizado)
   pages/Index.tsx            # Rota / — monta TaskProvider com key=workspaceId+userId
   components/

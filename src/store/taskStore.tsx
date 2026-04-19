@@ -1,6 +1,5 @@
 import React, { useCallback, useState, useEffect, useMemo } from "react";
-import { addDays, addWeeks, addMonths, parseISO, format, getDay } from "date-fns";
-import { Task, TaskPriority, TaskStatus, ChecklistItem, Column, DEFAULT_COLUMNS, Recurrence, RecurrenceType } from "@/types/task";
+import { Task, TaskPriority, TaskStatus, ChecklistItem, Column, DEFAULT_COLUMNS, Recurrence } from "@/types/task";
 import { createWorkspaceStorage } from "@/services/taskStorage";
 import {
   fetchTasks,
@@ -10,37 +9,8 @@ import {
   deleteAllTasksRemote,
 } from "@/services/supabaseStorage";
 import { TaskContext } from "@/store/taskContext";
-
-function shiftDate(dateStr: string, type: RecurrenceType, interval?: number): string {
-  const d = parseISO(dateStr);
-  if (type === "daily") return format(addDays(d, 1), "yyyy-MM-dd");
-  if (type === "daily-weekdays") {
-    let next = addDays(d, 1);
-    while (getDay(next) === 0 || getDay(next) === 6) next = addDays(next, 1);
-    return format(next, "yyyy-MM-dd");
-  }
-  if (type === "every-n-days") return format(addDays(d, interval ?? 2), "yyyy-MM-dd");
-  if (type === "weekly") return format(addWeeks(d, 1), "yyyy-MM-dd");
-  return format(addMonths(d, 1), "yyyy-MM-dd");
-}
-
-function buildNextOccurrence(task: Task, firstBoardId: string): Task | null {
-  const rec = task.recurrence!;
-  if (rec.limit !== undefined && rec.limit <= 0) return null;
-  const now = new Date().toISOString();
-  return {
-    ...task,
-    id: crypto.randomUUID(),
-    status: firstBoardId,
-    order: Math.floor(Date.now() / 1000) + 1,
-    createdAt: now,
-    updatedAt: now,
-    startDate: task.startDate ? shiftDate(task.startDate, rec.type, rec.interval) : undefined,
-    endDate:   task.endDate   ? shiftDate(task.endDate,   rec.type, rec.interval) : undefined,
-    checklist: task.checklist?.map((i) => ({ ...i, done: false })),
-    recurrence: { ...rec, limit: rec.limit !== undefined ? rec.limit - 1 : undefined },
-  };
-}
+import { buildNextOccurrence } from "@/lib/recurrenceUtils";
+import { mergeCloudAndLocalTasks } from "@/lib/taskMerge";
 
 
 export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: string; userId?: string; children: React.ReactNode }> = ({ workspaceId, workspaceName, userId, children }) => {
@@ -69,8 +39,6 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
         // "First login" = cloud has neither boards nor tasks yet.
         // If boards already exist in cloud, this user has synced before —
         // cloud is authoritative even if tasks are empty (intentional delete).
-        const isFirstLogin = cloudBoards.length === 0 && cloudTasks.length === 0;
-
         if (cloudBoards.length > 0) {
           setBoards(cloudBoards);
           storage.saveBoards(cloudBoards);
@@ -78,20 +46,16 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
         // isFirstLogin: local boards stay as-is; debounced effect syncs them after cloudLoadDone=true.
         // Direct syncBoards call here would race with that debounce and cause 409 conflicts.
 
-        if (cloudTasks.length > 0) {
-          // Merge: cloud is source of truth; push any local-only tasks up too
-          const cloudIds = new Set(cloudTasks.map((t) => t.id));
-          const localOnly = storage.getTasks().filter((t) => !cloudIds.has(t.id));
-          const merged = [...cloudTasks, ...localOnly];
+        // Always merge: cloud tasks are source of truth, local-only tasks are preserved.
+        // This covers first login, re-login after a guest session, and intentional deletes
+        // (cloud empty + local empty → merged = [], no change to state).
+        // Never wipe local tasks based on cloud state alone — guest tasks created while
+        // logged out must survive the next login regardless of cloud task count.
+        const merged = mergeCloudAndLocalTasks(cloudTasks, storage.getTasks());
+        if (merged.length > 0) {
           setTasks(merged);
           storage.saveTasks(merged);
-          // localOnly migration: debounced effect handles the sync after cloudLoadDone=true.
-        } else if (!isFirstLogin) {
-          // Cloud is empty and boards exist → tasks were intentionally deleted
-          setTasks([]);
-          storage.saveTasks([]);
         }
-        // isFirstLogin with no tasks: local tasks stay as-is; debounced effect syncs them.
       })
       .catch(console.error)
       .finally(() => {
