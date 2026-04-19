@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleSession = async (sessionUser: User | null) => {
     // Close popup if still open
-    try { if (popupRef.current && !popupRef.current.closed) popupRef.current.close(); } catch { /* COOP may block */ }
+    try { popupRef.current?.close(); } catch { /* COOP blocks .closed and .close() on cross-origin popups */ }
     popupRef.current = null;
 
     if (!sessionUser) {

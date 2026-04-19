@@ -232,14 +232,12 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
   }, []);
 
   const deleteBoard = useCallback((id: string) => {
-    setBoards((prev) => {
-      if (prev.length <= 1) return prev;
-      const remaining = prev.filter((b) => b.id !== id);
-      const fallbackId = remaining[0].id;
-      setTasks((ts) => ts.map((t) => t.status === id ? { ...t, status: fallbackId, updatedAt: new Date().toISOString() } : t));
-      return remaining;
-    });
-  }, []);
+    if (boards.length <= 1) return;
+    const remaining = boards.filter((b) => b.id !== id);
+    const fallbackId = remaining[0].id;
+    setBoards(remaining);
+    setTasks((prev) => prev.map((t) => t.status === id ? { ...t, status: fallbackId, updatedAt: new Date().toISOString() } : t));
+  }, [boards]);
 
   const renameBoard = useCallback((id: string, title: string) => {
     setBoards((prev) => prev.map((b) => b.id === id ? { ...b, title } : b));

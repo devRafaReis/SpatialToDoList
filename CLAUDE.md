@@ -62,11 +62,14 @@ Components consume tasks via `useTaskContext()` → `useTasks()` hook which retu
 
 Settings persist under `spatialTodo_*` keys locally and in `public.settings` table in Supabase when logged in. Workspace list persists under `spatialTodo_workspaces` / `spatialTodo_activeWorkspace` locally and in `public.workspaces` table when logged in.
 
+All localStorage key strings are centralised in `src/constants/storageKeys.ts` (`STORAGE_KEYS`). Never hardcode `"spatialTodo_*"` or `"kanban-*"` strings outside that file.
+
 ### Key files
 
 | File | Role |
 |---|---|
 | `src/lib/supabase.ts` | Supabase client singleton (anon key — safe for frontend) |
+| `src/constants/storageKeys.ts` | `STORAGE_KEYS` — all localStorage key strings in one place |
 | `src/store/authStore.tsx` | Auth context — Google OAuth popup, allowlist check, `accessDenied` state |
 | `src/store/taskContext.ts` | `TaskContextValue` interface, `TaskContext`, `useTaskContext` hook |
 | `src/store/taskStore.tsx` | `TaskProvider` only — task + board state, CRUD, drag-drop, recurrence, cloud sync |
@@ -163,6 +166,7 @@ Date sort: ascending by `startDate` then `startTime`; tasks without a date go la
 - `accessDenied` auto-clears after 10 seconds
 - Popup detects it's an OAuth callback via `window.opener` and closes itself once session is ready
 - Popup monitoring uses `window.addEventListener("focus")` on the parent window — **not** `popup.closed` polling, which is blocked by Google's `Cross-Origin-Opener-Policy` headers
+- `handleSession` calls `popup?.close()` inside a try/catch — COOP also blocks `.closed` and `.close()` property access, so the guard is silent-catch only
 
 **Storage modes:**
 - Guest (no user): localStorage only — identical to pre-Supabase behavior
@@ -174,6 +178,7 @@ Date sort: ascending by `startDate` then `startTime`; tasks without a date go la
   - On every change (add, edit, delete, reorder): localStorage saves immediately; `syncTasks` runs after 600ms debounce
   - `syncTasks` = delete all workspace tasks in Supabase + re-insert current state (same as `syncBoards`)
   - `cloudLoadDone` is React state (not a ref) so debounced effects always re-run after cloud load completes, even on fetch error
+- `settingsStore` uses a `cloudSyncReady` ref (simpler than state because settings sync is synchronous on user action). Set to `true` in `.finally()` so a failed `fetchSettings` still enables local-change syncing.
 
 **Sync status:**
 - `syncStatus: "idle" | "syncing" | "error"` exposed via `useTaskContext()`

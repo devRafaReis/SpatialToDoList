@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/store/authStore";
 import { fetchSettings, saveSettingsRemote } from "@/services/supabaseStorage";
+import { STORAGE_KEYS } from "@/constants/storageKeys";
 
 export type BoardLayout = "horizontal" | "vertical";
 
@@ -31,16 +32,16 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const cloudSyncReady = useRef(false);
 
   const [animationsEnabled, setAnimationsEnabledState] = useState<boolean>(() => {
-    return localStorage.getItem("spatialTodo_animations") !== "false";
+    return localStorage.getItem(STORAGE_KEYS.ANIMATIONS) !== "false";
   });
   const [lightMode, setLightModeState] = useState<boolean>(() => {
-    return localStorage.getItem("spatialTodo_lightMode") === "true";
+    return localStorage.getItem(STORAGE_KEYS.LIGHT_MODE) === "true";
   });
   const [boardLayout, setBoardLayoutState] = useState<BoardLayout>(() => {
-    return (localStorage.getItem("spatialTodo_boardLayout") as BoardLayout) ?? "horizontal";
+    return (localStorage.getItem(STORAGE_KEYS.BOARD_LAYOUT) as BoardLayout) ?? "horizontal";
   });
   const [checklistExpandedByDefault, setChecklistExpandedByDefaultState] = useState<boolean>(() => {
-    return localStorage.getItem("spatialTodo_checklistExpanded") === "true";
+    return localStorage.getItem(STORAGE_KEYS.CHECKLIST_EXPANDED) === "true";
   });
 
   useEffect(() => {
@@ -51,11 +52,10 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     cloudSyncReady.current = false;
     if (!user) {
-      setAnimationsEnabledState(localStorage.getItem("spatialTodo_animations") !== "false");
-      setLightModeState(localStorage.getItem("spatialTodo_lightMode") === "true");
-      setBoardLayoutState((localStorage.getItem("spatialTodo_boardLayout") as BoardLayout) ?? "horizontal");
-      setChecklistExpandedByDefaultState(localStorage.getItem("spatialTodo_checklistExpanded") === "true");
-      cloudSyncReady.current = false;
+      setAnimationsEnabledState(localStorage.getItem(STORAGE_KEYS.ANIMATIONS) !== "false");
+      setLightModeState(localStorage.getItem(STORAGE_KEYS.LIGHT_MODE) === "true");
+      setBoardLayoutState((localStorage.getItem(STORAGE_KEYS.BOARD_LAYOUT) as BoardLayout) ?? "horizontal");
+      setChecklistExpandedByDefaultState(localStorage.getItem(STORAGE_KEYS.CHECKLIST_EXPANDED) === "true");
       return;
     }
     fetchSettings(user.id)
@@ -75,9 +75,9 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
             checklistExpandedByDefault,
           }).catch(console.error);
         }
-        cloudSyncReady.current = true;
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => { cloudSyncReady.current = true; });
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const syncCloud = (settings: { animationsEnabled: boolean; lightMode: boolean; boardLayout: string; checklistExpandedByDefault: boolean }) => {
@@ -88,29 +88,30 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   const setBoardLayout = (v: BoardLayout) => {
     setBoardLayoutState(v);
-    localStorage.setItem("spatialTodo_boardLayout", v);
+    localStorage.setItem(STORAGE_KEYS.BOARD_LAYOUT, v);
     syncCloud({ animationsEnabled, lightMode, boardLayout: v, checklistExpandedByDefault });
   };
 
   const setChecklistExpandedByDefault = (v: boolean) => {
     setChecklistExpandedByDefaultState(v);
-    localStorage.setItem("spatialTodo_checklistExpanded", String(v));
+    localStorage.setItem(STORAGE_KEYS.CHECKLIST_EXPANDED, String(v));
     syncCloud({ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault: v });
   };
 
   const setAnimationsEnabled = (v: boolean) => {
     setAnimationsEnabledState(v);
-    localStorage.setItem("spatialTodo_animations", String(v));
+    localStorage.setItem(STORAGE_KEYS.ANIMATIONS, String(v));
     syncCloud({ animationsEnabled: v, lightMode, boardLayout, checklistExpandedByDefault });
   };
 
+  // Also resets animationsEnabled — light mode disables space animations.
   const setLightMode = (v: boolean) => {
     setLightModeState(v);
-    localStorage.setItem("spatialTodo_lightMode", String(v));
+    localStorage.setItem(STORAGE_KEYS.LIGHT_MODE, String(v));
     document.documentElement.classList.toggle("light", v);
     const newAnimations = !v;
     setAnimationsEnabledState(newAnimations);
-    localStorage.setItem("spatialTodo_animations", String(newAnimations));
+    localStorage.setItem(STORAGE_KEYS.ANIMATIONS, String(newAnimations));
     syncCloud({ animationsEnabled: newAnimations, lightMode: v, boardLayout, checklistExpandedByDefault });
   };
 

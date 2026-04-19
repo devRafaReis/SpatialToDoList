@@ -111,10 +111,12 @@ src/
   index.css                  # Variáveis CSS, tema galaxy, keyframes de animação
   lib/
     supabase.ts              # Cliente Supabase (anon key)
+  constants/
+    storageKeys.ts           # Todas as chaves de localStorage centralizadas (STORAGE_KEYS)
   types/task.ts              # Task, TaskStatus, TaskPriority, Recurrence, Workspace, PRIORITIES
   store/
     authStore.tsx            # Auth context — Google OAuth popup, allowlist, accessDenied
-    taskContext.ts           # TaskContextValue, TaskContext, useTaskContext
+    taskContext.ts           # TaskContextValue, TaskContext, useTaskContext (separado de taskStore para Fast Refresh)
     taskStore.tsx            # TaskProvider — CRUD + drag-drop + recorrência + sync Supabase
     settingsStore.tsx        # Configurações globais + sync Supabase
     workspaceStore.tsx       # Workspaces CRUD + migração + sync Supabase
@@ -129,7 +131,7 @@ src/
     TaskCard.tsx             # Card draggable + checklist inline + badge de recorrência + canvas
     TaskDialog.tsx           # Modal criação/edição (planejamento, checklist, recorrência)
     Header.tsx               # WorkspaceSwitcher + SyncButton + AuthButton + SettingsDialog
-    AccessRequestDialog.tsx  # Dialog para usuários não autorizados solicitarem acesso
+    AccessRequestDialog.tsx  # Dialog para usuários não autorizados solicitarem acesso (inclui coleta de IP para rate limiting)
     FilterPopover.tsx        # Popover de filtros (prioridade, board, datas)
     WorkspaceSwitcher.tsx    # Seletor de workspace com CRUD
     SettingsDialog.tsx       # Dialog de configurações globais
