@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket, MoreHorizontal } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket, MoreHorizontal, Archive } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, PRIORITIES } from "@/types/task";
 import { Card, CardContent } from "@/components/ui/card";
@@ -761,7 +761,7 @@ interface TaskCardProps {
 
 const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: TaskCardProps) => {
   const { animationsEnabled, checklistExpandedByDefault, privacyMode } = useSettings();
-  const { updateTask, boards } = useTaskContext();
+  const { updateTask, boards, archiveTask } = useTaskContext();
   const { t } = useTranslation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -1019,6 +1019,9 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         <ArrowRight className="h-3.5 w-3.5 mr-2" /> {t("moveTo", { name: col.title })}
                       </DropdownMenuItem>
                     ))}
+                    <DropdownMenuItem onClick={() => archiveTask(task.id)}>
+                      <Archive className="h-3.5 w-3.5 mr-2" /> {t("archiveTask")}
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleDeleteClick} className="text-red-400 focus:text-red-400">
                       <Trash2 className="h-3.5 w-3.5 mr-2" /> {t("delete")}
                     </DropdownMenuItem>

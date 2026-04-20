@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { LogIn, LogOut, Loader2, CloudOff, Cloud, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { LogIn, LogOut, Loader2, CloudOff, Cloud, RefreshCw, Eye, EyeOff, Archive } from "lucide-react";
 import SettingsDialog from "@/components/SettingsDialog";
 import WorkspaceSwitcher from "@/components/WorkspaceSwitcher";
+import ArchiveDialog from "@/components/ArchiveDialog";
 import AccessRequestDialog from "@/components/AccessRequestDialog";
 import { useSettings } from "@/store/settingsContext";
 import { useAuth } from "@/store/authContext";
@@ -135,6 +136,28 @@ const PrivacyButton = () => {
   );
 };
 
+const ArchiveButton = () => {
+  const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => setOpen(true)}
+            className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+            aria-label={t("archiveButton")}
+          >
+            <Archive className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">{t("archiveButton")}</TooltipContent>
+      </Tooltip>
+      <ArchiveDialog open={open} onOpenChange={setOpen} />
+    </>
+  );
+};
+
 const Header = () => {
   const { lightMode } = useSettings();
   return (
@@ -147,6 +170,7 @@ const Header = () => {
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <PrivacyButton />
+        <ArchiveButton />
         <SyncButton />
         <AuthButton />
         <SettingsDialog />

@@ -27,6 +27,7 @@ export interface Task {
   reminderDismissed?: boolean;
   checklist?: ChecklistItem[];
   recurrence?: Recurrence;
+  archived?: boolean;
 }
 
 export interface Priority {
@@ -55,6 +56,7 @@ export interface Recurrence {
 export interface Column {
   id: string;
   title: string;
+  archived?: boolean;
 }
 
 export interface TaskFilter {

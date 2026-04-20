@@ -217,12 +217,35 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
     setTasks([]);
   }, [userId, workspaceId]);
 
+  // ── Archive ───────────────────────────────────────────────────────────────
+  const archiveTask = useCallback((id: string) => {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, archived: true, updatedAt: new Date().toISOString() } : t));
+  }, []);
+
+  const unarchiveTask = useCallback((id: string) => {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, archived: false, updatedAt: new Date().toISOString() } : t));
+  }, []);
+
+  const archiveBoard = useCallback((id: string) => {
+    setBoards((prev) => prev.map((b) => b.id === id ? { ...b, archived: true } : b));
+  }, []);
+
+  const unarchiveBoard = useCallback((id: string) => {
+    setBoards((prev) => prev.map((b) => b.id === id ? { ...b, archived: false } : b));
+  }, []);
+
+  const deleteArchivedBoard = useCallback((id: string) => {
+    setBoards((prev) => prev.filter((b) => b.id !== id));
+    setTasks((prev) => prev.filter((t) => t.status !== id));
+  }, []);
+
   return (
     <TaskContext.Provider value={{
       tasks, boards, cloudLoading, syncStatus, syncError, forceSyncNow,
       addTask, updateTask, deleteTask, deleteAllTasks,
       moveTask, reorderTasks, moveTaskBetweenColumns,
       addBoard, deleteBoard, renameBoard, reorderBoards, resetAll,
+      archiveTask, unarchiveTask, archiveBoard, unarchiveBoard, deleteArchivedBoard,
     }}>
       {children}
     </TaskContext.Provider>

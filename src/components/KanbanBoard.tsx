@@ -336,7 +336,7 @@ const BoardDragParticles = () => {
 };
 
 const KanbanBoard = () => {
-  const { tasksByStatus, boards, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll } = useTasks();
+  const { tasksByStatus, boards, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll, archiveBoard } = useTasks();
   const { animationsEnabled, boardLayout, setBoardLayout } = useSettings();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -613,6 +613,7 @@ const KanbanBoard = () => {
                             onSortTasks={(sort) => handleSortTasks(board.id, sort)}
                             onRenameBoard={(title) => renameBoard(board.id, title)}
                             onDeleteBoard={() => deleteBoard(board.id)}
+                            onArchiveBoard={() => archiveBoard(board.id)}
                             newTaskId={newTaskId}
                             teleportedTaskId={teleportedTaskId}
                             isNew={board.id === newBoardId}

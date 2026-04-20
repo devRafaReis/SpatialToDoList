@@ -20,6 +20,11 @@ export interface TaskContextValue {
   renameBoard: (id: string, title: string) => void;
   reorderBoards: (orderedIds: string[]) => void;
   resetAll: () => void;
+  archiveTask: (id: string) => void;
+  unarchiveTask: (id: string) => void;
+  archiveBoard: (id: string) => void;
+  unarchiveBoard: (id: string) => void;
+  deleteArchivedBoard: (id: string) => void;
 }
 
 export const TaskContext = createContext<TaskContextValue | null>(null);

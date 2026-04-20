@@ -47,6 +47,18 @@ const dict = {
     syncSuccess: "Synced — click to sync now",
     privacyModeOn: "Privacy mode — content hidden",
     privacyModeOff: "Privacy mode — hide content",
+    archiveButton: "Archive",
+
+    // Archive
+    archiveTask: "Archive task",
+    archiveBoard: "Archive board",
+    archiveDialogTitle: "Archive",
+    archivedBoards: "Archived boards",
+    archivedTasks: "Archived tasks",
+    noArchivedBoards: "No archived boards",
+    noArchivedTasks: "No archived tasks",
+    restore: "Restore",
+    deleteBoardAndTasks: "Delete board and all its tasks",
 
     // KanbanBoard toolbar
     newTaskShort: "Task",
@@ -220,6 +232,18 @@ const dict = {
     syncSuccess: "Sincronizado — clique para sincronizar agora",
     privacyModeOn: "Modo privado — conteúdo oculto",
     privacyModeOff: "Modo privado — ocultar conteúdo",
+    archiveButton: "Arquivo",
+
+    // Archive
+    archiveTask: "Arquivar tarefa",
+    archiveBoard: "Arquivar quadro",
+    archiveDialogTitle: "Arquivo",
+    archivedBoards: "Quadros arquivados",
+    archivedTasks: "Tarefas arquivadas",
+    noArchivedBoards: "Nenhum quadro arquivado",
+    noArchivedTasks: "Nenhuma tarefa arquivada",
+    restore: "Restaurar",
+    deleteBoardAndTasks: "Excluir quadro e todas as tarefas",
 
     // KanbanBoard toolbar
     newTaskShort: "Tarefa",

@@ -4,7 +4,7 @@ import { Droppable, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n/translations";
-import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X, ArrowUpDown } from "lucide-react";
+import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X, ArrowUpDown, Archive } from "lucide-react";
 import { Task, TaskStatus, Column } from "@/types/task";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -250,6 +250,7 @@ interface KanbanColumnProps {
   onSortTasks: (sort: "priority" | "date") => void;
   onRenameBoard: (title: string) => void;
   onDeleteBoard: () => void;
+  onArchiveBoard: () => void;
   newTaskId?: string | null;
   teleportedTaskId?: string | null;
   isNew?: boolean;
@@ -258,7 +259,7 @@ interface KanbanColumnProps {
 const KanbanColumn = ({
   column, tasks, dragHandleProps,
   onEditTask, onDeleteTask, onMoveTask,
-  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard,
+  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard, onArchiveBoard,
   newTaskId, teleportedTaskId, isNew,
 }: KanbanColumnProps) => {
   const { boardLayout, animationsEnabled, privacyMode } = useSettings();
@@ -454,6 +455,19 @@ const KanbanColumn = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{t("rename")}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-6 w-6 text-muted-foreground/50 hover:text-amber-400"
+                    onClick={onArchiveBoard}
+                    aria-label={t("archiveBoard")}
+                  >
+                    <Archive className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t("archiveBoard")}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
