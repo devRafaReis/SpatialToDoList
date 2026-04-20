@@ -30,12 +30,12 @@ export async function deleteWorkspaceRemote(workspaceId: string): Promise<void> 
 export async function fetchBoards(userId: string, workspaceId: string): Promise<Column[]> {
   const { data, error } = await supabase
     .from("boards")
-    .select("id, title, position, archived, hidden")
+    .select("id, title, position, archived")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
     .order("position");
   if (error) throw error;
-  return (data ?? []).map((b) => ({ id: b.id, title: b.title, archived: b.archived ?? false, hidden: b.hidden ?? false }));
+  return (data ?? []).map((b) => ({ id: b.id, title: b.title, archived: b.archived ?? false, hidden: false }));
 }
 
 export async function syncBoards(userId: string, workspaceId: string, boards: Column[]): Promise<void> {
@@ -43,7 +43,7 @@ export async function syncBoards(userId: string, workspaceId: string, boards: Co
   if (boards.length === 0) return;
   // upsert instead of insert — concurrent calls with the same board IDs update rather than conflict (409)
   const { error } = await supabase.from("boards").upsert(
-    boards.map((b, i) => ({ id: b.id, workspace_id: workspaceId, user_id: userId, title: b.title, position: i, archived: b.archived ?? false, hidden: b.hidden ?? false })),
+    boards.map((b, i) => ({ id: b.id, workspace_id: workspaceId, user_id: userId, title: b.title, position: i, archived: b.archived ?? false })),
     { onConflict: "id,workspace_id,user_id" }
   );
   if (error) throw error;
@@ -126,7 +126,6 @@ interface DbTaskRow {
   created_at: string;
   updated_at: string;
   archived: boolean | null;
-  hidden: boolean | null;
 }
 
 function dbToTask(row: DbTaskRow): Task {
@@ -149,7 +148,7 @@ function dbToTask(row: DbTaskRow): Task {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archived: row.archived ?? false,
-    hidden: row.hidden ?? false,
+    hidden: false,
   };
 }
 
@@ -175,7 +174,6 @@ function taskToDb(task: Task, userId: string, workspaceId: string) {
     created_at: task.createdAt,
     updated_at: task.updatedAt,
     archived: task.archived ?? false,
-    hidden: task.hidden ?? false,
   };
 }
 
