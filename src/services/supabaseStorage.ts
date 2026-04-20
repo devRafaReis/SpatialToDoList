@@ -44,7 +44,7 @@ export async function syncBoards(userId: string, workspaceId: string, boards: Co
   // upsert instead of insert — concurrent calls with the same board IDs update rather than conflict (409)
   const { error } = await supabase.from("boards").upsert(
     boards.map((b, i) => ({ id: b.id, workspace_id: workspaceId, user_id: userId, title: b.title, position: i, archived: b.archived ?? false })),
-    { onConflict: "id" }
+    { onConflict: "workspace_id,id" }
   );
   if (error) throw error;
 }
