@@ -603,7 +603,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
 
 ```json
 {
-  "generatedAt": "2026-04-19T01:42:33.893Z",
+  "generatedAt": "2026-04-20T01:29:04.202Z",
   "totalFiles": 67,
   "files": [
     {

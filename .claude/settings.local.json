@@ -29,7 +29,8 @@
       "Bash(sed -i 's|import { useWorkspace } from \"@/store/workspaceStore\"|import { useWorkspace } from \"@/store/workspaceContext\"|g' src/components/WorkspaceSwitcher.tsx src/pages/Index.tsx)",
       "Bash(sed -i 's|import { useSettings } from \"@/store/settingsStore\"|import { useSettings } from \"@/store/settingsContext\"|g' src/components/Header.tsx src/components/FilterPopover.tsx src/components/KanbanBoard.tsx src/components/KanbanColumn.tsx src/components/TaskCard.tsx src/components/SettingsDialog.tsx)",
       "Bash(bun test *)",
-      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:d[k] for k in ['scripts','devDependencies','dependencies'] if k in d}, indent=2\\)\\)\")"
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:d[k] for k in ['scripts','devDependencies','dependencies'] if k in d}, indent=2\\)\\)\")",
+      "Bash(bunx pwa-assets-generator *)"
     ]
   }
 }
