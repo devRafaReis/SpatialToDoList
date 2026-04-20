@@ -117,7 +117,7 @@ const TimePickerPopover = ({ value, onChange }: { value: string; onChange: (v: s
           <div ref={minRef} className="h-44 w-12 overflow-y-scroll space-y-0.5 pl-1" onWheel={(e) => e.stopPropagation()}>
             {MINUTES.map((mm) => (
               <button key={mm} type="button" data-sel={mm === m ? "true" : undefined}
-                onClick={() => pick(h || "00", mm)}
+                onClick={() => { pick(h || "00", mm); setOpen(false); }}
                 className={`w-full rounded px-1.5 py-1 text-sm text-center transition-colors ${mm === m ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`}
               >{mm}</button>
             ))}
