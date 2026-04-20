@@ -261,6 +261,10 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
     setBoards((prev) => prev.map((b) => b.id === id ? { ...b, hidden: false } : b));
   }, []);
 
+  const setBoardColor = useCallback((id: string, color: string | null) => {
+    setBoards((prev) => prev.map((b) => b.id === id ? { ...b, color: color ?? undefined } : b));
+  }, []);
+
   return (
     <TaskContext.Provider value={{
       tasks, boards, cloudLoading, syncStatus, syncError, forceSyncNow,
@@ -268,7 +272,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
       moveTask, reorderTasks, moveTaskBetweenColumns,
       addBoard, deleteBoard, renameBoard, reorderBoards, resetAll,
       archiveTask, unarchiveTask, archiveBoard, unarchiveBoard, deleteArchivedBoard,
-      hideTask, unhideTask, hideBoard, unhideBoard,
+      hideTask, unhideTask, hideBoard, unhideBoard, setBoardColor,
     }}>
       {children}
     </TaskContext.Provider>

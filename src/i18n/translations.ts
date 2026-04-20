@@ -184,6 +184,8 @@ const dict = {
     undo: "Undo",
     taskDeleted: "Task deleted.",
     taskArchived: "Task archived.",
+    boardColor: "Board color",
+    colorNone: "No color",
 
     // AccessRequestDialog
     requestAccess: "Request access",
@@ -386,6 +388,8 @@ const dict = {
     undo: "Desfazer",
     taskDeleted: "Tarefa excluída.",
     taskArchived: "Tarefa arquivada.",
+    boardColor: "Cor do quadro",
+    colorNone: "Sem cor",
 
     // AccessRequestDialog
     requestAccess: "Solicitar acesso",

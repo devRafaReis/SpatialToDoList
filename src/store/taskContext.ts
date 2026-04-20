@@ -29,6 +29,7 @@ export interface TaskContextValue {
   unhideTask: (id: string) => void;
   hideBoard: (id: string) => void;
   unhideBoard: (id: string) => void;
+  setBoardColor: (id: string, color: string | null) => void;
 }
 
 export const TaskContext = createContext<TaskContextValue | null>(null);

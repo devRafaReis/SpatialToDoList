@@ -337,7 +337,7 @@ const BoardDragParticles = () => {
 };
 
 const KanbanBoard = () => {
-  const { tasks, tasksByStatus, boards, addTask, updateTask, deleteTask, archiveTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll, archiveBoard, hideBoard, unhideBoard } = useTasks();
+  const { tasks, tasksByStatus, boards, addTask, updateTask, deleteTask, archiveTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll, archiveBoard, hideBoard, unhideBoard, setBoardColor } = useTasks();
   const { animationsEnabled, boardLayout, setBoardLayout } = useSettings();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -740,6 +740,7 @@ const KanbanBoard = () => {
                             onDeleteBoard={() => deleteBoard(board.id)}
                             onArchiveBoard={() => archiveBoard(board.id)}
                             onHideBoard={() => board.hidden ? unhideBoard(board.id) : hideBoard(board.id)}
+                            onSetBoardColor={(color) => setBoardColor(board.id, color)}
                             newTaskId={newTaskId}
                             teleportedTaskId={teleportedTaskId}
                             isNew={board.id === newBoardId}

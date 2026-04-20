@@ -59,6 +59,7 @@ export interface Column {
   title: string;
   archived?: boolean;
   hidden?: boolean;
+  color?: string; // HSL string e.g. "265,70%,65%" — stored in Supabase
 }
 
 export interface TaskFilter {

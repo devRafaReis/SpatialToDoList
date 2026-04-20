@@ -4,7 +4,7 @@ import { Droppable, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n/translations";
-import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X, ArrowUpDown, Archive, EyeOff, Eye } from "lucide-react";
+import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X, ArrowUpDown, Archive, EyeOff, Eye, Palette } from "lucide-react";
 import { Task, TaskStatus, Column } from "@/types/task";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,19 @@ import {
   AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import TaskCard from "@/components/TaskCard";
+
+const BOARD_COLOR_PALETTE = [
+  { id: "violet",  hsl: "265,70%,65%" },
+  { id: "sky",     hsl: "200,85%,62%" },
+  { id: "emerald", hsl: "158,65%,52%" },
+  { id: "amber",   hsl: "38,92%,55%"  },
+  { id: "rose",    hsl: "350,75%,62%" },
+  { id: "indigo",  hsl: "235,65%,70%" },
+  { id: "teal",    hsl: "175,60%,52%" },
+  { id: "orange",  hsl: "22,90%,60%"  },
+] as const;
 
 // ---------------------------------------------------------------------------
 // Column BigBang — burst of particles when a new board is created
@@ -253,6 +265,7 @@ interface KanbanColumnProps {
   onDeleteBoard: () => void;
   onArchiveBoard: () => void;
   onHideBoard: () => void;
+  onSetBoardColor: (color: string | null) => void;
   newTaskId?: string | null;
   teleportedTaskId?: string | null;
   isNew?: boolean;
@@ -261,7 +274,7 @@ interface KanbanColumnProps {
 const KanbanColumn = ({
   column, tasks, dragHandleProps,
   onEditTask, onDeleteTask, onArchiveTask, onMoveTask,
-  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard, onArchiveBoard, onHideBoard,
+  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard, onArchiveBoard, onHideBoard, onSetBoardColor,
   newTaskId, teleportedTaskId, isNew,
 }: KanbanColumnProps) => {
   const { boardLayout, animationsEnabled, privacyMode } = useSettings();
@@ -342,9 +355,13 @@ const KanbanColumn = ({
         } ${isBoardDeleting && animationsEnabled ? "card-suck-in" : ""} ${
           column.hidden ? "opacity-60 border border-dashed border-border/60" : ""
         }`}
+        style={column.color ? { borderTop: `3px solid hsl(${column.color})` } : undefined}
       >
         {/* Board header */}
-        <div className="group/header flex items-center gap-2 px-3 py-2.5 border-b border-border/20">
+        <div
+          className="group/header flex items-center gap-2 px-3 py-2.5 border-b border-border/20"
+          style={column.color ? { backgroundColor: `hsla(${column.color},0.08)` } : undefined}
+        >
           {/* Drag handle */}
           <div
             {...dragHandleProps}
@@ -479,6 +496,46 @@ const KanbanColumn = ({
                 </TooltipTrigger>
                 <TooltipContent>{column.hidden ? t("unhideBoard") : t("hideBoard")}</TooltipContent>
               </Tooltip>
+              <Popover>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost" size="icon"
+                        className="h-6 w-6 shrink-0"
+                        aria-label={t("boardColor")}
+                        style={column.color ? { color: `hsl(${column.color})` } : undefined}
+                      >
+                        <Palette className={`h-3 w-3 ${column.color ? "" : "text-muted-foreground/50 hover:text-muted-foreground"}`} />
+                      </Button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("boardColor")}</TooltipContent>
+                </Tooltip>
+                <PopoverContent className="w-auto p-2" align="end">
+                  <div className="flex items-center gap-1.5">
+                    {/* No color option */}
+                    <button
+                      onClick={() => onSetBoardColor(null)}
+                      className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-transform hover:scale-110 ${!column.color ? "border-foreground/60" : "border-border/40"}`}
+                      title={t("colorNone")}
+                      aria-label={t("colorNone")}
+                    >
+                      <X className="h-2.5 w-2.5 text-muted-foreground" />
+                    </button>
+                    {BOARD_COLOR_PALETTE.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => onSetBoardColor(c.hsl)}
+                        className={`h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 ${column.color === c.hsl ? "border-foreground/80 scale-110" : "border-transparent"}`}
+                        style={{ backgroundColor: `hsl(${c.hsl})` }}
+                        title={c.id}
+                        aria-label={c.id}
+                      />
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

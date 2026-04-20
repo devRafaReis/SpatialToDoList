@@ -30,12 +30,12 @@ export async function deleteWorkspaceRemote(workspaceId: string): Promise<void> 
 export async function fetchBoards(userId: string, workspaceId: string): Promise<Column[]> {
   const { data, error } = await supabase
     .from("boards")
-    .select("id, title, position, archived")
+    .select("id, title, position, archived, color")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
     .order("position");
   if (error) throw error;
-  return (data ?? []).map((b) => ({ id: b.id, title: b.title, archived: b.archived ?? false, hidden: false }));
+  return (data ?? []).map((b) => ({ id: b.id, title: b.title, archived: b.archived ?? false, hidden: false, color: b.color ?? undefined }));
 }
 
 export async function syncBoards(userId: string, workspaceId: string, boards: Column[]): Promise<void> {
@@ -43,7 +43,7 @@ export async function syncBoards(userId: string, workspaceId: string, boards: Co
   if (boards.length === 0) return;
   // upsert instead of insert — concurrent calls with the same board IDs update rather than conflict (409)
   const { error } = await supabase.from("boards").upsert(
-    boards.map((b, i) => ({ id: b.id, workspace_id: workspaceId, user_id: userId, title: b.title, position: i, archived: b.archived ?? false })),
+    boards.map((b, i) => ({ id: b.id, workspace_id: workspaceId, user_id: userId, title: b.title, position: i, archived: b.archived ?? false, color: b.color ?? null })),
     { onConflict: "id,workspace_id,user_id" }
   );
   if (error) throw error;
