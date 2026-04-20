@@ -68,6 +68,7 @@ const dict = {
     deleteBoardAndTasks: "Delete board and all its tasks",
 
     // KanbanBoard toolbar
+    searchPlaceholder: "Search tasks…",
     newTaskShort: "Task",
     newTask: "New Task",
     addBoardShort: "Board",
@@ -265,6 +266,7 @@ const dict = {
     deleteBoardAndTasks: "Excluir quadro e todas as tarefas",
 
     // KanbanBoard toolbar
+    searchPlaceholder: "Buscar tarefas…",
     newTaskShort: "Tarefa",
     newTask: "Nova Tarefa",
     addBoardShort: "Quadro",

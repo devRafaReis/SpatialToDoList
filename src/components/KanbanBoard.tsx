@@ -10,7 +10,7 @@ import SpaceEasterEggs from "@/components/SpaceEasterEggs";
 import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n/translations";
-import { Plus, RotateCcw, Trash2, Columns, EyeOff, Eye } from "lucide-react";
+import { Plus, RotateCcw, Trash2, Columns, EyeOff, Eye, Search, X } from "lucide-react";
 import FilterPopover from "@/components/FilterPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -357,6 +357,9 @@ const KanbanBoard = () => {
   const [newBoardTitleTop, setNewBoardTitleTop] = useState("");
   const [newBoardId, setNewBoardId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const newTaskTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const newBoardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -364,6 +367,8 @@ const KanbanBoard = () => {
     const base = filter.boards.length > 0 ? boards.filter((b) => filter.boards.includes(b.id)) : boards;
     return showHidden ? base : base.filter((b) => !b.hidden);
   }, [boards, filter.boards, showHidden]);
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
 
   const filteredTasksByStatus = useMemo(() => {
     const hasFilter =
@@ -374,6 +379,7 @@ const KanbanBoard = () => {
     for (const [status, tasks] of Object.entries(tasksByStatus)) {
       out[status] = tasks.filter((t) => {
         if (!showHidden && t.hidden) return false;
+        if (normalizedSearch && !t.title.toLowerCase().includes(normalizedSearch) && !t.description.toLowerCase().includes(normalizedSearch)) return false;
         if (!hasFilter) return true;
         if (filter.priorities.length > 0 && (!t.priority || !filter.priorities.includes(t.priority as never))) return false;
         if (filter.startDateFrom && (!t.startDate || t.startDate < filter.startDateFrom)) return false;
@@ -384,7 +390,7 @@ const KanbanBoard = () => {
       });
     }
     return out;
-  }, [tasksByStatus, filter, showHidden]);
+  }, [tasksByStatus, filter, showHidden, normalizedSearch]);
 
   const totalTasks = Object.values(tasksByStatus).reduce((sum, arr) => sum + arr.length, 0);
 
@@ -526,6 +532,28 @@ const KanbanBoard = () => {
 
         {/* Workspace toolbar */}
         <div className="relative z-10 border-b border-border/20 glass px-3 py-2 sm:px-4 flex flex-wrap items-center gap-2">
+          {/* Mobile search overlay — takes the full toolbar row when active */}
+          {isMobile && (searchOpen || searchQuery) ? (
+            <div className="flex flex-1 items-center gap-2">
+              <div className="relative flex flex-1 items-center">
+                <Search className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  className="h-8 w-full rounded-md border border-border/40 bg-muted/30 pl-7 pr-2 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/60 focus:bg-muted/50 transition-colors"
+                />
+              </div>
+              <button
+                onClick={() => { setSearchQuery(""); setSearchOpen(false); }}
+                className="shrink-0 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t("cancel")}
+              </button>
+            </div>
+          ) : (
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <FilterPopover filter={filter} onChange={setFilter} boards={boards} />
             <Button
@@ -538,6 +566,38 @@ const KanbanBoard = () => {
               {showHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
               <span className="hidden sm:inline">{t("showHidden")}</span>
             </Button>
+            {/* Mobile: icon only; Desktop: full input */}
+            {isMobile ? (
+              <button
+                onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 30); }}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 transition-colors shrink-0"
+                aria-label={t("searchPlaceholder")}
+              >
+                <Search className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <div className="relative flex items-center">
+                <Search className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  className="h-8 w-44 rounded-md border border-border/40 bg-muted/30 pl-7 pr-6 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/60 focus:bg-muted/50 transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-1.5 flex items-center justify-center rounded p-0.5 text-muted-foreground/50 hover:text-foreground transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            )}
             <Button size="sm" onClick={() => handleAddTask()} className="h-8 gap-1.5">
               <Plus className="h-3.5 w-3.5" />
               <span className="sm:hidden">{t("newTaskShort")}</span>
@@ -550,6 +610,7 @@ const KanbanBoard = () => {
               <span className="hidden sm:inline">{t("addBoard")}</span>
             </Button>
           </div>
+          )}
           <div className="flex items-center gap-1">
             {totalTasks > 0 && (
               <Button
