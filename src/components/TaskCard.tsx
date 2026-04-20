@@ -754,14 +754,15 @@ interface TaskCardProps {
   index: number;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onArchive: (id: string) => void;
   onMove: (id: string, status: TaskStatus) => void;
   isNew?: boolean;
   isPortalIn?: boolean;
 }
 
-const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: TaskCardProps) => {
+const TaskCard = ({ task, index, onEdit, onDelete, onArchive, onMove, isNew, isPortalIn }: TaskCardProps) => {
   const { animationsEnabled, checklistExpandedByDefault, privacyMode, completedBoardId } = useSettings();
-  const { updateTask, boards, archiveTask, hideTask, unhideTask } = useTaskContext();
+  const { updateTask, boards, hideTask, unhideTask } = useTaskContext();
   const { t } = useTranslation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -874,8 +875,6 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
       onDelete(task.id);
       return;
     }
-    // Wait for AlertDialog close animation (~200ms) and Radix scrollbar-
-    // compensation removal before capturing position and starting animation.
     setTimeout(() => {
       setExitPos(getCardCenter());
       setIsDeleting(true);
@@ -934,7 +933,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         : `glass hover:shadow-md hover:shadow-primary/10 ${isReminderActive ? "reminder-glow" : ""} ${isOverdue ? (animationsEnabled ? "overdue-glow" : "overdue-border") : ""}`
                     }`
               } ${task.hidden ? "opacity-60 border border-dashed border-border/50" : ""}`}
-              style={snapshot.isDragging && !isDeleting ? {
+              style={snapshot.isDragging && !isDeleting && !isTeleporting ? {
                 boxShadow: "0 0 0 2px hsla(265,60%,72%,0.5), 0 0 18px hsla(265,85%,75%,0.65), 0 0 45px hsla(265,80%,65%,0.3)"
               } : undefined}
               onDoubleClick={() => !isDeleting && !isTeleporting && setViewOpen(true)}
@@ -1063,7 +1062,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         <ArrowRight className="h-3.5 w-3.5 mr-2" /> {t("moveTo", { name: col.title })}
                       </DropdownMenuItem>
                     ))}
-                    <DropdownMenuItem onClick={() => archiveTask(task.id)}>
+                    <DropdownMenuItem onClick={() => onArchive(task.id)}>
                       <Archive className="h-3.5 w-3.5 mr-2" /> {t("archiveTask")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => task.hidden ? unhideTask(task.id) : hideTask(task.id)}>

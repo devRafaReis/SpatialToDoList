@@ -245,6 +245,7 @@ interface KanbanColumnProps {
   dragHandleProps: DraggableProvidedDragHandleProps | null | undefined;
   onEditTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
+  onArchiveTask: (id: string) => void;
   onMoveTask: (id: string, status: TaskStatus) => void;
   onAddTask: () => void;
   onSortTasks: (sort: "priority" | "date") => void;
@@ -259,7 +260,7 @@ interface KanbanColumnProps {
 
 const KanbanColumn = ({
   column, tasks, dragHandleProps,
-  onEditTask, onDeleteTask, onMoveTask,
+  onEditTask, onDeleteTask, onArchiveTask, onMoveTask,
   onAddTask, onSortTasks, onRenameBoard, onDeleteBoard, onArchiveBoard, onHideBoard,
   newTaskId, teleportedTaskId, isNew,
 }: KanbanColumnProps) => {
@@ -529,6 +530,7 @@ const KanbanColumn = ({
                       index={index}
                       onEdit={onEditTask}
                       onDelete={onDeleteTask}
+                      onArchive={onArchiveTask}
                       onMove={onMoveTask}
                       isNew={task.id === newTaskId}
                       isPortalIn={task.id === teleportedTaskId}
@@ -541,6 +543,7 @@ const KanbanColumn = ({
                     index={index}
                     onEdit={onEditTask}
                     onDelete={onDeleteTask}
+                    onArchive={onArchiveTask}
                     onMove={onMoveTask}
                     isNew={task.id === newTaskId}
                     isPortalIn={task.id === teleportedTaskId}

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Task, TaskStatus, ChecklistItem, TaskFilter, EMPTY_FILTER } from "@/types/task";
 import { useTasks } from "@/hooks/useTasks";
@@ -336,7 +337,7 @@ const BoardDragParticles = () => {
 };
 
 const KanbanBoard = () => {
-  const { tasksByStatus, boards, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll, archiveBoard, hideBoard, unhideBoard } = useTasks();
+  const { tasks, tasksByStatus, boards, addTask, updateTask, deleteTask, archiveTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll, archiveBoard, hideBoard, unhideBoard } = useTasks();
   const { animationsEnabled, boardLayout, setBoardLayout } = useSettings();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -362,6 +363,55 @@ const KanbanBoard = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const newTaskTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const newBoardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingRemovalIds, setPendingRemovalIds] = useState<string[]>([]);
+  type PendingRemoval = { task: Task; timerId: ReturnType<typeof setTimeout>; toastId: string | number; type: "delete" | "archive" };
+  const pendingRemovalsRef = useRef<Map<string, PendingRemoval>>(new Map());
+
+  useEffect(() => {
+    const ref = pendingRemovalsRef.current;
+    return () => { ref.forEach(({ timerId }) => clearTimeout(timerId)); };
+  }, []);
+
+  const handleUndoRemoval = useCallback((id: string) => {
+    const entry = pendingRemovalsRef.current.get(id);
+    if (!entry) return;
+    clearTimeout(entry.timerId);
+    toast.dismiss(entry.toastId);
+    pendingRemovalsRef.current.delete(id);
+    setPendingRemovalIds((prev) => prev.filter((x) => x !== id));
+  }, []);
+
+  const handleDeleteTask = useCallback((id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    setPendingRemovalIds((prev) => [...prev, id]);
+    const timerId = setTimeout(() => {
+      deleteTask(id);
+      pendingRemovalsRef.current.delete(id);
+      setPendingRemovalIds((prev) => prev.filter((x) => x !== id));
+    }, 5000);
+    const toastId = toast(t("taskDeleted"), {
+      duration: 5100,
+      action: { label: t("undo"), onClick: () => handleUndoRemoval(id) },
+    });
+    pendingRemovalsRef.current.set(id, { task, timerId, toastId, type: "delete" });
+  }, [tasks, deleteTask, t, handleUndoRemoval]);
+
+  const handleArchiveTask = useCallback((id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    setPendingRemovalIds((prev) => [...prev, id]);
+    const timerId = setTimeout(() => {
+      archiveTask(id);
+      pendingRemovalsRef.current.delete(id);
+      setPendingRemovalIds((prev) => prev.filter((x) => x !== id));
+    }, 5000);
+    const toastId = toast(t("taskArchived"), {
+      duration: 5100,
+      action: { label: t("undo"), onClick: () => handleUndoRemoval(id) },
+    });
+    pendingRemovalsRef.current.set(id, { task, timerId, toastId, type: "archive" });
+  }, [tasks, archiveTask, t, handleUndoRemoval]);
 
   const visibleBoards = useMemo(() => {
     const base = filter.boards.length > 0 ? boards.filter((b) => filter.boards.includes(b.id)) : boards;
@@ -378,6 +428,7 @@ const KanbanBoard = () => {
     const out: Record<string, Task[]> = {};
     for (const [status, tasks] of Object.entries(tasksByStatus)) {
       out[status] = tasks.filter((t) => {
+        if (pendingRemovalIds.includes(t.id)) return false;
         if (!showHidden && t.hidden) return false;
         if (normalizedSearch && !t.title.toLowerCase().includes(normalizedSearch) && !t.description.toLowerCase().includes(normalizedSearch)) return false;
         if (!hasFilter) return true;
@@ -390,7 +441,7 @@ const KanbanBoard = () => {
       });
     }
     return out;
-  }, [tasksByStatus, filter, showHidden, normalizedSearch]);
+  }, [tasksByStatus, filter, showHidden, normalizedSearch, pendingRemovalIds]);
 
   const totalTasks = Object.values(tasksByStatus).reduce((sum, arr) => sum + arr.length, 0);
 
@@ -676,7 +727,8 @@ const KanbanBoard = () => {
                             tasks={filteredTasksByStatus[board.id] ?? []}
                             dragHandleProps={boardDrag.dragHandleProps}
                             onEditTask={handleEditTask}
-                            onDeleteTask={deleteTask}
+                            onDeleteTask={handleDeleteTask}
+                            onArchiveTask={handleArchiveTask}
                             onMoveTask={(id, status) => {
                               moveTask(id, status, Date.now());
                               setTeleportedTaskId(id);

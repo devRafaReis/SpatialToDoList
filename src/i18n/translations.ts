@@ -181,6 +181,9 @@ const dict = {
     markDone: "Mark as done",
     markUndone: "Mark as not done",
     overdueBadge: "Overdue",
+    undo: "Undo",
+    taskDeleted: "Task deleted.",
+    taskArchived: "Task archived.",
 
     // AccessRequestDialog
     requestAccess: "Request access",
@@ -380,6 +383,9 @@ const dict = {
     markDone: "Marcar como feito",
     markUndone: "Marcar como não feito",
     overdueBadge: "Atrasada",
+    undo: "Desfazer",
+    taskDeleted: "Tarefa excluída.",
+    taskArchived: "Tarefa arquivada.",
 
     // AccessRequestDialog
     requestAccess: "Solicitar acesso",
