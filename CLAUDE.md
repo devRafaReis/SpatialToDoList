@@ -68,7 +68,7 @@ Components consume tasks via `useTaskContext()` → `useTasks()` hook which retu
 
 Settings persist under `spatialTodo_*` keys locally and in `public.settings` table in Supabase when logged in. Workspace list persists under `spatialTodo_workspaces` / `spatialTodo_activeWorkspace` locally and in `public.workspaces` table when logged in.
 
-All localStorage key strings are centralised in `src/constants/storageKeys.ts` (`STORAGE_KEYS`). Never hardcode `"spatialTodo_*"` or `"kanban-*"` strings outside that file. Keys include `LANGUAGE` (`spatialTodo_language`) for the UI language preference.
+All localStorage key strings are centralised in `src/constants/storageKeys.ts` (`STORAGE_KEYS`). Never hardcode `"spatialTodo_*"` or `"kanban-*"` strings outside that file. Keys include `LANGUAGE` (`spatialTodo_language`) for the UI language preference and `DONE_BOARD_ID` (`spatialTodo_doneBoardId`) for the completed-board setting.
 
 ### Key files
 
@@ -84,7 +84,7 @@ All localStorage key strings are centralised in `src/constants/storageKeys.ts` (
 | `src/store/taskStore.tsx` | `TaskProvider` only — task + board state, CRUD, drag-drop, recurrence, cloud sync |
 | `src/i18n/translations.ts` | `useTranslation()` hook + EN/PT-BR dictionaries — see i18n section below |
 | `src/store/settingsContext.ts` | `SettingsContextType`, `SettingsContext`, `useSettings` hook, `BoardLayout` type, `Language` type |
-| `src/store/settingsStore.tsx` | `SettingsProvider` only — animations, light mode, board layout, checklist defaults, language |
+| `src/store/settingsStore.tsx` | `SettingsProvider` only — animations, light mode, board layout, checklist defaults, language, completedBoardId |
 | `src/store/workspaceContext.ts` | `WorkspaceContextType`, `WorkspaceContext`, `useWorkspace` hook, `DEFAULT_WORKSPACE_ID` |
 | `src/store/workspaceStore.tsx` | `WorkspaceProvider` only — workspace list, active workspace, legacy migration |
 | `src/services/taskStorage.ts` | `createWorkspaceStorage(id): TaskStorageService` — localStorage layer |
@@ -93,13 +93,13 @@ All localStorage key strings are centralised in `src/constants/storageKeys.ts` (
 | `src/hooks/useTasks.ts` | Subscribes to context, groups tasks by status with memoization |
 | `src/components/KanbanBoard.tsx` | Board orchestrator — `DragDropContext`, filter state, board management |
 | `src/components/KanbanColumn.tsx` | Each board column (`Droppable`) + collapse + creation/deletion animations |
-| `src/components/TaskCard.tsx` | Individual card (`Draggable`) + inline checklist + recurrence badge + canvas fx |
+| `src/components/TaskCard.tsx` | Individual card (`Draggable`) + inline checklist + recurrence badge + canvas fx + check button (auto-move to completed board) |
 | `src/components/TaskDialog.tsx` | Create/edit task modal — planning, checklist, recurrence sections |
 | `src/components/Header.tsx` | WorkspaceSwitcher + SyncButton + AuthButton + SettingsDialog |
 | `src/components/AccessRequestDialog.tsx` | Dialog for non-allowed users to request access |
 | `src/components/FilterPopover.tsx` | Filter UI (priority, board, start/end date ranges) |
 | `src/components/WorkspaceSwitcher.tsx` | Workspace dropdown with CRUD and deletion confirmation |
-| `src/components/SettingsDialog.tsx` | Settings panel (animations, layout, checklist, light mode, language) |
+| `src/components/SettingsDialog.tsx` | Settings panel (animations, layout, checklist, light mode, language, completed board) |
 | `src/index.css` | Global styles + CSS vars + animation keyframes (galaxy theme) |
 | `pwa-assets.config.ts` | PWA icon generation config (`@vite-pwa/assets-generator`, source: `public/favicon.svg`) |
 
@@ -125,6 +125,24 @@ t(`priority_${p.id}` as any)        // → "Low" / "Baixa"
 - `language` and `setLanguage` come from `useSettings()`
 - Stored under `STORAGE_KEYS.LANGUAGE` (`spatialTodo_language`) in **localStorage only** — intentionally not synced to Supabase (per-device preference, avoids DB migration)
 - Default: `"en"`
+
+### Settings — localStorage-only fields
+
+Some settings are **not** synced to Supabase (no column in `public.settings`). They are per-device preferences stored only in localStorage:
+
+| Key | `STORAGE_KEYS` constant | Default | Notes |
+|---|---|---|---|
+| `spatialTodo_language` | `LANGUAGE` | `"en"` | UI language — per-device, avoids DB migration |
+| `spatialTodo_doneBoardId` | `DONE_BOARD_ID` | `null` | Completed board — board ID tasks auto-move to when checked; `null` disables the check button |
+
+### Completed board feature
+
+When `completedBoardId` is set in settings:
+- Every `TaskCard` renders a `Circle` / `CheckCircle2` button (Lucide) between the drag handle and title
+- Clicking the unchecked circle calls `handleMoveClick(completedBoardId)` — teleports the task with portal animation
+- Tasks whose `task.status === completedBoardId` render with `line-through text-muted-foreground/50` title and green `CheckCircle2` icon
+- Clicking the green check moves the task back to the first non-archived, non-completed board
+- The setting is configured in `SettingsDialog` via a shadcn `Select` populated from `useTaskContext().boards` (active boards only)
 
 **Adding a new translation key:**
 1. Add the key+value to both `dict.en` and `dict["pt-BR"]` in `translations.ts`

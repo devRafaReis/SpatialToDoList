@@ -25,6 +25,9 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     return (stored === "pt-BR" ? "pt-BR" : "en") as Language;
   });
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [completedBoardId, setCompletedBoardIdState] = useState<string | null>(() => {
+    return localStorage.getItem(STORAGE_KEYS.DONE_BOARD_ID) ?? null;
+  });
 
   useEffect(() => {
     document.documentElement.classList.toggle("light", lightMode);
@@ -91,6 +94,12 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     localStorage.setItem(STORAGE_KEYS.LANGUAGE, v);
   };
 
+  const setCompletedBoardId = (v: string | null) => {
+    setCompletedBoardIdState(v);
+    if (v === null) localStorage.removeItem(STORAGE_KEYS.DONE_BOARD_ID);
+    else localStorage.setItem(STORAGE_KEYS.DONE_BOARD_ID, v);
+  };
+
   // Also resets animationsEnabled — light mode disables space animations.
   const setLightMode = (v: boolean) => {
     setLightModeState(v);
@@ -103,7 +112,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   return (
-    <SettingsContext.Provider value={{ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, language, privacyMode, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault, setLanguage, setPrivacyMode }}>
+    <SettingsContext.Provider value={{ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, language, privacyMode, completedBoardId, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault, setLanguage, setPrivacyMode, setCompletedBoardId }}>
       {children}
     </SettingsContext.Provider>
   );

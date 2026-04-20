@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   BOARD_LAYOUT: "spatialTodo_boardLayout",
   CHECKLIST_EXPANDED: "spatialTodo_checklistExpanded",
   LANGUAGE: "spatialTodo_language",
+  DONE_BOARD_ID: "spatialTodo_doneBoardId",
   // Legacy keys kept for migration in workspaceStore
   LEGACY_TASKS: "kanban-tasks",
   LEGACY_BOARDS: "kanban-boards",

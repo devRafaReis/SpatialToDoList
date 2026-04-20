@@ -14,6 +14,7 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Mover tarefa via menu de contexto com efeito de portal animado
 - **Duplo clique** no card abre modo de visualização; atalho de edição disponível dentro da visualização
 - Menu de ações `⋯` no card — sempre visível no mobile, aparece ao passar o mouse no desktop
+- **Marcar como concluída:** botão de círculo/check no card move a tarefa automaticamente para o board configurado como "concluídas"; tarefas nesse board aparecem com título riscado e ícone verde; clicar novamente desfaz
 
 ### Boards
 - Criar, renomear e excluir boards customizados (além dos padrões: To Do, Doing, Done)
@@ -40,6 +41,7 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Checklists expandidos por padrão nos cards — aplica imediatamente a todos os cards abertos
 - Modo claro ("Boring ToDoList") / escuro galaxy
 - **Idioma:** Inglês (padrão) ou Português (BR) — salvo por dispositivo, não sincronizado na nuvem
+- **Board de concluídas:** escolha qual board recebe tarefas marcadas com o check — ativa o botão de círculo em todos os cards; salvo localmente (`spatialTodo_doneBoardId`)
 
 ### PWA (Progressive Web App)
 - Instalável como app nativo em **Android**, **iOS** e **desktop** (Chrome/Edge)

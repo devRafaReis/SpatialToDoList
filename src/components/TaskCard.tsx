@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket, MoreHorizontal, Archive } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket, MoreHorizontal, Archive, CheckCircle2, Circle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, PRIORITIES } from "@/types/task";
 import { Card, CardContent } from "@/components/ui/card";
@@ -760,7 +760,7 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: TaskCardProps) => {
-  const { animationsEnabled, checklistExpandedByDefault, privacyMode } = useSettings();
+  const { animationsEnabled, checklistExpandedByDefault, privacyMode, completedBoardId } = useSettings();
   const { updateTask, boards, archiveTask } = useTaskContext();
   const { t } = useTranslation();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -785,6 +785,17 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
   // in-flow Draggable wrapper — used for reliable getBoundingClientRect.
   const cardRef = useRef<HTMLDivElement>(null);
   const otherColumns = boards.filter((col) => col.id !== task.status);
+  const isDone = !!completedBoardId && task.status === completedBoardId;
+
+  const handleCheckClick = () => {
+    if (!completedBoardId) return;
+    if (isDone) {
+      const fallback = boards.find((b) => !b.archived && b.id !== completedBoardId);
+      if (fallback) handleMoveClick(fallback.id);
+    } else {
+      handleMoveClick(completedBoardId);
+    }
+  };
 
   const getCardCenter = () => {
     const el = cardRef.current;
@@ -929,12 +940,29 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                 <div {...provided.dragHandleProps} className="mt-1 cursor-grab text-accent-foreground/70">
                   <GripVertical className="h-4 w-4" />
                 </div>
+                {completedBoardId && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={handleCheckClick}
+                        className={`mt-0.5 shrink-0 transition-colors ${isDone ? "text-emerald-400 hover:text-emerald-300" : "text-muted-foreground/40 hover:text-emerald-400"}`}
+                        aria-label={isDone ? t("markUndone") : t("markDone")}
+                      >
+                        {isDone
+                          ? <CheckCircle2 className="h-4 w-4" />
+                          : <Circle className="h-4 w-4" />}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">{isDone ? t("markUndone") : t("markDone")}</TooltipContent>
+                  </Tooltip>
+                )}
                 <div className={`flex-1 min-w-0 overflow-hidden transition-[filter] duration-150 ${privacyMode ? "blur-sm select-none group-hover:blur-none group-hover:select-auto" : ""}`}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <p className={`font-medium text-sm text-foreground leading-snug cursor-default ${
+                      <p className={`font-medium text-sm leading-snug cursor-default ${
                         task.description ? "line-clamp-1" : "line-clamp-2"
-                      }`}>{task.title}</p>
+                      } ${isDone ? "line-through text-muted-foreground/50" : "text-foreground"}`}>{task.title}</p>
                     </TooltipTrigger>
                     {!privacyMode && (
                       <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
@@ -953,7 +981,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       ) : null;
                     })()}
                     {task.recurrence?.enabled && (() => {
-                      const label: Record<string, string> = { daily: t("recType_daily"), "daily-weekdays": t("recType_daily_weekdays"), weekly: t("recType_weekly"), monthly: t("recType_monthly"), "every-n-days": `every ${task.recurrence.interval ?? 2}d` };
+                      const label: Record<string, string> = { daily: t("recType_daily"), "daily-weekdays": t("recType_daily_weekdays"), weekly: t("recType_weekly"), monthly: t("recType_monthly"), "every-n-days": `${t("every")} ${task.recurrence.interval ?? 2}d` };
                       const limitStr = task.recurrence.limit !== undefined ? ` · ${task.recurrence.limit}×` : "";
                       return (
                         <span className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none bg-sky-500/15 text-sky-400 border-sky-500/30">
@@ -1210,7 +1238,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
 
               {/* Recurrence section */}
               {task.recurrence && (() => {
-                const typeLabel: Record<string, string> = { daily: t("recTypeFull_daily"), "daily-weekdays": t("recTypeFull_daily_weekdays"), weekly: t("recTypeFull_weekly"), monthly: t("recTypeFull_monthly"), "every-n-days": `Every ${task.recurrence.interval ?? 2} days` };
+                const typeLabel: Record<string, string> = { daily: t("recTypeFull_daily"), "daily-weekdays": t("recTypeFull_daily_weekdays"), weekly: t("recTypeFull_weekly"), monthly: t("recTypeFull_monthly"), "every-n-days": `${t("every")} ${task.recurrence.interval ?? 2} ${t("days")}` };
                 const limitLabel = task.recurrence.limit !== undefined
                   ? t("repetitionsLeft", { count: task.recurrence.limit, s: task.recurrence.limit !== 1 ? "s" : "" })
                   : t("forever");

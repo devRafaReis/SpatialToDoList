@@ -10,12 +10,16 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSettings } from "@/store/settingsContext";
+import { useTaskContext } from "@/store/taskContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n/translations";
 
 const SettingsDialog = () => {
-  const { animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, language, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault, setLanguage } = useSettings();
+  const { animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, language, completedBoardId, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault, setLanguage, setCompletedBoardId } = useSettings();
+  const { boards } = useTaskContext();
+  const activeBoards = boards.filter((b) => !b.archived);
   const isMobile = useIsMobile();
   const { t } = useTranslation();
 
@@ -157,6 +161,27 @@ const SettingsDialog = () => {
                 PT
               </button>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <Label className="text-sm font-medium">{t("completedBoard")}</Label>
+              <span className="text-xs text-muted-foreground">{t("completedBoardDesc")}</span>
+            </div>
+            <Select
+              value={completedBoardId ?? "__none__"}
+              onValueChange={(v) => setCompletedBoardId(v === "__none__" ? null : v)}
+            >
+              <SelectTrigger className="w-36 h-8 text-xs shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-xs">{t("completedBoardNone")}</SelectItem>
+                {activeBoards.map((b) => (
+                  <SelectItem key={b.id} value={b.id} className="text-xs">{b.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </DialogContent>

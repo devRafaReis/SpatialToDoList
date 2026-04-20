@@ -167,6 +167,11 @@ const dict = {
     lightModeDesc: "Switch between dark galaxy and light theme.",
     language: "Language",
     languageDesc: "Choose the interface language.",
+    completedBoard: "Completed board",
+    completedBoardDesc: "Tasks are auto-moved here when checked. They appear strikethrough.",
+    completedBoardNone: "None (disabled)",
+    markDone: "Mark as done",
+    markUndone: "Mark as not done",
 
     // AccessRequestDialog
     requestAccess: "Request access",
@@ -352,6 +357,11 @@ const dict = {
     lightModeDesc: "Alternar entre o tema escuro galáxia e o claro.",
     language: "Idioma",
     languageDesc: "Escolha o idioma da interface.",
+    completedBoard: "Quadro de concluídas",
+    completedBoardDesc: "Tarefas são movidas aqui ao marcar como feito. Aparecem riscadas.",
+    completedBoardNone: "Nenhum (desativado)",
+    markDone: "Marcar como feito",
+    markUndone: "Marcar como não feito",
 
     // AccessRequestDialog
     requestAccess: "Solicitar acesso",
