@@ -12,14 +12,20 @@ import { WorkspaceContext, DEFAULT_WORKSPACE_ID } from "@/store/workspaceContext
 function initWorkspaces(): { workspaces: Workspace[]; activeId: string } {
   const raw = localStorage.getItem(STORAGE_KEYS.WORKSPACES);
   if (!raw) {
-    const workspaces: Workspace[] = [{ id: DEFAULT_WORKSPACE_ID, name: "Personal" }];
-    const oldTasks = localStorage.getItem(STORAGE_KEYS.LEGACY_TASKS);
-    const oldBoards = localStorage.getItem(STORAGE_KEYS.LEGACY_BOARDS);
-    if (oldTasks) localStorage.setItem(STORAGE_KEYS.tasks(DEFAULT_WORKSPACE_ID), oldTasks);
-    if (oldBoards) localStorage.setItem(STORAGE_KEYS.boards(DEFAULT_WORKSPACE_ID), oldBoards);
+    // Generate a unique ID so multiple users never share the same workspace/board IDs in Supabase.
+    // Legacy data (LEGACY_TASKS/BOARDS) is migrated under DEFAULT_WORKSPACE_ID to preserve it.
+    const hasLegacy = !!(localStorage.getItem(STORAGE_KEYS.LEGACY_TASKS) || localStorage.getItem(STORAGE_KEYS.LEGACY_BOARDS));
+    const newId = hasLegacy ? DEFAULT_WORKSPACE_ID : crypto.randomUUID();
+    const workspaces: Workspace[] = [{ id: newId, name: "Personal" }];
+    if (hasLegacy) {
+      const oldTasks = localStorage.getItem(STORAGE_KEYS.LEGACY_TASKS);
+      const oldBoards = localStorage.getItem(STORAGE_KEYS.LEGACY_BOARDS);
+      if (oldTasks) localStorage.setItem(STORAGE_KEYS.tasks(newId), oldTasks);
+      if (oldBoards) localStorage.setItem(STORAGE_KEYS.boards(newId), oldBoards);
+    }
     localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify(workspaces));
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_WORKSPACE, DEFAULT_WORKSPACE_ID);
-    return { workspaces, activeId: DEFAULT_WORKSPACE_ID };
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_WORKSPACE, newId);
+    return { workspaces, activeId: newId };
   }
   try {
     const workspaces: Workspace[] = JSON.parse(raw);
@@ -27,7 +33,8 @@ function initWorkspaces(): { workspaces: Workspace[]; activeId: string } {
     const activeId = workspaces.some((w) => w.id === savedId) ? savedId! : workspaces[0].id;
     return { workspaces, activeId };
   } catch {
-    return { workspaces: [{ id: DEFAULT_WORKSPACE_ID, name: "Personal" }], activeId: DEFAULT_WORKSPACE_ID };
+    const fallbackId = crypto.randomUUID();
+    return { workspaces: [{ id: fallbackId, name: "Personal" }], activeId: fallbackId };
   }
 }
 

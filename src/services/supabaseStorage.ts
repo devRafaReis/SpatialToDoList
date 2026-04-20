@@ -84,8 +84,8 @@ export async function deleteAllTasksRemote(userId: string, workspaceId: string):
 }
 
 export async function syncTasks(userId: string, workspaceId: string, tasks: Task[], workspaceName?: string): Promise<void> {
-  // Guard against FK violation: ensure workspace row exists before inserting tasks.
-  // ignoreDuplicates=true means DO NOTHING on conflict — the real name is preserved.
+  // Ensure workspace row exists before inserting tasks (guards FK constraint).
+  // ignoreDuplicates=true = DO NOTHING on conflict — preserves existing name.
   await supabase
     .from("workspaces")
     .upsert({ id: workspaceId, user_id: userId, name: workspaceName ?? workspaceId }, { onConflict: "id", ignoreDuplicates: true });
