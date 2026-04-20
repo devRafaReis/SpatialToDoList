@@ -9,6 +9,7 @@ import StarParticles from "@/components/StarParticles";
 import SpaceEasterEggs from "@/components/SpaceEasterEggs";
 import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useTranslation } from "@/i18n/translations";
 import { Plus, RotateCcw, Trash2, Columns } from "lucide-react";
 import FilterPopover from "@/components/FilterPopover";
 import { Button } from "@/components/ui/button";
@@ -337,6 +338,7 @@ const BoardDragParticles = () => {
 const KanbanBoard = () => {
   const { tasksByStatus, boards, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll } = useTasks();
   const { animationsEnabled, boardLayout, setBoardLayout } = useSettings();
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const effectiveLayout = isMobile ? "vertical" : boardLayout;
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -526,14 +528,14 @@ const KanbanBoard = () => {
             <FilterPopover filter={filter} onChange={setFilter} boards={boards} />
             <Button size="sm" onClick={() => handleAddTask()} className="h-8 gap-1.5">
               <Plus className="h-3.5 w-3.5" />
-              <span className="sm:hidden">Task</span>
-              <span className="hidden sm:inline">New Task</span>
+              <span className="sm:hidden">{t("newTaskShort")}</span>
+              <span className="hidden sm:inline">{t("newTask")}</span>
             </Button>
             <div className="h-4 w-px bg-border/40 hidden sm:block" />
             <Button variant="ghost" size="sm" onClick={() => setAddBoardDialogOpen(true)} className="h-8 gap-1.5 text-muted-foreground/70 text-xs">
               <Columns className="h-3.5 w-3.5" />
-              <span className="sm:hidden">Board</span>
-              <span className="hidden sm:inline">Add board</span>
+              <span className="sm:hidden">{t("addBoardShort")}</span>
+              <span className="hidden sm:inline">{t("addBoard")}</span>
             </Button>
           </div>
           <div className="flex items-center gap-1">
@@ -546,7 +548,7 @@ const KanbanBoard = () => {
                 disabled={isDeletingAll || isResetting}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Delete all tasks</span>
+                <span className="hidden sm:inline">{t("deleteAllTasks")}</span>
               </Button>
             )}
             <Button
@@ -557,7 +559,7 @@ const KanbanBoard = () => {
               disabled={isDeletingAll || isResetting}
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Reset to default</span>
+              <span className="hidden sm:inline">{t("resetToDefault")}</span>
             </Button>
           </div>
         </div>
@@ -630,7 +632,7 @@ const KanbanBoard = () => {
                   <>
                     <Input
                       autoFocus
-                      placeholder="Board name…"
+                      placeholder={t("boardNamePlaceholder")}
                       value={newBoardTitle}
                       onChange={(e) => setNewBoardTitle(e.target.value)}
                       onKeyDown={(e) => {
@@ -640,13 +642,13 @@ const KanbanBoard = () => {
                       maxLength={20}
                       className="h-8 w-36 sm:w-48 text-sm"
                     />
-                    <Button size="sm" onClick={handleAddBoard} disabled={!newBoardTitle.trim()} className="h-8">Add</Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setAddingBoard(false); setNewBoardTitle(""); }} className="h-8">Cancel</Button>
+                    <Button size="sm" onClick={handleAddBoard} disabled={!newBoardTitle.trim()} className="h-8">{t("add")}</Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setAddingBoard(false); setNewBoardTitle(""); }} className="h-8">{t("cancel")}</Button>
                   </>
                 ) : (
                   <Button variant="ghost" size="sm" onClick={() => setAddingBoard(true)} className="gap-1.5 text-muted-foreground/70 text-xs">
                     <Plus className="h-3.5 w-3.5" />
-                    Add board
+                    {t("addBoard")}
                   </Button>
                 )}
               </div>
@@ -660,7 +662,7 @@ const KanbanBoard = () => {
                     disabled={isDeletingAll || isResetting}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Delete all tasks
+                    {t("deleteAllTasks")}
                   </Button>
                 )}
                 <Button
@@ -671,7 +673,7 @@ const KanbanBoard = () => {
                   disabled={isDeletingAll || isResetting}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  Reset to default
+                  {t("resetToDefault")}
                 </Button>
               </div>
             </div>
@@ -683,11 +685,11 @@ const KanbanBoard = () => {
       <Dialog open={addBoardDialogOpen} onOpenChange={(open) => { setAddBoardDialogOpen(open); if (!open) setNewBoardTitleTop(""); }}>
         <DialogContent className="w-[90vw] max-w-sm rounded-lg" aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>New board</DialogTitle>
+            <DialogTitle>{t("newBoard")}</DialogTitle>
           </DialogHeader>
           <Input
             autoFocus
-            placeholder="Board name…"
+            placeholder={t("boardNamePlaceholder")}
             value={newBoardTitleTop}
             onChange={(e) => setNewBoardTitleTop(e.target.value)}
             onKeyDown={(e) => {
@@ -698,8 +700,8 @@ const KanbanBoard = () => {
             className="mt-1"
           />
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => { setAddBoardDialogOpen(false); setNewBoardTitleTop(""); }}>Cancel</Button>
-            <Button onClick={handleAddBoardTop} disabled={!newBoardTitleTop.trim()}>Add</Button>
+            <Button variant="ghost" onClick={() => { setAddBoardDialogOpen(false); setNewBoardTitleTop(""); }}>{t("cancel")}</Button>
+            <Button onClick={handleAddBoardTop} disabled={!newBoardTitleTop.trim()}>{t("add")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -707,18 +709,18 @@ const KanbanBoard = () => {
       <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
         <AlertDialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md rounded-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete all tasks</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteAllTasks")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete all {totalTasks} task{totalTasks !== 1 ? "s" : ""}. This action cannot be undone.
+              {t("deleteAllTasksDesc", { count: totalTasks, s: totalTasks !== 1 ? "s" : "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDeleteAll}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete all
+              {t("deleteAll")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -727,18 +729,18 @@ const KanbanBoard = () => {
       <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
         <AlertDialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md rounded-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>Reset to default?</AlertDialogTitle>
+            <AlertDialogTitle>{t("resetToDefaultTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will restore the 3 default boards (To Do, Doing, Done), delete all custom boards, and remove all tasks. This action cannot be undone.
+              {t("resetToDefaultDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmReset}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Reset
+              {t("reset")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

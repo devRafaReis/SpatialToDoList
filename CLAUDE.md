@@ -8,13 +8,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 bun dev              # Start dev server (port 8080)
 bun run build        # Production build
 bun run build:dev    # Development mode build
+bun run preview      # Serve production build locally (required to test PWA install)
 bun run lint         # ESLint
 bun run test         # Run all tests once (vitest + jsdom)
 bun run test:watch   # Run tests in watch mode
 bunx vitest src/path/to/specific.test.ts  # Run a single test file
+bunx pwa-assets-generator  # Regenerate PWA icons from public/favicon.svg
 ```
 
 > **Note:** Always use `bun run test`, not `bun test`. The latter invokes Bun's native test runner which does not load the Vite/jsdom config and will fail on any test that touches `localStorage` or the DOM.
+
+> **PWA in dev:** the service worker is only registered in production builds. Use `bun run build && bun run preview` to test PWA install locally.
 
 ## Design System
 
@@ -64,7 +68,7 @@ Components consume tasks via `useTaskContext()` → `useTasks()` hook which retu
 
 Settings persist under `spatialTodo_*` keys locally and in `public.settings` table in Supabase when logged in. Workspace list persists under `spatialTodo_workspaces` / `spatialTodo_activeWorkspace` locally and in `public.workspaces` table when logged in.
 
-All localStorage key strings are centralised in `src/constants/storageKeys.ts` (`STORAGE_KEYS`). Never hardcode `"spatialTodo_*"` or `"kanban-*"` strings outside that file.
+All localStorage key strings are centralised in `src/constants/storageKeys.ts` (`STORAGE_KEYS`). Never hardcode `"spatialTodo_*"` or `"kanban-*"` strings outside that file. Keys include `LANGUAGE` (`spatialTodo_language`) for the UI language preference.
 
 ### Key files
 
@@ -78,8 +82,9 @@ All localStorage key strings are centralised in `src/constants/storageKeys.ts` (
 | `src/store/authStore.tsx` | `AuthProvider` only — Google OAuth popup, allowlist check, `accessDenied` state |
 | `src/store/taskContext.ts` | `TaskContextValue`, `TaskContext`, `useTaskContext` hook |
 | `src/store/taskStore.tsx` | `TaskProvider` only — task + board state, CRUD, drag-drop, recurrence, cloud sync |
-| `src/store/settingsContext.ts` | `SettingsContextType`, `SettingsContext`, `useSettings` hook, `BoardLayout` type |
-| `src/store/settingsStore.tsx` | `SettingsProvider` only — animations, light mode, board layout, checklist defaults |
+| `src/i18n/translations.ts` | `useTranslation()` hook + EN/PT-BR dictionaries — see i18n section below |
+| `src/store/settingsContext.ts` | `SettingsContextType`, `SettingsContext`, `useSettings` hook, `BoardLayout` type, `Language` type |
+| `src/store/settingsStore.tsx` | `SettingsProvider` only — animations, light mode, board layout, checklist defaults, language |
 | `src/store/workspaceContext.ts` | `WorkspaceContextType`, `WorkspaceContext`, `useWorkspace` hook, `DEFAULT_WORKSPACE_ID` |
 | `src/store/workspaceStore.tsx` | `WorkspaceProvider` only — workspace list, active workspace, legacy migration |
 | `src/services/taskStorage.ts` | `createWorkspaceStorage(id): TaskStorageService` — localStorage layer |
@@ -94,8 +99,55 @@ All localStorage key strings are centralised in `src/constants/storageKeys.ts` (
 | `src/components/AccessRequestDialog.tsx` | Dialog for non-allowed users to request access |
 | `src/components/FilterPopover.tsx` | Filter UI (priority, board, start/end date ranges) |
 | `src/components/WorkspaceSwitcher.tsx` | Workspace dropdown with CRUD and deletion confirmation |
-| `src/components/SettingsDialog.tsx` | Settings panel (animations, layout, checklist, light mode) |
+| `src/components/SettingsDialog.tsx` | Settings panel (animations, layout, checklist, light mode, language) |
 | `src/index.css` | Global styles + CSS vars + animation keyframes (galaxy theme) |
+| `pwa-assets.config.ts` | PWA icon generation config (`@vite-pwa/assets-generator`, source: `public/favicon.svg`) |
+
+### i18n (internationalization)
+
+Translation lives entirely in `src/i18n/translations.ts` — no external library.
+
+**Usage in any component:**
+```tsx
+import { useTranslation } from "@/i18n/translations";
+
+const { t } = useTranslation();
+// Simple key:
+t("cancel")                         // → "Cancel" / "Cancelar"
+// Key with variable interpolation:
+t("maxChars", { count: 30 })        // → "Max 30 characters"
+// Dynamic key (use `as any` since TypeScript can't verify template literals):
+t(`priority_${p.id}` as any)        // → "Low" / "Baixa"
+```
+
+**Language type and persistence:**
+- `Language = "en" | "pt-BR"` — defined in `settingsContext.ts`
+- `language` and `setLanguage` come from `useSettings()`
+- Stored under `STORAGE_KEYS.LANGUAGE` (`spatialTodo_language`) in **localStorage only** — intentionally not synced to Supabase (per-device preference, avoids DB migration)
+- Default: `"en"`
+
+**Adding a new translation key:**
+1. Add the key+value to both `dict.en` and `dict["pt-BR"]` in `translations.ts`
+2. Use `t("newKey")` in the component — TypeScript will infer the key type from `dict.en`
+
+**Adding a new language:**
+1. Add a new entry to `dict` with the same keys as `dict.en`
+2. Add the new language code to the `Language` union type in `settingsContext.ts`
+3. Add a toggle button in `SettingsDialog.tsx`
+
+### PWA
+
+The app is a Progressive Web App installable on Android, iOS, and desktop.
+
+**Setup:** `vite-plugin-pwa` in `vite.config.ts` with `registerType: "autoUpdate"` and Workbox `generateSW` strategy.
+
+**Caching strategy:**
+- All static assets (JS, CSS, HTML, images, fonts) are precached
+- Supabase API calls use `NetworkFirst` (10s timeout, 24h max-age, 50 entries max)
+
+**Icon generation:** Run `bunx pwa-assets-generator` to regenerate all icons from `public/favicon.svg`. Output: `pwa-64x64.png`, `pwa-192x192.png`, `pwa-512x512.png`, `maskable-icon-512x512.png`, `apple-touch-icon-180x180.png`. Config: `pwa-assets.config.ts`.
+
+**Testing:** PWA install only works from a production build — use `bun run build && bun run preview`. The service worker is intentionally disabled in `bun dev`.
 
 ### Task type (src/types/task.ts)
 

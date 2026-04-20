@@ -33,6 +33,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSettings } from "@/store/settingsContext";
 import { useTaskContext } from "@/store/taskContext";
+import { useTranslation } from "@/i18n/translations";
 
 // ---------------------------------------------------------------------------
 // Drag particles — tiny glowing dots rendered inside the card while dragging.
@@ -750,6 +751,7 @@ interface TaskCardProps {
 const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: TaskCardProps) => {
   const { animationsEnabled, checklistExpandedByDefault } = useSettings();
   const { updateTask, boards } = useTaskContext();
+  const { t } = useTranslation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [checklistExpanded, setChecklistExpanded] = useState(() => checklistExpandedByDefault);
@@ -933,12 +935,12 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       return p ? (
                         <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none ${p.badgeClass}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${p.dotClass}`} />
-                          {p.label}
+                          {t(`priority_${p.id}` as any)}
                         </span>
                       ) : null;
                     })()}
                     {task.recurrence?.enabled && (() => {
-                      const label: Record<string, string> = { daily: "daily", "daily-weekdays": "Mon–Fri", weekly: "weekly", monthly: "monthly", "every-n-days": `every ${task.recurrence.interval ?? 2}d` };
+                      const label: Record<string, string> = { daily: t("recType_daily"), "daily-weekdays": t("recType_daily_weekdays"), weekly: t("recType_weekly"), monthly: t("recType_monthly"), "every-n-days": `every ${task.recurrence.interval ?? 2}d` };
                       const limitStr = task.recurrence.limit !== undefined ? ` · ${task.recurrence.limit}×` : "";
                       return (
                         <span className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none bg-sky-500/15 text-sky-400 border-sky-500/30">
@@ -955,7 +957,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
                         {task.description.length > 180
-                          ? <>{task.description.slice(0, 180)}… <span className="text-muted-foreground/60 italic">Open card to read more.</span></>
+                          ? <>{task.description.slice(0, 180)}… <span className="text-muted-foreground/60 italic">{t("openCardToReadMore")}</span></>
                           : task.description}
                       </TooltipContent>
                     </Tooltip>
@@ -966,7 +968,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        aria-label="Dismiss reminder"
+                        aria-label={t("dismissReminder")}
                         onClick={() => updateTask(task.id, { reminderDismissed: true })}
                         className="shrink-0 h-7 w-7 flex items-center justify-center text-white/80 hover:text-white transition-colors"
                       >
@@ -974,7 +976,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
-                      Reminder at {task.startTime} — click to dismiss
+                      {t("reminderAt", { time: task.startTime ?? "" })}
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -985,25 +987,25 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       variant="ghost"
                       size="icon"
                       className="shrink-0 h-7 w-7 text-accent-foreground/70 sm:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150"
-                      aria-label="Actions"
+                      aria-label={t("actions")}
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setViewOpen(true)}>
-                      <Eye className="h-3.5 w-3.5 mr-2" /> View
+                      <Eye className="h-3.5 w-3.5 mr-2" /> {t("view")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onEdit(task)}>
-                      <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                      <Pencil className="h-3.5 w-3.5 mr-2" /> {t("edit")}
                     </DropdownMenuItem>
                     {otherColumns.length > 0 && otherColumns.map((col) => (
                       <DropdownMenuItem key={col.id} onClick={() => handleMoveClick(col.id)}>
-                        <ArrowRight className="h-3.5 w-3.5 mr-2" /> Move to {col.title}
+                        <ArrowRight className="h-3.5 w-3.5 mr-2" /> {t("moveTo", { name: col.title })}
                       </DropdownMenuItem>
                     ))}
                     <DropdownMenuItem onClick={handleDeleteClick} className="text-red-400 focus:text-red-400">
-                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> {t("delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -1092,7 +1094,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         <p className="flex items-center gap-1.5">
                           <Clock className="h-3 w-3 shrink-0" />
                           {[task.estimatedHours && `${task.estimatedHours}h`, task.estimatedMinutes && `${task.estimatedMinutes}m`].filter(Boolean).join(" ")}
-                          <span className="text-muted-foreground/70">estimated</span>
+                          <span className="text-muted-foreground/70">{t("estimated")}</span>
                         </p>
                       )}
                       {hasDate && (
@@ -1118,15 +1120,15 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent className="w-[95vw] max-w-[95vw] sm:max-w-lg rounded-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete task</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteTask")}</AlertDialogTitle>
             <AlertDialogDescription className="break-all">
-              Are you sure you want to delete "{task.title}"? This action cannot be undone.
+              {t("deleteTaskDesc", { title: task.title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+              {t("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1184,23 +1186,23 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                     {task.description}
                   </p>
                 ) : (
-                  <p className="text-sm text-muted-foreground/50 italic">No description.</p>
+                  <p className="text-sm text-muted-foreground/50 italic">{t("noDescription")}</p>
                 )}
               </div>
 
               {/* Recurrence section */}
               {task.recurrence && (() => {
-                const typeLabel: Record<string, string> = { daily: "Daily (every day)", "daily-weekdays": "Daily (Mon–Fri)", weekly: "Weekly", monthly: "Monthly", "every-n-days": `Every ${task.recurrence.interval ?? 2} days` };
+                const typeLabel: Record<string, string> = { daily: t("recTypeFull_daily"), "daily-weekdays": t("recTypeFull_daily_weekdays"), weekly: t("recTypeFull_weekly"), monthly: t("recTypeFull_monthly"), "every-n-days": `Every ${task.recurrence.interval ?? 2} days` };
                 const limitLabel = task.recurrence.limit !== undefined
-                  ? `${task.recurrence.limit} repetition${task.recurrence.limit !== 1 ? "s" : ""} left`
-                  : "Forever";
+                  ? t("repetitionsLeft", { count: task.recurrence.limit, s: task.recurrence.limit !== 1 ? "s" : "" })
+                  : t("forever");
                 return (
                   <div className="space-y-1.5 rounded-md border border-border/40 bg-muted/20 p-3">
                     <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                       <RefreshCw className="h-3.5 w-3.5" />
-                      Recurrence
+                      {t("recurrence")}
                       <span className={`ml-auto text-[10px] ${task.recurrence.enabled ? "text-sky-400" : "text-muted-foreground/50"}`}>
-                        {task.recurrence.enabled ? "enabled" : "disabled"}
+                        {task.recurrence.enabled ? t("enabled") : t("disabled")}
                       </span>
                     </p>
                     <div className="flex items-center justify-between text-sm">
@@ -1216,7 +1218,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                 <div className="space-y-2 rounded-md border border-border/40 bg-muted/20 p-3">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <CalendarRange className="h-3.5 w-3.5" />
-                    Planning
+                    {t("planning")}
                   </p>
                   {(task.estimatedHours != null || task.estimatedMinutes != null) && (
                     <div className="flex items-center gap-2 text-sm">
@@ -1227,7 +1229,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                           task.estimatedMinutes ? `${task.estimatedMinutes}m` : null,
                         ].filter(Boolean).join(" ")}
                       </span>
-                      <span className="text-muted-foreground text-xs">estimated</span>
+                      <span className="text-muted-foreground text-xs">{t("estimated")}</span>
                     </div>
                   )}
                   {(task.startDate || task.startTime || task.endDate || task.endTime) && (
@@ -1250,7 +1252,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                 <div className="space-y-2 rounded-md border border-border/40 bg-muted/20 p-3">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <ListChecks className="h-3.5 w-3.5" />
-                    Checklist
+                    {t("checklist")}
                     <span className="ml-auto text-[10px]">
                       {task.checklist.filter((i) => i.done).length}/{task.checklist.length}
                     </span>

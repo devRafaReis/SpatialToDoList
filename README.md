@@ -39,6 +39,13 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Layout do board: swimlane horizontal ou colunas verticais
 - Checklists expandidos por padrão nos cards — aplica imediatamente a todos os cards abertos
 - Modo claro ("Boring ToDoList") / escuro galaxy
+- **Idioma:** Inglês (padrão) ou Português (BR) — salvo por dispositivo, não sincronizado na nuvem
+
+### PWA (Progressive Web App)
+- Instalável como app nativo em **Android**, **iOS** e **desktop** (Chrome/Edge)
+- Funciona offline para o que já foi carregado (cache via Workbox)
+- Ícone e splash screen personalizados
+- Para instalar: no mobile, toque em "Adicionar à tela inicial"; no desktop, clique no ícone de instalação na barra de endereços
 
 ### Animações
 - Big Bang ao criar tarefa ou board
@@ -77,6 +84,8 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 | Datas | date-fns |
 | Backend / Auth | Supabase (PostgreSQL + Google OAuth) |
 | Testes | Vitest + jsdom + Testing Library |
+| PWA | vite-plugin-pwa + Workbox |
+| i18n | Hook customizado (`useTranslation`) — sem biblioteca externa |
 
 ---
 
@@ -96,12 +105,16 @@ bun install
 bun dev              # Inicia o servidor de desenvolvimento (porta 8080)
 bun run build        # Build de produção
 bun run build:dev    # Build em modo desenvolvimento
+bun run preview      # Serve o build de produção localmente (necessário para testar o PWA)
 bun run lint         # ESLint
 bun run test         # Roda todos os testes uma vez (vitest + jsdom)
 bun run test:watch   # Testes em modo watch
+bunx pwa-assets-generator  # Gera ícones PWA a partir de public/favicon.svg
 ```
 
 > **Atenção:** use `bun run test`, não `bun test`. O segundo usa o runner nativo do Bun sem jsdom e falha em testes que acessam `localStorage`.
+
+> **PWA em desenvolvimento:** o service worker só é registrado em build de produção. Use `bun run build && bun run preview` para testar a instalação do PWA localmente.
 
 ---
 
@@ -112,6 +125,8 @@ src/
   App.tsx                    # Providers e rotas (AuthProvider > WorkspaceProvider > ...)
   main.tsx                   # Entry point
   index.css                  # Variáveis CSS, tema galaxy, keyframes de animação
+  i18n/
+    translations.ts          # Hook useTranslation() + dicionários EN/PT-BR (~120+ chaves)
   lib/
     supabase.ts              # Cliente Supabase (anon key)
     recurrenceUtils.ts       # Funções puras: shiftDate, buildNextOccurrence
@@ -127,8 +142,8 @@ src/
     authStore.tsx            # AuthProvider — Google OAuth popup, allowlist, accessDenied
     taskContext.ts           # TaskContextValue, TaskContext, useTaskContext
     taskStore.tsx            # TaskProvider — CRUD + drag-drop + recorrência + sync Supabase
-    settingsContext.ts       # SettingsContextType, SettingsContext, useSettings, BoardLayout
-    settingsStore.tsx        # SettingsProvider — configurações globais + sync Supabase
+    settingsContext.ts       # SettingsContextType, SettingsContext, useSettings, BoardLayout, Language
+    settingsStore.tsx        # SettingsProvider — configurações globais + sync Supabase + idioma
     workspaceContext.ts      # WorkspaceContextType, WorkspaceContext, useWorkspace, DEFAULT_WORKSPACE_ID
     workspaceStore.tsx       # WorkspaceProvider — Workspaces CRUD + migração + sync Supabase
   services/
@@ -147,10 +162,18 @@ src/
     AccessRequestDialog.tsx  # Dialog para usuários não autorizados solicitarem acesso (inclui coleta de IP para rate limiting)
     FilterPopover.tsx        # Popover de filtros (prioridade, board, datas)
     WorkspaceSwitcher.tsx    # Seletor de workspace com CRUD
-    SettingsDialog.tsx       # Dialog de configurações globais
+    SettingsDialog.tsx       # Dialog de configurações globais (inclui seleção de idioma)
     StarParticles.tsx        # Canvas de fundo (estrelas + cometa periódico)
-    SpaceEasterEggs.tsx      # Canvas overlay (Nyan Cat easter egg)
+    SpaceEasterEggs.tsx      # Canvas overlay (easter eggs espaciais)
     ui/                      # Componentes shadcn/ui — não editar manualmente
+public/
+  favicon.svg                # Ícone-fonte para geração dos assets PWA
+  pwa-64x64.png              # Ícone PWA 64×64
+  pwa-192x192.png            # Ícone PWA 192×192
+  pwa-512x512.png            # Ícone PWA 512×512
+  maskable-icon-512x512.png  # Ícone maskable para Android
+  apple-touch-icon-180x180.png  # Ícone para iOS
+pwa-assets.config.ts         # Config de geração de ícones PWA (@vite-pwa/assets-generator)
 docs/
   architecture.md            # Arquitetura completa, fluxo de dados, árvore de componentes
   decisions.md               # Decisões de design e padrões do código

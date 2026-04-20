@@ -3,6 +3,7 @@ import { Clock, CalendarRange, CalendarIcon, Plus, Trash2, ListChecks, ChevronDo
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, TaskPriority, ChecklistItem, PRIORITIES, Recurrence, RecurrenceType } from "@/types/task";
 import { useTaskContext } from "@/store/taskContext";
+import { useTranslation } from "@/i18n/translations";
 import {
   Dialog,
   DialogContent,
@@ -93,12 +94,13 @@ const TimePickerPopover = ({ value, onChange }: { value: string; onChange: (v: s
 
   const pick = (newH: string, newM: string) => onChange(`${newH}:${newM}`);
 
+  const { t } = useTranslation();
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" className="w-full justify-start gap-2 px-3 font-normal text-left">
           <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          {value ? <span>{value}</span> : <span className="text-muted-foreground">Pick time</span>}
+          {value ? <span>{value}</span> : <span className="text-muted-foreground">{t("pickTime")}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-2" align="start">
@@ -124,7 +126,7 @@ const TimePickerPopover = ({ value, onChange }: { value: string; onChange: (v: s
         {value && (
           <button type="button" onClick={() => { onChange(""); setOpen(false); }}
             className="mt-2 w-full text-center text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-          >Clear</button>
+          >{t("clear")}</button>
         )}
       </PopoverContent>
     </Popover>
@@ -154,6 +156,7 @@ interface TaskDialogProps {
 
 const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDialogProps) => {
   const { boards } = useTaskContext();
+  const { t } = useTranslation();
   const [title, setTitle]                       = useState("");
   const [description, setDescription]           = useState("");
   const [status, setStatus]                     = useState<TaskStatus>("");
@@ -273,9 +276,9 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-xl md:max-w-2xl rounded-lg flex flex-col" style={{ maxHeight: "min(90dvh, 580px)" }}>
         <DialogHeader className="shrink-0">
-          <DialogTitle>{isEditing ? "Edit Task" : "New Task"}</DialogTitle>
+          <DialogTitle>{isEditing ? t("editTask") : t("newTask")}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update the task details." : "Fill in the details to create a new task."}
+            {isEditing ? t("updateTaskDetails") : t("fillInDetails")}
           </DialogDescription>
         </DialogHeader>
 
@@ -283,7 +286,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
           {/* Title */}
           <div className="space-y-1 scroll-mt-2">
             <Input
-              placeholder="Task title"
+              placeholder={t("taskTitlePlaceholder")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
@@ -295,7 +298,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
 
           {/* Description */}
           <Textarea
-            placeholder="Description (optional)"
+            placeholder={t("descriptionPlaceholder")}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={2000}
@@ -330,10 +333,10 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                 return sel ? (
                   <div className="flex items-center gap-2">
                     <span className={`h-2 w-2 rounded-full shrink-0 ${sel.dotClass}`} />
-                    <span>{sel.label}</span>
+                    <span>{t(`priority_${sel.id}` as any)}</span>
                   </div>
                 ) : (
-                  <span className="text-muted-foreground">Priority (optional)</span>
+                  <span className="text-muted-foreground">{t("priorityPlaceholder")}</span>
                 );
               })()}
             </SelectTrigger>
@@ -342,7 +345,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                 <SelectItem key={p.id} value={p.id}>
                   <span className="flex items-center gap-2">
                     <span className={`h-2 w-2 rounded-full shrink-0 ${p.dotClass}`} />
-                    {p.label}
+                    {t(`priority_${p.id}` as any)}
                   </span>
                 </SelectItem>
               ))}
@@ -357,7 +360,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
               className="flex w-full items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <CalendarRange className="h-3.5 w-3.5 shrink-0" />
-              Planning (optional)
+              {t("planningSection")}
               {!planningOpen && (estimatedTime || startDate || startTime || endDate) && (
                 <span className="ml-1 text-[10px] text-primary/70">
                   {estimatedTime}
@@ -376,11 +379,11 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                 {/* Estimated time */}
                 <div className="space-y-1.5">
                   <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Clock className="h-3 w-3" /> Estimated time
+                    <Clock className="h-3 w-3" /> {t("estimatedTime")}
                   </p>
                   <div className="relative">
                     <Input
-                      placeholder="e.g. 1h30m, 90m, 1.5h, 1:30"
+                      placeholder={t("estimatedTimePlaceholder")}
                       value={estimatedTime}
                       onChange={(e) => setEstimatedTime(e.target.value)}
                       onBlur={() => {
@@ -401,15 +404,15 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
 
                 {/* Date range */}
                 <div className="space-y-1.5">
-                  <p className="text-[11px] text-muted-foreground">Date range</p>
+                  <p className="text-[11px] text-muted-foreground">{t("dateRange")}</p>
                   <div className="flex gap-2">
                     <div className="flex-1 space-y-0.5">
-                      <p className="text-[10px] text-muted-foreground/60">Start</p>
+                      <p className="text-[10px] text-muted-foreground/60">{t("start")}</p>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button variant="outline" className="w-full justify-start gap-2 px-3 font-normal text-left">
                             <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            {startDate ? <span>{format(parseISO(startDate), "MMM d, yyyy")}</span> : <span className="text-muted-foreground">Pick date</span>}
+                            {startDate ? <span>{format(parseISO(startDate), "MMM d, yyyy")}</span> : <span className="text-muted-foreground">{t("pickDate")}</span>}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -431,12 +434,12 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                       </div>
                     </div>
                     <div className="flex-1 space-y-0.5">
-                      <p className="text-[10px] text-muted-foreground/60">End</p>
+                      <p className="text-[10px] text-muted-foreground/60">{t("end")}</p>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button variant="outline" className="w-full justify-start gap-2 px-3 font-normal text-left">
                             <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            {endDate ? <span>{format(parseISO(endDate), "MMM d, yyyy")}</span> : <span className="text-muted-foreground">Pick date</span>}
+                            {endDate ? <span>{format(parseISO(endDate), "MMM d, yyyy")}</span> : <span className="text-muted-foreground">{t("pickDate")}</span>}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -467,7 +470,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
               className="flex w-full items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <ListChecks className="h-3.5 w-3.5 shrink-0" />
-              Checklist
+              {t("checklistSection")}
               {checklist.length > 0 && (
                 <span className="ml-1 text-[10px] text-primary/70">
                   {checklist.filter((i) => i.done).length}/{checklist.length}
@@ -500,7 +503,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                           size="icon"
                           className="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                           onClick={() => deleteChecklistItem(item.id)}
-                          aria-label="Remove item"
+                          aria-label={t("removeItem")}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -512,7 +515,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                 <div className="flex gap-2">
                   <Input
                     ref={newItemInputRef}
-                    placeholder="New item…"
+                    placeholder={t("newItem")}
                     value={newItemText}
                     onChange={(e) => setNewItemText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
@@ -542,9 +545,9 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
               className="flex w-full items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <RefreshCw className="h-3.5 w-3.5 shrink-0" />
-              Recurrence
+              {t("recurrenceSection")}
               {recurrenceOpen && (() => {
-                const typeLabel: Record<string, string> = { daily: "daily", "daily-weekdays": "Mon–Fri", weekly: "weekly", monthly: "monthly", "every-n-days": `every ${recurrenceInterval}d` };
+                const typeLabel: Record<string, string> = { daily: t("recType_daily"), "daily-weekdays": t("recType_daily_weekdays"), weekly: t("recType_weekly"), monthly: t("recType_monthly"), "every-n-days": `every ${recurrenceInterval}d` };
                 const limitLabel = recurrenceLimitType === "count" && recurrenceLimitCount ? ` · ${recurrenceLimitCount}×` : recurrenceLimitType === "forever" ? " · ∞" : "";
                 return (
                   <span className={`ml-1 text-[10px] ${recurrenceEnabled ? "text-primary/70" : "text-muted-foreground/50"}`}>
@@ -560,7 +563,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                 {/* Enable toggle */}
                 <div className="flex items-center justify-between gap-3">
                   <Label htmlFor="recurrence-enabled" className="text-xs text-muted-foreground cursor-pointer">
-                    {recurrenceEnabled ? "Enabled" : "Disabled"}
+                    {recurrenceEnabled ? t("recurrenceEnabled") : t("recurrenceDisabled")}
                   </Label>
                   <Switch
                     id="recurrence-enabled"
@@ -571,22 +574,22 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
 
                 {/* Frequency */}
                 <div className="space-y-1.5">
-                  <p className="text-[11px] text-muted-foreground">Frequency</p>
+                  <p className="text-[11px] text-muted-foreground">{t("frequency")}</p>
                   <Select value={recurrenceType} onValueChange={(v) => setRecurrenceType(v as RecurrenceType)} disabled={!recurrenceEnabled}>
                     <SelectTrigger className={recurrenceEnabled ? "" : "opacity-50"}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="daily">Daily (every day)</SelectItem>
-                      <SelectItem value="daily-weekdays">Daily (Mon – Fri)</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="every-n-days">Every X days</SelectItem>
+                      <SelectItem value="daily">{t("recTypeFull_daily")}</SelectItem>
+                      <SelectItem value="daily-weekdays">{t("recTypeFull_daily_weekdays")}</SelectItem>
+                      <SelectItem value="weekly">{t("recTypeFull_weekly")}</SelectItem>
+                      <SelectItem value="monthly">{t("recTypeFull_monthly")}</SelectItem>
+                      <SelectItem value="every-n-days">{t("recTypeFull_every_n_days")}</SelectItem>
                     </SelectContent>
                   </Select>
                   {recurrenceType === "every-n-days" && (
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[11px] text-muted-foreground">Every</span>
+                      <span className="text-[11px] text-muted-foreground">{t("every")}</span>
                       <input
                         type="number"
                         min="1"
@@ -596,14 +599,14 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                         disabled={!recurrenceEnabled}
                         className="w-16 rounded-md border border-border/40 bg-background px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
                       />
-                      <span className="text-[11px] text-muted-foreground">days</span>
+                      <span className="text-[11px] text-muted-foreground">{t("days")}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Repetitions */}
                 <div className="space-y-1.5">
-                  <p className="text-[11px] text-muted-foreground">Repetitions</p>
+                  <p className="text-[11px] text-muted-foreground">{t("repetitions")}</p>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -615,7 +618,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                           : "border-border/40 text-muted-foreground hover:border-border"
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      Forever
+                      {t("forever")}
                     </button>
                     <button
                       type="button"
@@ -627,7 +630,7 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                           : "border-border/40 text-muted-foreground hover:border-border"
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      Set limit
+                      {t("setLimit")}
                     </button>
                   </div>
                   {recurrenceLimitType === "count" && (
@@ -642,13 +645,13 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
                         disabled={!recurrenceEnabled}
                         placeholder="3"
                       />
-                      <span className="text-xs text-muted-foreground shrink-0">repetitions</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{t("repetitionsUnit")}</span>
                     </div>
                   )}
                 </div>
 
                 <p className="text-[10px] text-muted-foreground/60">
-                  When moved to the last board, a new copy is created in the first board with the next date.
+                  {t("recurrenceHint")}
                 </p>
               </div>
             )}
@@ -657,10 +660,10 @@ const TaskDialog = ({ open, onOpenChange, task, defaultStatus, onSave }: TaskDia
 
         <DialogFooter className="shrink-0 flex flex-col gap-2 sm:flex-row sm:gap-2">
           <Button onClick={handleSave} disabled={!title.trim()}>
-            {isEditing ? "Save" : "Create"}
+            {isEditing ? t("save") : t("create")}
           </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>

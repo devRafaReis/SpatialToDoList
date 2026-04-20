@@ -1,0 +1,367 @@
+import { useSettings } from "@/store/settingsContext";
+
+export type Language = "en" | "pt-BR";
+
+const dict = {
+  en: {
+    // Shared actions
+    cancel: "Cancel",
+    delete: "Delete",
+    rename: "Rename",
+    confirm: "Confirm",
+    create: "Create",
+    save: "Save",
+    add: "Add",
+    clear: "Clear",
+    close: "Close",
+    edit: "Edit",
+    view: "View",
+    forever: "Forever",
+    enabled: "enabled",
+    disabled: "disabled",
+
+    // Priority labels
+    priority_low: "Low",
+    priority_medium: "Medium",
+    priority_high: "High",
+    priority_critical: "Critical",
+
+    // Recurrence type short (inline badge)
+    recType_daily: "daily",
+    recType_daily_weekdays: "Mon–Fri",
+    recType_weekly: "weekly",
+    recType_monthly: "monthly",
+
+    // Recurrence type full (view dialog / select)
+    recTypeFull_daily: "Daily (every day)",
+    recTypeFull_daily_weekdays: "Daily (Mon – Fri)",
+    recTypeFull_weekly: "Weekly",
+    recTypeFull_monthly: "Monthly",
+    recTypeFull_every_n_days: "Every X days",
+
+    // Header
+    signIn: "Sign in",
+    signOut: "Sign out",
+    syncing: "Syncing…",
+    syncError: "Error: {msg}",
+    syncSuccess: "Synced — click to sync now",
+
+    // KanbanBoard toolbar
+    newTaskShort: "Task",
+    newTask: "New Task",
+    addBoardShort: "Board",
+    addBoard: "Add board",
+    deleteAllTasks: "Delete all tasks",
+    resetToDefault: "Reset to default",
+    boardNamePlaceholder: "Board name…",
+    newBoard: "New board",
+    deleteAllTasksDesc: "This will permanently delete all {count} task{s}. This action cannot be undone.",
+    deleteAll: "Delete all",
+    resetToDefaultTitle: "Reset to default?",
+    resetToDefaultDesc: "This will restore the 3 default boards (To Do, Doing, Done), delete all custom boards, and remove all tasks. This action cannot be undone.",
+    reset: "Reset",
+
+    // KanbanColumn
+    addTask: "Add task",
+    sortTasks: "Sort tasks",
+    sortByPriority: "Sort by priority",
+    sortByDate: "Sort by date",
+    expand: "Expand",
+    collapse: "Collapse",
+    deleteBoard: "Delete board",
+    deleteBoardTitle: "Delete board \"{name}\"?",
+    deleteBoardDescWithTasks: "The {count} task{s} in this board will be moved to the first available board.",
+    deleteBoardDescEmpty: "This board is empty and will be permanently removed.",
+
+    // TaskCard
+    dismissReminder: "Dismiss reminder",
+    reminderAt: "Reminder at {time} — click to dismiss",
+    actions: "Actions",
+    moveTo: "Move to {name}",
+    deleteTask: "Delete task",
+    deleteTaskDesc: "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
+    noDescription: "No description.",
+    recurrence: "Recurrence",
+    repetitionsLeft: "{count} repetition{s} left",
+    planning: "Planning",
+    estimated: "estimated",
+    openCardToReadMore: "Open card to read more.",
+    checklist: "Checklist",
+
+    // TaskDialog
+    taskTitlePlaceholder: "Task title",
+    descriptionPlaceholder: "Description (optional)",
+    priorityPlaceholder: "Priority (optional)",
+    planningSection: "Planning (optional)",
+    estimatedTime: "Estimated time",
+    estimatedTimePlaceholder: "e.g. 1h30m, 90m, 1.5h, 1:30",
+    pickTime: "Pick time",
+    dateRange: "Date range",
+    start: "Start",
+    end: "End",
+    pickDate: "Pick date",
+    checklistSection: "Checklist",
+    newItem: "New item…",
+    removeItem: "Remove item",
+    recurrenceSection: "Recurrence",
+    recurrenceEnabled: "Enabled",
+    recurrenceDisabled: "Disabled",
+    frequency: "Frequency",
+    every: "Every",
+    days: "days",
+    repetitions: "Repetitions",
+    setLimit: "Set limit",
+    repetitionsUnit: "repetitions",
+    recurrenceHint: "When moved to the last board, a new copy is created in the first board with the next date.",
+    editTask: "Edit Task",
+    fillInDetails: "Fill in the details to create a new task.",
+    updateTaskDetails: "Update the task details.",
+
+    // FilterPopover
+    filterTasks: "Filter tasks",
+    filters: "Filters",
+    clearAll: "Clear all",
+    priority: "Priority",
+    board: "Board",
+    startDate: "Start Date",
+    dueDate: "Due Date",
+
+    // WorkspaceSwitcher
+    workspace: "Workspace",
+    newWorkspace: "New workspace",
+    renameWorkspace: "Rename workspace",
+    workspaceNamePlaceholder: "Workspace name",
+    deleteWorkspace: "Delete workspace",
+    deleteWorkspaceConfirm: "Are you sure you want to delete {name}?",
+    deleteWorkspaceWithTasks: "This workspace contains {count} task{s} that will be permanently deleted.",
+    deleteWorkspaceEmpty: "This workspace has no tasks.",
+
+    // SettingsDialog
+    settings: "Settings",
+    animations: "Animations",
+    animationsNotAvailable: "Not available in light mode.",
+    animationsDesc: "Stars, comets and ship effects. Disable for better performance.",
+    boardLayout: "Board layout",
+    boardLayoutNotMobile: "Not available on mobile. Boards always stack vertically.",
+    boardLayoutHorizontalDesc: "Swimlane — tasks flow horizontally.",
+    boardLayoutVerticalDesc: "Columns — tasks stack vertically.",
+    verticalColumns: "Vertical columns",
+    horizontalSwimlane: "Horizontal swimlane",
+    expandChecklists: "Expand checklists",
+    expandChecklistsDesc: "Show checklist items expanded by default on all cards.",
+    lightMode: "Light mode",
+    lightModeDesc: "Switch between dark galaxy and light theme.",
+    language: "Language",
+    languageDesc: "Choose the interface language.",
+
+    // AccessRequestDialog
+    requestAccess: "Request access",
+    requestAccessDesc: "Your email is not on the access list. Fill in your details and the admin will be notified.",
+    requestSent: "Request sent!",
+    requestSentDesc: "Your request has been submitted. You'll be able to sign in once the admin approves your email.",
+    nameLabel: "Name",
+    yourNamePlaceholder: "Your name",
+    nameRequired: "Name is required.",
+    maxChars: "Max {count} characters.",
+    emailLabel: "Email",
+    emailPlaceholder: "your@email.com",
+    emailRequired: "Email is required.",
+    validEmail: "Enter a valid email address.",
+    sending: "Sending…",
+    sendRequest: "Send request",
+    duplicateRequest: "A request with this email has already been sent.",
+    tooManyRequests: "Too many requests from your network. Try again in 1 hour.",
+    failedRequest: "Failed to send request. Please try again.",
+  },
+
+  "pt-BR": {
+    // Shared actions
+    cancel: "Cancelar",
+    delete: "Excluir",
+    rename: "Renomear",
+    confirm: "Confirmar",
+    create: "Criar",
+    save: "Salvar",
+    add: "Adicionar",
+    clear: "Limpar",
+    close: "Fechar",
+    edit: "Editar",
+    view: "Visualizar",
+    forever: "Para sempre",
+    enabled: "ativada",
+    disabled: "desativada",
+
+    // Priority labels
+    priority_low: "Baixa",
+    priority_medium: "Média",
+    priority_high: "Alta",
+    priority_critical: "Crítica",
+
+    // Recurrence type short (inline badge)
+    recType_daily: "diário",
+    recType_daily_weekdays: "Seg–Sex",
+    recType_weekly: "semanal",
+    recType_monthly: "mensal",
+
+    // Recurrence type full (view dialog / select)
+    recTypeFull_daily: "Diário (todo dia)",
+    recTypeFull_daily_weekdays: "Diário (Seg – Sex)",
+    recTypeFull_weekly: "Semanal",
+    recTypeFull_monthly: "Mensal",
+    recTypeFull_every_n_days: "A cada X dias",
+
+    // Header
+    signIn: "Entrar",
+    signOut: "Sair",
+    syncing: "Sincronizando…",
+    syncError: "Erro: {msg}",
+    syncSuccess: "Sincronizado — clique para sincronizar agora",
+
+    // KanbanBoard toolbar
+    newTaskShort: "Tarefa",
+    newTask: "Nova Tarefa",
+    addBoardShort: "Quadro",
+    addBoard: "Adicionar quadro",
+    deleteAllTasks: "Excluir todas as tarefas",
+    resetToDefault: "Restaurar padrão",
+    boardNamePlaceholder: "Nome do quadro…",
+    newBoard: "Novo quadro",
+    deleteAllTasksDesc: "Isso excluirá permanentemente {count} tarefa{s}. Esta ação não pode ser desfeita.",
+    deleteAll: "Excluir tudo",
+    resetToDefaultTitle: "Restaurar padrão?",
+    resetToDefaultDesc: "Isso restaurará os 3 quadros padrão (A Fazer, Fazendo, Feito), excluirá todos os quadros personalizados e removerá todas as tarefas. Esta ação não pode ser desfeita.",
+    reset: "Restaurar",
+
+    // KanbanColumn
+    addTask: "Adicionar tarefa",
+    sortTasks: "Ordenar tarefas",
+    sortByPriority: "Ordenar por prioridade",
+    sortByDate: "Ordenar por data",
+    expand: "Expandir",
+    collapse: "Recolher",
+    deleteBoard: "Excluir quadro",
+    deleteBoardTitle: "Excluir quadro \"{name}\"?",
+    deleteBoardDescWithTasks: "A{s} {count} tarefa{s} deste quadro serão movidas para o primeiro quadro disponível.",
+    deleteBoardDescEmpty: "Este quadro está vazio e será removido permanentemente.",
+
+    // TaskCard
+    dismissReminder: "Dispensar lembrete",
+    reminderAt: "Lembrete às {time} — clique para dispensar",
+    actions: "Ações",
+    moveTo: "Mover para {name}",
+    deleteTask: "Excluir tarefa",
+    deleteTaskDesc: "Tem certeza que deseja excluir \"{title}\"? Esta ação não pode ser desfeita.",
+    noDescription: "Sem descrição.",
+    recurrence: "Recorrência",
+    repetitionsLeft: "{count} repetição{s} restante{s}",
+    planning: "Planejamento",
+    estimated: "estimado",
+    openCardToReadMore: "Abra o cartão para ler mais.",
+    checklist: "Checklist",
+
+    // TaskDialog
+    taskTitlePlaceholder: "Título da tarefa",
+    descriptionPlaceholder: "Descrição (opcional)",
+    priorityPlaceholder: "Prioridade (opcional)",
+    planningSection: "Planejamento (opcional)",
+    estimatedTime: "Tempo estimado",
+    estimatedTimePlaceholder: "ex. 1h30m, 90m, 1.5h, 1:30",
+    pickTime: "Escolher horário",
+    dateRange: "Intervalo de datas",
+    start: "Início",
+    end: "Fim",
+    pickDate: "Escolher data",
+    checklistSection: "Checklist",
+    newItem: "Novo item…",
+    removeItem: "Remover item",
+    recurrenceSection: "Recorrência",
+    recurrenceEnabled: "Ativada",
+    recurrenceDisabled: "Desativada",
+    frequency: "Frequência",
+    every: "A cada",
+    days: "dias",
+    repetitions: "Repetições",
+    setLimit: "Definir limite",
+    repetitionsUnit: "repetições",
+    recurrenceHint: "Ao mover para o último quadro, uma nova cópia é criada no primeiro quadro com a próxima data.",
+    editTask: "Editar Tarefa",
+    fillInDetails: "Preencha os detalhes para criar uma nova tarefa.",
+    updateTaskDetails: "Atualize os detalhes da tarefa.",
+
+    // FilterPopover
+    filterTasks: "Filtrar tarefas",
+    filters: "Filtros",
+    clearAll: "Limpar tudo",
+    priority: "Prioridade",
+    board: "Quadro",
+    startDate: "Data de início",
+    dueDate: "Data de entrega",
+
+    // WorkspaceSwitcher
+    workspace: "Espaço de trabalho",
+    newWorkspace: "Novo espaço",
+    renameWorkspace: "Renomear espaço",
+    workspaceNamePlaceholder: "Nome do espaço",
+    deleteWorkspace: "Excluir espaço",
+    deleteWorkspaceConfirm: "Tem certeza que deseja excluir {name}?",
+    deleteWorkspaceWithTasks: "Este espaço contém {count} tarefa{s} que serão permanentemente excluídas.",
+    deleteWorkspaceEmpty: "Este espaço não tem tarefas.",
+
+    // SettingsDialog
+    settings: "Configurações",
+    animations: "Animações",
+    animationsNotAvailable: "Não disponível no modo claro.",
+    animationsDesc: "Estrelas, cometas e efeitos de nave. Desative para melhor desempenho.",
+    boardLayout: "Layout do quadro",
+    boardLayoutNotMobile: "Não disponível no celular. Quadros sempre empilham verticalmente.",
+    boardLayoutHorizontalDesc: "Swimlane — tarefas fluem horizontalmente.",
+    boardLayoutVerticalDesc: "Colunas — tarefas empilham verticalmente.",
+    verticalColumns: "Colunas verticais",
+    horizontalSwimlane: "Swimlane horizontal",
+    expandChecklists: "Expandir checklists",
+    expandChecklistsDesc: "Mostrar itens do checklist expandidos por padrão em todos os cartões.",
+    lightMode: "Modo claro",
+    lightModeDesc: "Alternar entre o tema escuro galáxia e o claro.",
+    language: "Idioma",
+    languageDesc: "Escolha o idioma da interface.",
+
+    // AccessRequestDialog
+    requestAccess: "Solicitar acesso",
+    requestAccessDesc: "Seu e-mail não está na lista de acesso. Preencha seus dados e o administrador será notificado.",
+    requestSent: "Solicitação enviada!",
+    requestSentDesc: "Sua solicitação foi enviada. Você poderá entrar assim que o administrador aprovar seu e-mail.",
+    nameLabel: "Nome",
+    yourNamePlaceholder: "Seu nome",
+    nameRequired: "Nome é obrigatório.",
+    maxChars: "Máximo de {count} caracteres.",
+    emailLabel: "E-mail",
+    emailPlaceholder: "seu@email.com",
+    emailRequired: "E-mail é obrigatório.",
+    validEmail: "Digite um e-mail válido.",
+    sending: "Enviando…",
+    sendRequest: "Enviar solicitação",
+    duplicateRequest: "Uma solicitação com este e-mail já foi enviada.",
+    tooManyRequests: "Muitas solicitações da sua rede. Tente novamente em 1 hora.",
+    failedRequest: "Falha ao enviar solicitação. Por favor, tente novamente.",
+  },
+} as const;
+
+type TranslationDict = typeof dict.en;
+type TranslationKey = keyof TranslationDict;
+
+function interpolate(str: string, vars?: Record<string, string | number>): string {
+  if (!vars) return str;
+  return str.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
+}
+
+export function useTranslation() {
+  const { language } = useSettings();
+  const translations = dict[language] as TranslationDict;
+
+  const t = (key: TranslationKey, vars?: Record<string, string | number>): string => {
+    const str = translations[key] ?? dict.en[key] ?? key;
+    return interpolate(str as string, vars);
+  };
+
+  return { t, language };
+}

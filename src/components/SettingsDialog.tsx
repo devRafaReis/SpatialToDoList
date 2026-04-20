@@ -12,35 +12,37 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useTranslation } from "@/i18n/translations";
 
 const SettingsDialog = () => {
-  const { animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault } = useSettings();
+  const { animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, language, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault, setLanguage } = useSettings();
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
 
   return (
     <Dialog>
       <Tooltip>
         <TooltipTrigger asChild>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Settings">
+            <Button variant="ghost" size="icon" aria-label={t("settings")}>
               <Settings className="h-4 w-4" />
             </Button>
           </DialogTrigger>
         </TooltipTrigger>
-        <TooltipContent>Settings</TooltipContent>
+        <TooltipContent>{t("settings")}</TooltipContent>
       </Tooltip>
       <DialogContent className="sm:max-w-sm" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
+          <DialogTitle>{t("settings")}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-5 py-2">
           <div className={`flex items-center justify-between gap-4 ${lightMode ? "opacity-40" : ""}`}>
             <div className="flex flex-col gap-0.5">
               <Label htmlFor="animations-toggle" className="text-sm font-medium">
-                Animations
+                {t("animations")}
               </Label>
               <span className="text-xs text-muted-foreground">
-                {lightMode ? "Not available in light mode." : "Stars, comets and ship effects. Disable for better performance."}
+                {lightMode ? t("animationsNotAvailable") : t("animationsDesc")}
               </span>
             </div>
             <Switch
@@ -53,13 +55,13 @@ const SettingsDialog = () => {
 
           <div className={`flex items-center justify-between gap-4 ${isMobile ? "opacity-40" : ""}`}>
             <div className="flex flex-col gap-0.5">
-              <Label className="text-sm font-medium">Board layout</Label>
+              <Label className="text-sm font-medium">{t("boardLayout")}</Label>
               <span className="text-xs text-muted-foreground">
                 {isMobile
-                  ? "Not available on mobile. Boards always stack vertically."
+                  ? t("boardLayoutNotMobile")
                   : boardLayout === "horizontal"
-                  ? "Swimlane — tasks flow horizontally."
-                  : "Columns — tasks stack vertically."}
+                  ? t("boardLayoutHorizontalDesc")
+                  : t("boardLayoutVerticalDesc")}
               </span>
             </div>
             <div className="flex items-center gap-1 rounded-md border border-border/40 p-0.5">
@@ -70,13 +72,13 @@ const SettingsDialog = () => {
                     size="icon"
                     className={`h-7 w-7 transition-colors ${boardLayout === "vertical" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent/60"}`}
                     onClick={() => setBoardLayout("vertical")}
-                    aria-label="Vertical columns"
+                    aria-label={t("verticalColumns")}
                     disabled={isMobile}
                   >
                     <LayoutList className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Vertical columns</TooltipContent>
+                <TooltipContent>{t("verticalColumns")}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -85,13 +87,13 @@ const SettingsDialog = () => {
                     size="icon"
                     className={`h-7 w-7 transition-colors ${boardLayout === "horizontal" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent/60"}`}
                     onClick={() => setBoardLayout("horizontal")}
-                    aria-label="Horizontal swimlane"
+                    aria-label={t("horizontalSwimlane")}
                     disabled={isMobile}
                   >
                     <LayoutPanelTop className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Horizontal swimlane</TooltipContent>
+                <TooltipContent>{t("horizontalSwimlane")}</TooltipContent>
               </Tooltip>
             </div>
           </div>
@@ -99,10 +101,10 @@ const SettingsDialog = () => {
           <div className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-0.5">
               <Label htmlFor="checklist-toggle" className="text-sm font-medium">
-                Expand checklists
+                {t("expandChecklists")}
               </Label>
               <span className="text-xs text-muted-foreground">
-                Show checklist items expanded by default on all cards.
+                {t("expandChecklistsDesc")}
               </span>
             </div>
             <Switch
@@ -115,10 +117,10 @@ const SettingsDialog = () => {
           <div className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-0.5">
               <Label htmlFor="light-mode-toggle" className="text-sm font-medium">
-                Light mode
+                {t("lightMode")}
               </Label>
               <span className="text-xs text-muted-foreground">
-                Switch between dark galaxy and light theme.
+                {t("lightModeDesc")}
               </span>
             </div>
             <Switch
@@ -126,6 +128,35 @@ const SettingsDialog = () => {
               checked={lightMode}
               onCheckedChange={setLightMode}
             />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <Label className="text-sm font-medium">{t("language")}</Label>
+              <span className="text-xs text-muted-foreground">{t("languageDesc")}</span>
+            </div>
+            <div className="flex items-center gap-1 rounded-md border border-border/40 p-0.5">
+              <button
+                onClick={() => setLanguage("en")}
+                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                  language === "en"
+                    ? "bg-primary/20 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
+                }`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => setLanguage("pt-BR")}
+                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                  language === "pt-BR"
+                    ? "bg-primary/20 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
+                }`}
+              >
+                PT
+              </button>
+            </div>
           </div>
         </div>
       </DialogContent>

@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TaskFilter, TaskPriority, PRIORITIES, Column, EMPTY_FILTER } from "@/types/task";
 import { useSettings } from "@/store/settingsContext";
+import { useTranslation } from "@/i18n/translations";
 
 interface FilterPopoverProps {
   filter: TaskFilter;
@@ -21,6 +22,7 @@ const activeCount = (f: TaskFilter) =>
 
 const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
   const { lightMode } = useSettings();
+  const { t } = useTranslation();
   const count = activeCount(filter);
 
   const togglePriority = (p: TaskPriority) => {
@@ -51,7 +53,7 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Filter tasks"
+              aria-label={t("filterTasks")}
               className={`relative ${count > 0 ? "text-primary" : ""}`}
             >
               <Filter className="h-4 w-4" />
@@ -63,14 +65,14 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent>Filter tasks</TooltipContent>
+        <TooltipContent>{t("filterTasks")}</TooltipContent>
       </Tooltip>
 
       <PopoverContent className="w-80" align="end" sideOffset={8}>
         <div className="flex flex-col gap-4">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">Filters</span>
+            <span className="text-sm font-semibold">{t("filters")}</span>
             {count > 0 && (
               <Button
                 variant="ghost"
@@ -78,7 +80,7 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
                 onClick={() => onChange(EMPTY_FILTER)}
                 className="h-6 text-xs text-muted-foreground hover:text-foreground px-2"
               >
-                Clear all
+                {t("clearAll")}
               </Button>
             )}
           </div>
@@ -86,7 +88,7 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
           {/* Priority */}
           <div className="flex flex-col gap-2">
             <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              Priority
+              {t("priority")}
             </Label>
             <div className="flex flex-wrap gap-1.5">
               {PRIORITIES.map((p) => {
@@ -101,7 +103,7 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
                     } ${active ? "ring-1 ring-current ring-offset-1 ring-offset-background" : ""}`}
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${p.dotClass}`} />
-                    {p.label}
+                    {t(`priority_${p.id}` as any)}
                   </button>
                 );
               })}
@@ -111,7 +113,7 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
           {/* Board */}
           <div className="flex flex-col gap-2">
             <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              Board
+              {t("board")}
             </Label>
             <div className="flex flex-wrap gap-1.5">
               {boards.map((b) => {
@@ -140,14 +142,14 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                Start Date
+                {t("startDate")}
               </Label>
               {(filter.startDateFrom || filter.startDateTo) && (
                 <button
                   onClick={() => onChange({ ...filter, startDateFrom: "", startDateTo: "" })}
                   className="text-[10px] text-muted-foreground hover:text-foreground"
                 >
-                  clear
+                  {t("clear")}
                 </button>
               )}
             </div>
@@ -174,14 +176,14 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                Due Date
+                {t("dueDate")}
               </Label>
               {(filter.endDateFrom || filter.endDateTo) && (
                 <button
                   onClick={() => onChange({ ...filter, endDateFrom: "", endDateTo: "" })}
                   className="text-[10px] text-muted-foreground hover:text-foreground"
                 >
-                  clear
+                  {t("clear")}
                 </button>
               )}
             </div>

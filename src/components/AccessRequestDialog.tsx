@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+import { useTranslation } from "@/i18n/translations";
 
 const NAME_MAX = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
+  const { t } = useTranslation();
   const [name, setName]     = useState("");
   const [email, setEmail]   = useState(defaultEmail);
   const [loading, setLoading] = useState(false);
@@ -24,10 +26,10 @@ const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
 
   const validate = () => {
     const e: typeof errors = {};
-    if (!name.trim()) e.name = "Name is required.";
-    else if (name.trim().length > NAME_MAX) e.name = `Max ${NAME_MAX} characters.`;
-    if (!email.trim()) e.email = "Email is required.";
-    else if (!EMAIL_RE.test(email.trim())) e.email = "Enter a valid email address.";
+    if (!name.trim()) e.name = t("nameRequired");
+    else if (name.trim().length > NAME_MAX) e.name = t("maxChars", { count: NAME_MAX });
+    if (!email.trim()) e.email = t("emailRequired");
+    else if (!EMAIL_RE.test(email.trim())) e.email = t("validEmail");
     return e;
   };
 
@@ -54,11 +56,11 @@ const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
 
     if (err) {
       if (err.code === "23505") {
-        setErrors({ submit: "A request with this email has already been sent." });
+        setErrors({ submit: t("duplicateRequest") });
       } else if (err.code === "P0001" && err.message === "rate_limit_exceeded") {
-        setErrors({ submit: "Too many requests from your network. Try again in 1 hour." });
+        setErrors({ submit: t("tooManyRequests") });
       } else {
-        setErrors({ submit: "Failed to send request. Please try again." });
+        setErrors({ submit: t("failedRequest") });
       }
       return;
     }
@@ -78,11 +80,11 @@ const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
       <DialogContent className="w-[95vw] max-w-sm rounded-lg" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="text-base">
-            {sent ? "Request sent!" : "Request access"}
+            {sent ? t("requestSent") : t("requestAccess")}
           </DialogTitle>
           {!sent && (
             <DialogDescription className="text-sm text-muted-foreground">
-              Your email is not on the access list. Fill in your details and the admin will be notified.
+              {t("requestAccessDesc")}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -91,22 +93,22 @@ const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <CheckCircle className="h-10 w-10 text-emerald-400" />
             <p className="text-sm text-muted-foreground">
-              Your request has been submitted. You'll be able to sign in once the admin approves your email.
+              {t("requestSentDesc")}
             </p>
-            <Button className="mt-2 w-full" onClick={handleClose}>Close</Button>
+            <Button className="mt-2 w-full" onClick={handleClose}>{t("close")}</Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 pt-1">
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="req-name" className="text-xs">Name</Label>
+                <Label htmlFor="req-name" className="text-xs">{t("nameLabel")}</Label>
                 <span className={`text-[10px] tabular-nums ${name.length > NAME_MAX ? "text-red-400" : "text-muted-foreground/60"}`}>
                   {name.length}/{NAME_MAX}
                 </span>
               </div>
               <Input
                 id="req-name"
-                placeholder="Your name"
+                placeholder={t("yourNamePlaceholder")}
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
@@ -119,11 +121,11 @@ const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="req-email" className="text-xs">Email</Label>
+              <Label htmlFor="req-email" className="text-xs">{t("emailLabel")}</Label>
               <Input
                 id="req-email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder={t("emailPlaceholder")}
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -138,11 +140,11 @@ const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
 
             <div className="flex gap-2 pt-1">
               <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
-                Cancel
+                {t("cancel")}
               </Button>
               <Button type="submit" className="flex-1 gap-2" disabled={loading}>
                 {!loading && <Send className="h-3.5 w-3.5" />}
-                {loading ? "Sending…" : "Send request"}
+                {loading ? t("sending") : t("sendRequest")}
               </Button>
             </div>
           </form>

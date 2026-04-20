@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/store/authContext";
 import { fetchSettings, saveSettingsRemote } from "@/services/supabaseStorage";
 import { STORAGE_KEYS } from "@/constants/storageKeys";
-import { SettingsContext, BoardLayout } from "@/store/settingsContext";
+import { SettingsContext, BoardLayout, Language } from "@/store/settingsContext";
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -19,6 +19,10 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   });
   const [checklistExpandedByDefault, setChecklistExpandedByDefaultState] = useState<boolean>(() => {
     return localStorage.getItem(STORAGE_KEYS.CHECKLIST_EXPANDED) === "true";
+  });
+  const [language, setLanguageState] = useState<Language>(() => {
+    const stored = localStorage.getItem(STORAGE_KEYS.LANGUAGE);
+    return (stored === "pt-BR" ? "pt-BR" : "en") as Language;
   });
 
   useEffect(() => {
@@ -81,6 +85,11 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     syncCloud({ animationsEnabled: v, lightMode, boardLayout, checklistExpandedByDefault });
   };
 
+  const setLanguage = (v: Language) => {
+    setLanguageState(v);
+    localStorage.setItem(STORAGE_KEYS.LANGUAGE, v);
+  };
+
   // Also resets animationsEnabled — light mode disables space animations.
   const setLightMode = (v: boolean) => {
     setLightModeState(v);
@@ -93,7 +102,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   return (
-    <SettingsContext.Provider value={{ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault }}>
+    <SettingsContext.Provider value={{ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, language, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault, setLanguage }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -17,6 +17,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "favicon.ico", "apple-touch-icon-180x180.png"],
+      manifestFilename: "manifest.webmanifest",
       manifest: {
         name: "Spatial ToDoList",
         short_name: "SpatialTodo",

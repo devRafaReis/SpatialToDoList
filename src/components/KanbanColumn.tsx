@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Droppable, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useTranslation } from "@/i18n/translations";
 import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X, ArrowUpDown } from "lucide-react";
 import { Task, TaskStatus, Column } from "@/types/task";
 import { Button } from "@/components/ui/button";
@@ -262,6 +263,7 @@ const KanbanColumn = ({
 }: KanbanColumnProps) => {
   const { boardLayout, animationsEnabled } = useSettings();
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
   const isHorizontal = !isMobile && boardLayout === "vertical";
   const [collapsed, setCollapsed]         = useState(false);
   const [isRenaming, setIsRenaming]       = useState(false);
@@ -363,19 +365,19 @@ const KanbanColumn = ({
               />
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button onClick={commitRename} className="rounded p-0.5 text-primary hover:text-primary/80 hover:bg-primary/15 transition-colors shrink-0" aria-label="Confirm rename">
+                  <button onClick={commitRename} className="rounded p-0.5 text-primary hover:text-primary/80 hover:bg-primary/15 transition-colors shrink-0" aria-label={t("confirm")}>
                     <Check className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Confirm</TooltipContent>
+                <TooltipContent>{t("confirm")}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button onClick={cancelRename} className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0" aria-label="Cancel rename">
+                  <button onClick={cancelRename} className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0" aria-label={t("cancel")}>
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Cancel</TooltipContent>
+                <TooltipContent>{t("cancel")}</TooltipContent>
               </Tooltip>
             </div>
           ) : (
@@ -396,12 +398,12 @@ const KanbanColumn = ({
                   variant="ghost" size="icon"
                   className="h-6 w-6 text-muted-foreground/50 hover:text-primary shrink-0"
                   onClick={onAddTask}
-                  aria-label="Add task"
+                  aria-label={t("addTask")}
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Add task</TooltipContent>
+              <TooltipContent>{t("addTask")}</TooltipContent>
             </Tooltip>
           )}
 
@@ -411,19 +413,19 @@ const KanbanColumn = ({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground" aria-label="Sort tasks">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground" aria-label={t("sortTasks")}>
                         <ArrowUpDown className="h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>
                   </TooltipTrigger>
-                  <TooltipContent>Sort tasks</TooltipContent>
+                  <TooltipContent>{t("sortTasks")}</TooltipContent>
                 </Tooltip>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => onSortTasks("priority")}>
-                    Sort by priority
+                    {t("sortByPriority")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onSortTasks("date")}>
-                    Sort by date
+                    {t("sortByDate")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -433,12 +435,12 @@ const KanbanColumn = ({
                     variant="ghost" size="icon"
                     className="h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground"
                     onClick={() => setCollapsed((c) => !c)}
-                    aria-label={collapsed ? "Expand board" : "Collapse board"}
+                    aria-label={collapsed ? t("expand") : t("collapse")}
                   >
                     <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`} />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{collapsed ? "Expand" : "Collapse"}</TooltipContent>
+                <TooltipContent>{collapsed ? t("expand") : t("collapse")}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -446,12 +448,12 @@ const KanbanColumn = ({
                     variant="ghost" size="icon"
                     className="h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground"
                     onClick={() => setIsRenaming(true)}
-                    aria-label="Rename board"
+                    aria-label={t("rename")}
                   >
                     <Pencil className="h-3 w-3" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Rename</TooltipContent>
+                <TooltipContent>{t("rename")}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -459,12 +461,12 @@ const KanbanColumn = ({
                     variant="ghost" size="icon"
                     className="h-6 w-6 text-muted-foreground/50 hover:text-red-400"
                     onClick={() => setDeleteOpen(true)}
-                    aria-label="Delete board"
+                    aria-label={t("deleteBoard")}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Delete board</TooltipContent>
+                <TooltipContent>{t("deleteBoard")}</TooltipContent>
               </Tooltip>
             </div>
           )}
@@ -535,20 +537,20 @@ const KanbanColumn = ({
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md rounded-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete board "{column.title}"?</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteBoardTitle", { name: column.title })}</AlertDialogTitle>
             <AlertDialogDescription>
               {tasks.length > 0
-                ? `The ${tasks.length} task${tasks.length !== 1 ? "s" : ""} in this board will be moved to the first available board.`
-                : "This board is empty and will be permanently removed."}
+                ? t("deleteBoardDescWithTasks", { count: tasks.length, s: tasks.length !== 1 ? "s" : "" })
+                : t("deleteBoardDescEmpty")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

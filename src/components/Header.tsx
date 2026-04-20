@@ -8,6 +8,7 @@ import { useAuth } from "@/store/authContext";
 import { useTaskContext } from "@/store/taskContext";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "@/i18n/translations";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,12 +22,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const SyncButton = () => {
   const { user } = useAuth();
   const { syncStatus, syncError, forceSyncNow } = useTaskContext();
+  const { t } = useTranslation();
   if (!user) return null;
 
   const label =
-    syncStatus === "syncing" ? "Sincronizando..." :
-    syncStatus === "error"   ? `Erro: ${syncError ?? "falha na sincronização"}` :
-    "Sincronizado — clique para sincronizar agora";
+    syncStatus === "syncing" ? t("syncing") :
+    syncStatus === "error"   ? t("syncError", { msg: syncError ?? t("failedRequest") }) :
+    t("syncSuccess");
 
   return (
     <Tooltip>
@@ -48,6 +50,7 @@ const SyncButton = () => {
 
 const AuthButton = () => {
   const { user, loading, signingIn, accessDenied, deniedEmail, clearAccessDenied, signInWithGoogle, signOut } = useAuth();
+  const { t } = useTranslation();
   const [requestOpen, setRequestOpen] = useState(false);
 
   // Open request dialog automatically when access is denied
@@ -68,7 +71,7 @@ const AuthButton = () => {
           disabled={signingIn}
         >
           {signingIn ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5" />}
-          Sign in
+          {t("signIn")}
         </Button>
         <AccessRequestDialog
           open={requestOpen}
@@ -101,7 +104,7 @@ const AuthButton = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} className="gap-2 text-red-400 focus:text-red-400">
           <LogOut className="h-3.5 w-3.5" />
-          Sign out
+          {t("signOut")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

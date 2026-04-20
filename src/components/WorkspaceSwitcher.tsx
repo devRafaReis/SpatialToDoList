@@ -20,12 +20,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWorkspace } from "@/store/workspaceContext";
 import { createWorkspaceStorage } from "@/services/taskStorage";
+import { useTranslation } from "@/i18n/translations";
 
 type EditMode = { type: "create" } | { type: "rename"; id: string; current: string };
 type DeleteTarget = { id: string; name: string; taskCount: number };
 
 const WorkspaceSwitcher = () => {
   const { workspaces, activeWorkspaceId, setActiveWorkspace, addWorkspace, renameWorkspace, deleteWorkspace } = useWorkspace();
+  const { t } = useTranslation();
   const [editMode, setEditMode] = useState<EditMode | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -70,7 +72,7 @@ const WorkspaceSwitcher = () => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 gap-1.5 px-2 text-sm font-semibold max-w-[180px]">
-            <span className="truncate">{activeWorkspace?.name ?? "Workspace"}</span>
+            <span className="truncate">{activeWorkspace?.name ?? t("workspace")}</span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
@@ -111,7 +113,7 @@ const WorkspaceSwitcher = () => {
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); openCreate(); }} className="gap-2 text-muted-foreground">
             <Plus className="h-3.5 w-3.5" />
-            New workspace
+            {t("newWorkspace")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -120,7 +122,7 @@ const WorkspaceSwitcher = () => {
       <Dialog open={editMode !== null} onOpenChange={(open) => { if (!open) setEditMode(null); }}>
         <DialogContent className="sm:max-w-xs" aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>{editMode?.type === "create" ? "New workspace" : "Rename workspace"}</DialogTitle>
+            <DialogTitle>{editMode?.type === "create" ? t("newWorkspace") : t("renameWorkspace")}</DialogTitle>
           </DialogHeader>
           <div className="py-2">
             <Label htmlFor="workspace-name" className="sr-only">Name</Label>
@@ -128,15 +130,15 @@ const WorkspaceSwitcher = () => {
               id="workspace-name"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Workspace name"
+              placeholder={t("workspaceNamePlaceholder")}
               onKeyDown={(e) => { if (e.key === "Enter") handleEditConfirm(); }}
               autoFocus
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditMode(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditMode(null)}>{t("cancel")}</Button>
             <Button onClick={handleEditConfirm} disabled={!inputValue.trim()}>
-              {editMode?.type === "create" ? "Create" : "Rename"}
+              {editMode?.type === "create" ? t("create") : t("rename")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -146,25 +148,25 @@ const WorkspaceSwitcher = () => {
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <DialogContent className="sm:max-w-sm" aria-describedby="delete-ws-desc">
           <DialogHeader>
-            <DialogTitle>Delete workspace</DialogTitle>
+            <DialogTitle>{t("deleteWorkspace")}</DialogTitle>
             <DialogDescription id="delete-ws-desc">
               {deleteTarget && (
                 <>
-                  Are you sure you want to delete <strong>{deleteTarget.name}</strong>?
+                  {t("deleteWorkspaceConfirm", { name: deleteTarget.name })}
                   {deleteTarget.taskCount > 0 ? (
                     <span className="mt-1 block text-destructive">
-                      This workspace contains <strong>{deleteTarget.taskCount} task{deleteTarget.taskCount !== 1 ? "s" : ""}</strong> that will be permanently deleted.
+                      {t("deleteWorkspaceWithTasks", { count: deleteTarget.taskCount, s: deleteTarget.taskCount !== 1 ? "s" : "" })}
                     </span>
                   ) : (
-                    <span className="mt-1 block">This workspace has no tasks.</span>
+                    <span className="mt-1 block">{t("deleteWorkspaceEmpty")}</span>
                   )}
                 </>
               )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>{t("cancel")}</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>{t("delete")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
