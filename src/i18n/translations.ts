@@ -180,6 +180,7 @@ const dict = {
     completedBoardNone: "None (disabled)",
     markDone: "Mark as done",
     markUndone: "Mark as not done",
+    overdueBadge: "Overdue",
 
     // AccessRequestDialog
     requestAccess: "Request access",
@@ -378,6 +379,7 @@ const dict = {
     completedBoardNone: "Nenhum (desativado)",
     markDone: "Marcar como feito",
     markUndone: "Marcar como não feito",
+    overdueBadge: "Atrasada",
 
     // AccessRequestDialog
     requestAccess: "Solicitar acesso",

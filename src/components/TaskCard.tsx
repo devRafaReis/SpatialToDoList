@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { GripVertical, Pencil, Trash2, ArrowRight, Eye, EyeOff, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket, MoreHorizontal, Archive, CheckCircle2, Circle } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ArrowRight, Eye, EyeOff, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket, MoreHorizontal, Archive, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, PRIORITIES } from "@/types/task";
 import { Card, CardContent } from "@/components/ui/card";
@@ -786,6 +786,10 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
   const cardRef = useRef<HTMLDivElement>(null);
   const otherColumns = boards.filter((col) => col.id !== task.status);
   const isDone = !!completedBoardId && task.status === completedBoardId;
+  const isOverdue = useMemo(() => {
+    if (!task.endDate || isDone || task.archived) return false;
+    return task.endDate < format(new Date(), "yyyy-MM-dd");
+  }, [task.endDate, isDone, task.archived]);
 
   const handleCheckClick = () => {
     if (!completedBoardId) return;
@@ -927,7 +931,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                   : `transition-all duration-200 ${
                       snapshot.isDragging
                         ? "glass-drag scale-[1.02] z-50"
-                        : `glass hover:shadow-md hover:shadow-primary/10 ${isReminderActive ? "reminder-glow" : ""}`
+                        : `glass hover:shadow-md hover:shadow-primary/10 ${isReminderActive ? "reminder-glow" : ""} ${isOverdue ? (animationsEnabled ? "overdue-glow" : "overdue-border") : ""}`
                     }`
               } ${task.hidden ? "opacity-60 border border-dashed border-border/50" : ""}`}
               style={snapshot.isDragging && !isDeleting ? {
@@ -975,6 +979,12 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       <span className="inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none bg-muted/60 text-muted-foreground/70 border-border/30">
                         <EyeOff className="h-2 w-2" />
                         {t("hiddenBadge")}
+                      </span>
+                    )}
+                    {isOverdue && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none bg-red-500/15 text-red-400 border-red-500/30">
+                        <AlertCircle className="h-2 w-2" />
+                        {t("overdueBadge")}
                       </span>
                     )}
                     {task.priority && (() => {

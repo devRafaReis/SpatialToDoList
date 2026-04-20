@@ -174,6 +174,22 @@
   }
 }
 
+@keyframes overdue-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px hsla(0, 85%, 60%, 0.28),
+      0 0 8px  hsla(0, 85%, 60%, 0.10),
+      inset 0 1px 0 hsl(0 85% 60% / 0.04);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px hsla(0, 85%, 60%, 0.52),
+      0 0 16px hsla(0, 85%, 60%, 0.22),
+      0 0 36px hsla(0, 85%, 60%, 0.08),
+      inset 0 1px 0 hsl(0 85% 60% / 0.04);
+  }
+}
+
 @keyframes card-big-bang-in {
   0%   { transform: scale(0);    opacity: 0; }
   30%  { transform: scale(1.08); opacity: 1;  filter: brightness(1.4); }
@@ -238,6 +254,16 @@
   .reminder-glow {
     border-color: hsla(0, 0%, 100%, 0.45) !important;
     animation: reminder-glow 2s ease-in-out infinite;
+  }
+
+  .overdue-glow {
+    border-color: hsla(0, 85%, 60%, 0.50) !important;
+    animation: overdue-glow 2.5s ease-in-out infinite;
+  }
+
+  .overdue-border {
+    border-color: hsla(0, 85%, 60%, 0.45) !important;
+    box-shadow: 0 0 0 1px hsla(0, 85%, 60%, 0.18);
   }
 
   /* Custom scrollbar — galaxy theme */
