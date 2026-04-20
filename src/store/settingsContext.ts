@@ -10,11 +10,13 @@ export type SettingsContextType = {
   boardLayout: BoardLayout;
   checklistExpandedByDefault: boolean;
   language: Language;
+  privacyMode: boolean;
   setAnimationsEnabled: (v: boolean) => void;
   setLightMode: (v: boolean) => void;
   setBoardLayout: (v: BoardLayout) => void;
   setChecklistExpandedByDefault: (v: boolean) => void;
   setLanguage: (v: Language) => void;
+  setPrivacyMode: (v: boolean) => void;
 };
 
 export const SettingsContext = createContext<SettingsContextType>({
@@ -23,11 +25,13 @@ export const SettingsContext = createContext<SettingsContextType>({
   boardLayout: "horizontal",
   checklistExpandedByDefault: false,
   language: "en",
+  privacyMode: false,
   setAnimationsEnabled: () => {},
   setLightMode: () => {},
   setBoardLayout: () => {},
   setChecklistExpandedByDefault: () => {},
   setLanguage: () => {},
+  setPrivacyMode: () => {},
 });
 
 export const useSettings = () => useContext(SettingsContext);

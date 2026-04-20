@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Send, CheckCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,9 @@ const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
   const [loading, setLoading] = useState(false);
   const [sent, setSent]     = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; submit?: string }>({});
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
 
   const validate = () => {
     const e: typeof errors = {};
@@ -65,9 +68,11 @@ const AccessRequestDialog = ({ open, onClose, defaultEmail = "" }: Props) => {
       return;
     }
     setSent(true);
+    closeTimerRef.current = setTimeout(() => handleClose(), 3000);
   };
 
   const handleClose = () => {
+    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
     setSent(false);
     setName("");
     setEmail(defaultEmail);

@@ -24,6 +24,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     const stored = localStorage.getItem(STORAGE_KEYS.LANGUAGE);
     return (stored === "pt-BR" ? "pt-BR" : "en") as Language;
   });
+  const [privacyMode, setPrivacyMode] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("light", lightMode);
@@ -102,7 +103,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   return (
-    <SettingsContext.Provider value={{ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, language, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault, setLanguage }}>
+    <SettingsContext.Provider value={{ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, language, privacyMode, setAnimationsEnabled, setLightMode, setBoardLayout, setChecklistExpandedByDefault, setLanguage, setPrivacyMode }}>
       {children}
     </SettingsContext.Provider>
   );

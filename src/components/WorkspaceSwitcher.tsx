@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { useWorkspace } from "@/store/workspaceContext";
 import { createWorkspaceStorage } from "@/services/taskStorage";
 import { useTranslation } from "@/i18n/translations";
+import { useSettings } from "@/store/settingsContext";
 
 type EditMode = { type: "create" } | { type: "rename"; id: string; current: string };
 type DeleteTarget = { id: string; name: string; taskCount: number };
@@ -28,6 +29,7 @@ type DeleteTarget = { id: string; name: string; taskCount: number };
 const WorkspaceSwitcher = () => {
   const { workspaces, activeWorkspaceId, setActiveWorkspace, addWorkspace, renameWorkspace, deleteWorkspace } = useWorkspace();
   const { t } = useTranslation();
+  const { privacyMode } = useSettings();
   const [editMode, setEditMode] = useState<EditMode | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -72,7 +74,7 @@ const WorkspaceSwitcher = () => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 gap-1.5 px-2 text-sm font-semibold max-w-[180px]">
-            <span className="truncate">{activeWorkspace?.name ?? t("workspace")}</span>
+            <span className={`truncate transition-[filter] duration-150 ${privacyMode ? "blur-sm select-none hover:blur-none hover:select-auto" : ""}`}>{activeWorkspace?.name ?? t("workspace")}</span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>

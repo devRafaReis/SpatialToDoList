@@ -261,7 +261,7 @@ const KanbanColumn = ({
   onAddTask, onSortTasks, onRenameBoard, onDeleteBoard,
   newTaskId, teleportedTaskId, isNew,
 }: KanbanColumnProps) => {
-  const { boardLayout, animationsEnabled } = useSettings();
+  const { boardLayout, animationsEnabled, privacyMode } = useSettings();
   const isMobile = useIsMobile();
   const { t } = useTranslation();
   const isHorizontal = !isMobile && boardLayout === "vertical";
@@ -339,7 +339,7 @@ const KanbanColumn = ({
         } ${isBoardDeleting && animationsEnabled ? "card-suck-in" : ""}`}
       >
         {/* Board header */}
-        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/20">
+        <div className="group/header flex items-center gap-2 px-3 py-2.5 border-b border-border/20">
           {/* Drag handle */}
           <div
             {...dragHandleProps}
@@ -385,7 +385,7 @@ const KanbanColumn = ({
               className="flex-1 min-w-0 text-sm font-semibold text-foreground truncate cursor-default select-none"
               onDoubleClick={() => setIsRenaming(true)}
             >
-              {column.title}
+              <span className={`transition-[filter] duration-150 ${privacyMode ? "blur-sm group-hover/header:blur-none" : ""}`}>{column.title}</span>
             </h2>
           )}
 

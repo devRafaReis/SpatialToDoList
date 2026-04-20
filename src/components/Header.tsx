@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogIn, LogOut, Loader2, CloudOff, Cloud, RefreshCw } from "lucide-react";
+import { LogIn, LogOut, Loader2, CloudOff, Cloud, RefreshCw, Eye, EyeOff } from "lucide-react";
 import SettingsDialog from "@/components/SettingsDialog";
 import WorkspaceSwitcher from "@/components/WorkspaceSwitcher";
 import AccessRequestDialog from "@/components/AccessRequestDialog";
@@ -111,6 +111,30 @@ const AuthButton = () => {
   );
 };
 
+const PrivacyButton = () => {
+  const { privacyMode, setPrivacyMode } = useSettings();
+  const { t } = useTranslation();
+  const label = privacyMode ? t("privacyModeOn") : t("privacyModeOff");
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={() => setPrivacyMode(!privacyMode)}
+          className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+            privacyMode
+              ? "text-primary bg-primary/15 hover:bg-primary/25"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+          }`}
+          aria-label={label}
+        >
+          {privacyMode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">{label}</TooltipContent>
+    </Tooltip>
+  );
+};
+
 const Header = () => {
   const { lightMode } = useSettings();
   return (
@@ -122,6 +146,7 @@ const Header = () => {
         <WorkspaceSwitcher />
       </div>
       <div className="flex items-center gap-2 shrink-0">
+        <PrivacyButton />
         <SyncButton />
         <AuthButton />
         <SettingsDialog />

@@ -749,7 +749,7 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: TaskCardProps) => {
-  const { animationsEnabled, checklistExpandedByDefault } = useSettings();
+  const { animationsEnabled, checklistExpandedByDefault, privacyMode } = useSettings();
   const { updateTask, boards } = useTaskContext();
   const { t } = useTranslation();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -918,16 +918,18 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                 <div {...provided.dragHandleProps} className="mt-1 cursor-grab text-accent-foreground/70">
                   <GripVertical className="h-4 w-4" />
                 </div>
-                <div className="flex-1 min-w-0 overflow-hidden">
+                <div className={`flex-1 min-w-0 overflow-hidden transition-[filter] duration-150 ${privacyMode ? "blur-sm select-none group-hover:blur-none group-hover:select-auto" : ""}`}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <p className={`font-medium text-sm text-foreground leading-snug cursor-default ${
                         task.description ? "line-clamp-1" : "line-clamp-2"
                       }`}>{task.title}</p>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
-                      {task.title}
-                    </TooltipContent>
+                    {!privacyMode && (
+                      <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
+                        {task.title}
+                      </TooltipContent>
+                    )}
                   </Tooltip>
                   <div className="mt-1 flex flex-wrap items-center gap-1">
                     {task.priority && (() => {
@@ -955,11 +957,13 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                       <TooltipTrigger asChild>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2 cursor-default">{task.description}</p>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
-                        {task.description.length > 180
-                          ? <>{task.description.slice(0, 180)}… <span className="text-muted-foreground/60 italic">{t("openCardToReadMore")}</span></>
-                          : task.description}
-                      </TooltipContent>
+                      {!privacyMode && (
+                        <TooltipContent side="top" className="max-w-72 break-words text-xs leading-snug">
+                          {task.description.length > 180
+                            ? <>{task.description.slice(0, 180)}… <span className="text-muted-foreground/60 italic">{t("openCardToReadMore")}</span></>
+                            : task.description}
+                        </TooltipContent>
+                      )}
                     </Tooltip>
                   )}
                 </div>
@@ -1016,7 +1020,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                 const doneCount = task.checklist.filter((i) => i.done).length;
                 const pct = (doneCount / task.checklist.length) * 100;
                 return (
-                  <div className="border-t border-border/20">
+                  <div className={`border-t border-border/20 transition-[filter] duration-150 ${privacyMode ? "blur-sm select-none group-hover:blur-none group-hover:select-auto" : ""}`}>
                     <button
                       onClick={() => setChecklistExpanded((v) => !v)}
                       className="w-full flex items-center gap-1.5 px-3 py-1.5 hover:bg-accent/20 transition-colors"
@@ -1065,7 +1069,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                 const hasDate    = !!(task.startDate || task.startTime || task.endDate || task.endTime);
                 const hasPlanning = hasTime || hasDate;
                 const footer = (
-                  <div className={`flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-1.5 min-h-[27px] cursor-default ${hasPlanning ? "border-t border-border/20" : ""}`}>
+                  <div className={`flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-1.5 min-h-[27px] cursor-default transition-[filter] duration-150 ${hasPlanning ? "border-t border-border/20" : ""} ${privacyMode ? "blur-sm select-none group-hover:blur-none group-hover:select-auto" : ""}`}>
                     {hasTime && (
                       <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                         <Clock className="h-2.5 w-2.5 shrink-0" />

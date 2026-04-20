@@ -45,6 +45,8 @@ const dict = {
     syncing: "Syncing…",
     syncError: "Error: {msg}",
     syncSuccess: "Synced — click to sync now",
+    privacyModeOn: "Privacy mode — content hidden",
+    privacyModeOff: "Privacy mode — hide content",
 
     // KanbanBoard toolbar
     newTaskShort: "Task",
@@ -216,6 +218,8 @@ const dict = {
     syncing: "Sincronizando…",
     syncError: "Erro: {msg}",
     syncSuccess: "Sincronizado — clique para sincronizar agora",
+    privacyModeOn: "Modo privado — conteúdo oculto",
+    privacyModeOff: "Modo privado — ocultar conteúdo",
 
     // KanbanBoard toolbar
     newTaskShort: "Tarefa",
