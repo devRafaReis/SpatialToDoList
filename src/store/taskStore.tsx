@@ -46,15 +46,20 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
         // isFirstLogin: local boards stay as-is; debounced effect syncs them after cloudLoadDone=true.
         // Direct syncBoards call here would race with that debounce and cause 409 conflicts.
 
-        // Always merge: cloud tasks are source of truth, local-only tasks are preserved.
-        // This covers first login, re-login after a guest session, and intentional deletes
-        // (cloud empty + local empty → merged = [], no change to state).
-        // Never wipe local tasks based on cloud state alone — guest tasks created while
-        // logged out must survive the next login regardless of cloud task count.
-        const merged = mergeCloudAndLocalTasks(cloudTasks, storage.getTasks());
+        // Returning user (cloudBoards > 0): cloud is fully authoritative — do NOT merge local tasks.
+        // Local-only tasks on a returning user's device are likely contamination from a previous
+        // user's localStorage on the same device. Merging them would cause ON CONFLICT(id) upsert
+        // to try to update another user's rows, violating RLS (403).
+        // First-time user (cloudBoards === 0): merge preserves guest tasks created before login.
+        const merged = cloudBoards.length > 0
+          ? cloudTasks
+          : mergeCloudAndLocalTasks(cloudTasks, storage.getTasks());
         if (merged.length > 0) {
           setTasks(merged);
           storage.saveTasks(merged);
+        } else {
+          setTasks([]);
+          storage.saveTasks([]);
         }
       })
       .catch(console.error)

@@ -97,9 +97,13 @@ export async function syncTasks(userId: string, workspaceId: string, tasks: Task
     .eq("user_id", userId);
   if (delError) throw delError;
   if (tasks.length === 0) return;
+  // Use insert (not upsert) — all rows for this user+workspace were just deleted above,
+  // so there is nothing to conflict with. Using upsert's ON CONFLICT DO UPDATE would trigger
+  // PostgreSQL's USING check on any existing row with the same id (even from another user),
+  // causing a 403 RLS violation. Plain insert avoids this entirely.
   const { error: insError } = await supabase
     .from("tasks")
-    .upsert(tasks.map((t) => taskToDb(t, userId, workspaceId)), { onConflict: "id" });
+    .insert(tasks.map((t) => taskToDb(t, userId, workspaceId)));
   if (insError) throw insError;
 }
 

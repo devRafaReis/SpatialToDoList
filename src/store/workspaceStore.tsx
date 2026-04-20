@@ -49,6 +49,22 @@ export const WorkspaceProvider = ({ children }: { children: React.ReactNode }) =
       setState(initWorkspaces());
       return;
     }
+
+    // Detect user switch: if a different user was last logged in, clear their local data
+    // to prevent workspace/task contamination across accounts on the same device.
+    const lastUserId = localStorage.getItem(STORAGE_KEYS.LAST_USER_ID);
+    if (lastUserId && lastUserId !== user.id) {
+      const prevWorkspaces = JSON.parse(localStorage.getItem(STORAGE_KEYS.WORKSPACES) || "[]") as Workspace[];
+      prevWorkspaces.forEach((ws) => {
+        localStorage.removeItem(STORAGE_KEYS.tasks(ws.id));
+        localStorage.removeItem(STORAGE_KEYS.boards(ws.id));
+      });
+      localStorage.removeItem(STORAGE_KEYS.WORKSPACES);
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_WORKSPACE);
+      setState(initWorkspaces());
+    }
+    localStorage.setItem(STORAGE_KEYS.LAST_USER_ID, user.id);
+
     fetchWorkspaces(user.id)
       .then((cloudWs) => {
         if (cloudWs.length === 0) {

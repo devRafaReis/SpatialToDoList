@@ -1,6 +1,7 @@
 export const STORAGE_KEYS = {
   WORKSPACES: "spatialTodo_workspaces",
   ACTIVE_WORKSPACE: "spatialTodo_activeWorkspace",
+  LAST_USER_ID: "spatialTodo_lastUserId",
   ANIMATIONS: "spatialTodo_animations",
   LIGHT_MODE: "spatialTodo_lightMode",
   BOARD_LAYOUT: "spatialTodo_boardLayout",
