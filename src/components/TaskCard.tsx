@@ -680,10 +680,21 @@ const ReminderParticles = () => {
     if (!ctx) return;
 
     const parent = canvas.parentElement;
-    const w = (parent?.clientWidth  ?? 300) + REMINDER_PAD * 2;
-    const h = (parent?.clientHeight ?? 80)  + REMINDER_PAD * 2;
+    if (!parent) return;
+
+    // Current canvas logical dimensions — updated by ResizeObserver
+    let w = parent.clientWidth  + REMINDER_PAD * 2;
+    let h = parent.clientHeight + REMINDER_PAD * 2;
     canvas.width  = w;
     canvas.height = h;
+
+    const ro = new ResizeObserver(() => {
+      w = parent.clientWidth  + REMINDER_PAD * 2;
+      h = parent.clientHeight + REMINDER_PAD * 2;
+      canvas.width  = w;
+      canvas.height = h;
+    });
+    ro.observe(parent);
 
     type P = { x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; };
     const parts: P[] = [];
@@ -722,7 +733,7 @@ const ReminderParticles = () => {
     };
 
     id = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(id);
+    return () => { cancelAnimationFrame(id); ro.disconnect(); };
   }, []);
 
   return (
