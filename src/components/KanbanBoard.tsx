@@ -10,7 +10,7 @@ import SpaceEasterEggs from "@/components/SpaceEasterEggs";
 import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n/translations";
-import { Plus, RotateCcw, Trash2, Columns } from "lucide-react";
+import { Plus, RotateCcw, Trash2, Columns, EyeOff, Eye } from "lucide-react";
 import FilterPopover from "@/components/FilterPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -336,7 +336,7 @@ const BoardDragParticles = () => {
 };
 
 const KanbanBoard = () => {
-  const { tasksByStatus, boards, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll, archiveBoard } = useTasks();
+  const { tasksByStatus, boards, addTask, updateTask, deleteTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll, archiveBoard, hideBoard, unhideBoard } = useTasks();
   const { animationsEnabled, boardLayout, setBoardLayout } = useSettings();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -356,23 +356,25 @@ const KanbanBoard = () => {
   const [addBoardDialogOpen, setAddBoardDialogOpen] = useState(false);
   const [newBoardTitleTop, setNewBoardTitleTop] = useState("");
   const [newBoardId, setNewBoardId] = useState<string | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
   const newTaskTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const newBoardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const visibleBoards = useMemo(() =>
-    filter.boards.length > 0 ? boards.filter((b) => filter.boards.includes(b.id)) : boards,
-    [boards, filter.boards]
-  );
+  const visibleBoards = useMemo(() => {
+    const base = filter.boards.length > 0 ? boards.filter((b) => filter.boards.includes(b.id)) : boards;
+    return showHidden ? base : base.filter((b) => !b.hidden);
+  }, [boards, filter.boards, showHidden]);
 
   const filteredTasksByStatus = useMemo(() => {
     const hasFilter =
       filter.priorities.length > 0 ||
       filter.startDateFrom || filter.startDateTo ||
       filter.endDateFrom   || filter.endDateTo;
-    if (!hasFilter) return tasksByStatus;
     const out: Record<string, Task[]> = {};
     for (const [status, tasks] of Object.entries(tasksByStatus)) {
       out[status] = tasks.filter((t) => {
+        if (!showHidden && t.hidden) return false;
+        if (!hasFilter) return true;
         if (filter.priorities.length > 0 && (!t.priority || !filter.priorities.includes(t.priority as never))) return false;
         if (filter.startDateFrom && (!t.startDate || t.startDate < filter.startDateFrom)) return false;
         if (filter.startDateTo   && (!t.startDate || t.startDate > filter.startDateTo))   return false;
@@ -382,7 +384,7 @@ const KanbanBoard = () => {
       });
     }
     return out;
-  }, [tasksByStatus, filter]);
+  }, [tasksByStatus, filter, showHidden]);
 
   const totalTasks = Object.values(tasksByStatus).reduce((sum, arr) => sum + arr.length, 0);
 
@@ -526,6 +528,16 @@ const KanbanBoard = () => {
         <div className="relative z-10 border-b border-border/20 glass px-3 py-2 sm:px-4 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <FilterPopover filter={filter} onChange={setFilter} boards={boards} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowHidden((v) => !v)}
+              className={`h-8 gap-1.5 text-xs ${showHidden ? "text-primary bg-primary/10" : "text-muted-foreground/70"}`}
+              aria-label={t("showHidden")}
+            >
+              {showHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">{t("showHidden")}</span>
+            </Button>
             <Button size="sm" onClick={() => handleAddTask()} className="h-8 gap-1.5">
               <Plus className="h-3.5 w-3.5" />
               <span className="sm:hidden">{t("newTaskShort")}</span>
@@ -614,6 +626,7 @@ const KanbanBoard = () => {
                             onRenameBoard={(title) => renameBoard(board.id, title)}
                             onDeleteBoard={() => deleteBoard(board.id)}
                             onArchiveBoard={() => archiveBoard(board.id)}
+                            onHideBoard={() => board.hidden ? unhideBoard(board.id) : hideBoard(board.id)}
                             newTaskId={newTaskId}
                             teleportedTaskId={teleportedTaskId}
                             isNew={board.id === newBoardId}

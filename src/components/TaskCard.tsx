@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { GripVertical, Pencil, Trash2, ArrowRight, Eye, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket, MoreHorizontal, Archive, CheckCircle2, Circle } from "lucide-react";
+import { GripVertical, Pencil, Trash2, ArrowRight, Eye, EyeOff, Clock, CalendarRange, ListChecks, ChevronDown, RefreshCw, Rocket, MoreHorizontal, Archive, CheckCircle2, Circle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Task, TaskStatus, PRIORITIES } from "@/types/task";
 import { Card, CardContent } from "@/components/ui/card";
@@ -761,7 +761,7 @@ interface TaskCardProps {
 
 const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: TaskCardProps) => {
   const { animationsEnabled, checklistExpandedByDefault, privacyMode, completedBoardId } = useSettings();
-  const { updateTask, boards, archiveTask } = useTaskContext();
+  const { updateTask, boards, archiveTask, hideTask, unhideTask } = useTaskContext();
   const { t } = useTranslation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -929,7 +929,7 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                         ? "glass-drag scale-[1.02] z-50"
                         : `glass hover:shadow-md hover:shadow-primary/10 ${isReminderActive ? "reminder-glow" : ""}`
                     }`
-              }`}
+              } ${task.hidden ? "opacity-60 border border-dashed border-border/50" : ""}`}
               style={snapshot.isDragging && !isDeleting ? {
                 boxShadow: "0 0 0 2px hsla(265,60%,72%,0.5), 0 0 18px hsla(265,85%,75%,0.65), 0 0 45px hsla(265,80%,65%,0.3)"
               } : undefined}
@@ -971,6 +971,12 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                     )}
                   </Tooltip>
                   <div className="mt-1 flex flex-wrap items-center gap-1">
+                    {task.hidden && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none bg-muted/60 text-muted-foreground/70 border-border/30">
+                        <EyeOff className="h-2 w-2" />
+                        {t("hiddenBadge")}
+                      </span>
+                    )}
                     {task.priority && (() => {
                       const p = PRIORITIES.find((pr) => pr.id === task.priority);
                       return p ? (
@@ -1049,6 +1055,11 @@ const TaskCard = ({ task, index, onEdit, onDelete, onMove, isNew, isPortalIn }: 
                     ))}
                     <DropdownMenuItem onClick={() => archiveTask(task.id)}>
                       <Archive className="h-3.5 w-3.5 mr-2" /> {t("archiveTask")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => task.hidden ? unhideTask(task.id) : hideTask(task.id)}>
+                      {task.hidden
+                        ? <><Eye className="h-3.5 w-3.5 mr-2" /> {t("unhideTask")}</>
+                        : <><EyeOff className="h-3.5 w-3.5 mr-2" /> {t("hideTask")}</>}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleDeleteClick} className="text-red-400 focus:text-red-400">
                       <Trash2 className="h-3.5 w-3.5 mr-2" /> {t("delete")}

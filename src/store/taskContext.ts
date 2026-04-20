@@ -25,6 +25,10 @@ export interface TaskContextValue {
   archiveBoard: (id: string) => void;
   unarchiveBoard: (id: string) => void;
   deleteArchivedBoard: (id: string) => void;
+  hideTask: (id: string) => void;
+  unhideTask: (id: string) => void;
+  hideBoard: (id: string) => void;
+  unhideBoard: (id: string) => void;
 }
 
 export const TaskContext = createContext<TaskContextValue | null>(null);

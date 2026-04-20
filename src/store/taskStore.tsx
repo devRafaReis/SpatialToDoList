@@ -244,6 +244,23 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
     setTasks((prev) => prev.filter((t) => t.status !== id));
   }, []);
 
+  // ── Hide ──────────────────────────────────────────────────────────────────
+  const hideTask = useCallback((id: string) => {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, hidden: true, updatedAt: new Date().toISOString() } : t));
+  }, []);
+
+  const unhideTask = useCallback((id: string) => {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, hidden: false, updatedAt: new Date().toISOString() } : t));
+  }, []);
+
+  const hideBoard = useCallback((id: string) => {
+    setBoards((prev) => prev.map((b) => b.id === id ? { ...b, hidden: true } : b));
+  }, []);
+
+  const unhideBoard = useCallback((id: string) => {
+    setBoards((prev) => prev.map((b) => b.id === id ? { ...b, hidden: false } : b));
+  }, []);
+
   return (
     <TaskContext.Provider value={{
       tasks, boards, cloudLoading, syncStatus, syncError, forceSyncNow,
@@ -251,6 +268,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
       moveTask, reorderTasks, moveTaskBetweenColumns,
       addBoard, deleteBoard, renameBoard, reorderBoards, resetAll,
       archiveTask, unarchiveTask, archiveBoard, unarchiveBoard, deleteArchivedBoard,
+      hideTask, unhideTask, hideBoard, unhideBoard,
     }}>
       {children}
     </TaskContext.Provider>

@@ -4,7 +4,7 @@ import { Droppable, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n/translations";
-import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X, ArrowUpDown, Archive } from "lucide-react";
+import { ChevronDown, GripVertical, Pencil, Plus, Trash2, Check, X, ArrowUpDown, Archive, EyeOff, Eye } from "lucide-react";
 import { Task, TaskStatus, Column } from "@/types/task";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -251,6 +251,7 @@ interface KanbanColumnProps {
   onRenameBoard: (title: string) => void;
   onDeleteBoard: () => void;
   onArchiveBoard: () => void;
+  onHideBoard: () => void;
   newTaskId?: string | null;
   teleportedTaskId?: string | null;
   isNew?: boolean;
@@ -259,7 +260,7 @@ interface KanbanColumnProps {
 const KanbanColumn = ({
   column, tasks, dragHandleProps,
   onEditTask, onDeleteTask, onMoveTask,
-  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard, onArchiveBoard,
+  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard, onArchiveBoard, onHideBoard,
   newTaskId, teleportedTaskId, isNew,
 }: KanbanColumnProps) => {
   const { boardLayout, animationsEnabled, privacyMode } = useSettings();
@@ -337,7 +338,9 @@ const KanbanColumn = ({
         ref={colRef}
         className={`flex flex-col rounded-lg glass-column overflow-hidden ${
           isNew && animationsEnabled ? "card-big-bang-in" : ""
-        } ${isBoardDeleting && animationsEnabled ? "card-suck-in" : ""}`}
+        } ${isBoardDeleting && animationsEnabled ? "card-suck-in" : ""} ${
+          column.hidden ? "opacity-60 border border-dashed border-border/60" : ""
+        }`}
       >
         {/* Board header */}
         <div className="group/header flex items-center gap-2 px-3 py-2.5 border-b border-border/20">
@@ -390,6 +393,12 @@ const KanbanColumn = ({
             </h2>
           )}
 
+          {column.hidden && (
+            <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-muted/60 text-muted-foreground/70 border border-border/30 shrink-0">
+              <EyeOff className="h-2.5 w-2.5" />
+              {t("hiddenBadge")}
+            </span>
+          )}
           <Badge variant="secondary" className="text-xs shrink-0">{tasks.length}</Badge>
 
           {!isRenaming && (
@@ -455,6 +464,19 @@ const KanbanColumn = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{t("rename")}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost" size="icon"
+                    className={`h-6 w-6 ${column.hidden ? "text-primary" : "text-muted-foreground/50 hover:text-primary"}`}
+                    onClick={onHideBoard}
+                    aria-label={column.hidden ? t("unhideBoard") : t("hideBoard")}
+                  >
+                    {column.hidden ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{column.hidden ? t("unhideBoard") : t("hideBoard")}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

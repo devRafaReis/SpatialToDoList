@@ -28,6 +28,7 @@ export interface Task {
   checklist?: ChecklistItem[];
   recurrence?: Recurrence;
   archived?: boolean;
+  hidden?: boolean;
 }
 
 export interface Priority {
@@ -57,6 +58,7 @@ export interface Column {
   id: string;
   title: string;
   archived?: boolean;
+  hidden?: boolean;
 }
 
 export interface TaskFilter {
