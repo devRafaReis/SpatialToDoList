@@ -162,9 +162,13 @@ const Header = () => {
   const { lightMode } = useSettings();
   return (
     <header className="flex items-center justify-between border-b border-border/30 glass px-4 py-3 sm:px-6 sm:py-4">
-      <div className="flex items-baseline gap-2 min-w-0">
-        <h1 className={`font-bold text-foreground whitespace-nowrap ${lightMode ? "tracking-tight text-lg sm:text-2xl" : "font-starwars text-sm sm:text-xl"}`}>
-          {lightMode ? "Boring ToDoList" : "Spatial ToDoList"}
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        <h1 className={`font-bold text-foreground leading-tight shrink-0 ${lightMode ? "tracking-tight text-[10px] sm:text-sm" : "font-starwars text-[9px] sm:text-[13px]"}`}>
+          {lightMode ? (
+            <><span className="block">BORING</span><span className="block">TODOLIST</span></>
+          ) : (
+            <><span className="block">SPATIAL</span><span className="block">TODOLIST</span></>
+          )}
         </h1>
         <WorkspaceSwitcher />
       </div>

@@ -266,6 +266,7 @@ interface KanbanColumnProps {
   onArchiveBoard: () => void;
   onHideBoard: () => void;
   onSetBoardColor: (color: string | null) => void;
+  forceCollapsed?: boolean;
   newTaskId?: string | null;
   teleportedTaskId?: string | null;
   isNew?: boolean;
@@ -274,7 +275,7 @@ interface KanbanColumnProps {
 const KanbanColumn = ({
   column, tasks, dragHandleProps,
   onEditTask, onDeleteTask, onArchiveTask, onMoveTask,
-  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard, onArchiveBoard, onHideBoard, onSetBoardColor,
+  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard, onArchiveBoard, onHideBoard, onSetBoardColor, forceCollapsed,
   newTaskId, teleportedTaskId, isNew,
 }: KanbanColumnProps) => {
   const { boardLayout, animationsEnabled, privacyMode } = useSettings();
@@ -293,6 +294,7 @@ const KanbanColumn = ({
 
   useEffect(() => { setEditTitle(column.title); }, [column.title]);
   useEffect(() => { if (isRenaming) inputRef.current?.focus(); }, [isRenaming]);
+  useEffect(() => { if (forceCollapsed !== undefined) setCollapsed(forceCollapsed); }, [forceCollapsed]);
 
   // Expand collapsed board when a task is created inside it so the animation is visible.
   useEffect(() => {

@@ -186,6 +186,8 @@ const dict = {
     taskArchived: "Task archived.",
     boardColor: "Board color",
     colorNone: "No color",
+    collapseAll: "Collapse all",
+    expandAll: "Expand all",
 
     // AccessRequestDialog
     requestAccess: "Request access",
@@ -390,6 +392,8 @@ const dict = {
     taskArchived: "Tarefa arquivada.",
     boardColor: "Cor do quadro",
     colorNone: "Sem cor",
+    collapseAll: "Recolher todos",
+    expandAll: "Expandir todos",
 
     // AccessRequestDialog
     requestAccess: "Solicitar acesso",

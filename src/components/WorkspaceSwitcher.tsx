@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Check, ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWorkspace } from "@/store/workspaceContext";
+import { useTaskContext } from "@/store/taskContext";
 import { createWorkspaceStorage } from "@/services/taskStorage";
 import { useTranslation } from "@/i18n/translations";
 import { useSettings } from "@/store/settingsContext";
@@ -28,8 +29,25 @@ type DeleteTarget = { id: string; name: string; taskCount: number };
 
 const WorkspaceSwitcher = () => {
   const { workspaces, activeWorkspaceId, setActiveWorkspace, addWorkspace, renameWorkspace, deleteWorkspace } = useWorkspace();
+  const { tasks } = useTaskContext();
   const { t } = useTranslation();
-  const { privacyMode } = useSettings();
+  const { privacyMode, completedBoardId } = useSettings();
+
+  // Per-workspace progress: active workspace uses live context data;
+  // others read from localStorage (same source used for delete counts).
+  const workspaceStats = useMemo(() => {
+    const stats: Record<string, { total: number; done: number }> = {};
+    for (const ws of workspaces) {
+      const all = ws.id === activeWorkspaceId
+        ? tasks.filter((t) => !t.archived)
+        : createWorkspaceStorage(ws.id).getTasks().filter((t) => !t.archived);
+      stats[ws.id] = {
+        total: all.length,
+        done: completedBoardId ? all.filter((t) => t.status === completedBoardId).length : 0,
+      };
+    }
+    return stats;
+  }, [workspaces, activeWorkspaceId, tasks, completedBoardId]);
   const [editMode, setEditMode] = useState<EditMode | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -73,8 +91,18 @@ const WorkspaceSwitcher = () => {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 gap-1.5 px-2 text-sm font-semibold max-w-[180px]">
+          <Button variant="ghost" className="h-8 gap-1.5 px-2 text-sm font-semibold max-w-[200px]">
             <span className={`truncate transition-[filter] duration-150 ${privacyMode ? "blur-sm select-none hover:blur-none hover:select-auto" : ""}`}>{activeWorkspace?.name ?? t("workspace")}</span>
+            {(() => {
+              const s = activeWorkspaceId ? workspaceStats[activeWorkspaceId] : null;
+              if (!s || s.total === 0 || !completedBoardId) return null;
+              const allDone = s.done === s.total;
+              return (
+                <span className={`shrink-0 text-xs font-normal tabular-nums ${allDone ? "text-emerald-400" : "text-muted-foreground/60"}`}>
+                  {s.done}/{s.total}
+                </span>
+              );
+            })()}
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
@@ -90,6 +118,16 @@ const WorkspaceSwitcher = () => {
             >
               <Check className={`h-3.5 w-3.5 shrink-0 ${ws.id === activeWorkspaceId ? "opacity-100" : "opacity-0"}`} />
               <span className="flex-1 truncate">{ws.name}</span>
+              {(() => {
+                const s = workspaceStats[ws.id];
+                if (!s || s.total === 0 || !completedBoardId) return null;
+                const allDone = s.done === s.total;
+                return (
+                  <span className={`shrink-0 text-xs tabular-nums ${allDone ? "text-emerald-400" : "text-muted-foreground/50"}`}>
+                    {s.done}/{s.total}
+                  </span>
+                );
+              })()}
               <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"

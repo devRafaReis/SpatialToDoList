@@ -11,7 +11,7 @@ import SpaceEasterEggs from "@/components/SpaceEasterEggs";
 import { useSettings } from "@/store/settingsContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n/translations";
-import { Plus, RotateCcw, Trash2, Columns, EyeOff, Eye, Search, X } from "lucide-react";
+import { Plus, RotateCcw, Trash2, Columns, EyeOff, Eye, Search, X, ChevronsUp, ChevronsDown } from "lucide-react";
 import FilterPopover from "@/components/FilterPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -358,6 +358,7 @@ const KanbanBoard = () => {
   const [newBoardTitleTop, setNewBoardTitleTop] = useState("");
   const [newBoardId, setNewBoardId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
+  const [allCollapsed, setAllCollapsed] = useState<boolean | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -582,7 +583,7 @@ const KanbanBoard = () => {
         <Header />
 
         {/* Workspace toolbar */}
-        <div className="relative z-10 border-b border-border/20 glass px-3 py-2 sm:px-4 flex flex-wrap items-center gap-2">
+        <div className="relative z-10 border-b border-border/20 glass px-3 py-2 sm:px-4 flex items-center gap-2">
           {/* Mobile search overlay — takes the full toolbar row when active */}
           {isMobile && (searchOpen || searchQuery) ? (
             <div className="flex flex-1 items-center gap-2">
@@ -662,12 +663,24 @@ const KanbanBoard = () => {
             </Button>
           </div>
           )}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAllCollapsed((v) => v === true ? false : true)}
+              className={`h-8 gap-1.5 text-xs ${allCollapsed === true ? "text-primary bg-primary/10" : "text-muted-foreground/60"}`}
+              aria-label={allCollapsed === true ? t("expandAll") : t("collapseAll")}
+            >
+              {allCollapsed === true
+                ? <ChevronsDown className="h-3.5 w-3.5" />
+                : <ChevronsUp className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">{allCollapsed === true ? t("expandAll") : t("collapseAll")}</span>
+            </Button>
             {totalTasks > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 text-muted-foreground/60 hover:text-red-400 hover:bg-red-400/10 gap-1.5 text-xs"
+                className="hidden sm:flex h-8 text-muted-foreground/60 hover:text-red-400 hover:bg-red-400/10 gap-1.5 text-xs"
                 onClick={() => setDeleteAllOpen(true)}
                 disabled={isDeletingAll || isResetting}
               >
@@ -678,7 +691,7 @@ const KanbanBoard = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-muted-foreground/60 hover:text-amber-400 hover:bg-amber-400/10 gap-1.5 text-xs"
+              className="hidden sm:flex h-8 text-muted-foreground/60 hover:text-amber-400 hover:bg-amber-400/10 gap-1.5 text-xs"
               onClick={() => setResetOpen(true)}
               disabled={isDeletingAll || isResetting}
             >
@@ -741,6 +754,7 @@ const KanbanBoard = () => {
                             onArchiveBoard={() => archiveBoard(board.id)}
                             onHideBoard={() => board.hidden ? unhideBoard(board.id) : hideBoard(board.id)}
                             onSetBoardColor={(color) => setBoardColor(board.id, color)}
+                            forceCollapsed={allCollapsed ?? undefined}
                             newTaskId={newTaskId}
                             teleportedTaskId={teleportedTaskId}
                             isNew={board.id === newBoardId}

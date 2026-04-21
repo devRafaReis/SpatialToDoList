@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-04-20T01:29:04.202Z",
-  "totalFiles": 67,
+  "generatedAt": "2026-04-20T22:21:49.602Z",
+  "totalFiles": 69,
   "files": [
     {
       "path": "src/App.tsx",
@@ -17,12 +17,28 @@
         "default:AccessRequestDialog"
       ],
       "hooks": [
-        "useState"
+        "useTranslation",
+        "useState",
+        "useRef",
+        "useEffect"
       ],
       "apiCalls": [
         "fetch"
       ],
-      "linesOfCode": 156
+      "linesOfCode": 163
+    },
+    {
+      "path": "src/components/ArchiveDialog.tsx",
+      "exports": [
+        "default:ArchiveDialog"
+      ],
+      "hooks": [
+        "useTranslation",
+        "useTaskContext",
+        "useState"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 173
     },
     {
       "path": "src/components/CometTrail.tsx",
@@ -42,10 +58,11 @@
         "default:FilterPopover"
       ],
       "hooks": [
-        "useSettings"
+        "useSettings",
+        "useTranslation"
       ],
       "apiCalls": [],
-      "linesOfCode": 213
+      "linesOfCode": 215
     },
     {
       "path": "src/components/Header.tsx",
@@ -55,11 +72,12 @@
       "hooks": [
         "useAuth",
         "useTaskContext",
+        "useTranslation",
         "useState",
         "useSettings"
       ],
       "apiCalls": [],
-      "linesOfCode": 131
+      "linesOfCode": 183
     },
     {
       "path": "src/components/KanbanBoard.tsx",
@@ -71,13 +89,14 @@
         "useEffect",
         "useTasks",
         "useSettings",
+        "useTranslation",
         "useIsMobile",
         "useState",
-        "useMemo",
-        "useCallback"
+        "useCallback",
+        "useMemo"
       ],
       "apiCalls": [],
-      "linesOfCode": 751
+      "linesOfCode": 881
     },
     {
       "path": "src/components/KanbanColumn.tsx",
@@ -89,11 +108,12 @@
         "useEffect",
         "useSettings",
         "useIsMobile",
+        "useTranslation",
         "useState",
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 561
+      "linesOfCode": 659
     },
     {
       "path": "src/components/SettingsDialog.tsx",
@@ -102,10 +122,12 @@
       ],
       "hooks": [
         "useSettings",
-        "useIsMobile"
+        "useTaskContext",
+        "useIsMobile",
+        "useTranslation"
       ],
       "apiCalls": [],
-      "linesOfCode": 137
+      "linesOfCode": 193
     },
     {
       "path": "src/components/SpaceEasterEggs.tsx",
@@ -153,12 +175,13 @@
         "useEffect",
         "useSettings",
         "useTaskContext",
+        "useTranslation",
         "useState",
         "useMemo",
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 1293
+      "linesOfCode": 1361
     },
     {
       "path": "src/components/TaskDialog.tsx",
@@ -169,10 +192,11 @@
         "useState",
         "useRef",
         "useEffect",
+        "useTranslation",
         "useTaskContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 672
+      "linesOfCode": 675
     },
     {
       "path": "src/components/ui/alert-dialog.tsx",
@@ -476,10 +500,12 @@
       ],
       "hooks": [
         "useWorkspace",
+        "useTranslation",
+        "useSettings",
         "useState"
       ],
       "apiCalls": [],
-      "linesOfCode": 176
+      "linesOfCode": 180
     },
     {
       "path": "src/constants/storageKeys.ts",
@@ -488,7 +514,7 @@
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 14
+      "linesOfCode": 17
     },
     {
       "path": "src/hooks/use-mobile.tsx",
@@ -540,7 +566,19 @@
         "useMemo"
       ],
       "apiCalls": [],
-      "linesOfCode": 23
+      "linesOfCode": 27
+    },
+    {
+      "path": "src/i18n/translations.ts",
+      "exports": [
+        "useTranslation"
+      ],
+      "hooks": [
+        "useTranslation",
+        "useSettings"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 434
     },
     {
       "path": "src/lib/__tests__/recurrenceUtils.test.ts",
@@ -636,7 +674,7 @@
       "exports": [],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 207
+      "linesOfCode": 215
     },
     {
       "path": "src/services/taskStorage.ts",
@@ -682,7 +720,7 @@
         "useContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 28
+      "linesOfCode": 42
     },
     {
       "path": "src/store/settingsStore.tsx",
@@ -696,7 +734,7 @@
         "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 101
+      "linesOfCode": 120
     },
     {
       "path": "src/store/taskContext.ts",
@@ -708,7 +746,7 @@
         "useContext"
       ],
       "apiCalls": [],
-      "linesOfCode": 32
+      "linesOfCode": 42
     },
     {
       "path": "src/store/taskStore.tsx",
@@ -722,7 +760,7 @@
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 231
+      "linesOfCode": 281
     },
     {
       "path": "src/store/workspaceContext.ts",
@@ -748,7 +786,7 @@
         "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 101
+      "linesOfCode": 124
     },
     {
       "path": "src/test/example.test.ts",
@@ -773,7 +811,7 @@
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 88
+      "linesOfCode": 93
     },
     {
       "path": "src/vite-env.d.ts",
