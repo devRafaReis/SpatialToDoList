@@ -184,6 +184,8 @@ export interface CloudSettings {
   lightMode: boolean;
   boardLayout: string;
   checklistExpandedByDefault: boolean;
+  language: string;
+  completedBoardId: string | null;
 }
 
 export async function fetchSettings(userId: string): Promise<CloudSettings | null> {
@@ -199,6 +201,8 @@ export async function fetchSettings(userId: string): Promise<CloudSettings | nul
     lightMode: data.light_mode,
     boardLayout: data.board_layout,
     checklistExpandedByDefault: data.checklist_expanded_by_default,
+    language: data.language ?? "en",
+    completedBoardId: data.completed_board_id ?? null,
   };
 }
 
@@ -209,6 +213,8 @@ export async function saveSettingsRemote(userId: string, settings: CloudSettings
     light_mode: settings.lightMode,
     board_layout: settings.boardLayout,
     checklist_expanded_by_default: settings.checklistExpandedByDefault,
+    language: settings.language,
+    completed_board_id: settings.completedBoardId,
   });
   if (error) throw error;
 }

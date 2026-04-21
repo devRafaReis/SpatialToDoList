@@ -50,6 +50,11 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
           setLightModeState(cloud.lightMode);
           setBoardLayoutState(cloud.boardLayout as BoardLayout);
           setChecklistExpandedByDefaultState(cloud.checklistExpandedByDefault);
+          setLanguageState(cloud.language as Language);
+          localStorage.setItem(STORAGE_KEYS.LANGUAGE, cloud.language);
+          setCompletedBoardIdState(cloud.completedBoardId);
+          if (cloud.completedBoardId) localStorage.setItem(STORAGE_KEYS.DONE_BOARD_ID, cloud.completedBoardId);
+          else localStorage.removeItem(STORAGE_KEYS.DONE_BOARD_ID);
           document.documentElement.classList.toggle("light", cloud.lightMode);
         } else {
           // First login — push local settings to Supabase
@@ -58,6 +63,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
             lightMode,
             boardLayout,
             checklistExpandedByDefault,
+            language,
+            completedBoardId,
           }).catch(console.error);
         }
       })
@@ -65,39 +72,43 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
       .finally(() => { cloudSyncReady.current = true; });
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const syncCloud = (settings: { animationsEnabled: boolean; lightMode: boolean; boardLayout: string; checklistExpandedByDefault: boolean }) => {
+  const syncCloud = (settings: { animationsEnabled: boolean; lightMode: boolean; boardLayout: string; checklistExpandedByDefault: boolean; language: string; completedBoardId: string | null }) => {
     if (user && cloudSyncReady.current) {
       saveSettingsRemote(user.id, settings).catch(console.error);
     }
   };
 
+  const allSettings = () => ({ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault, language, completedBoardId });
+
   const setBoardLayout = (v: BoardLayout) => {
     setBoardLayoutState(v);
     localStorage.setItem(STORAGE_KEYS.BOARD_LAYOUT, v);
-    syncCloud({ animationsEnabled, lightMode, boardLayout: v, checklistExpandedByDefault });
+    syncCloud({ ...allSettings(), boardLayout: v });
   };
 
   const setChecklistExpandedByDefault = (v: boolean) => {
     setChecklistExpandedByDefaultState(v);
     localStorage.setItem(STORAGE_KEYS.CHECKLIST_EXPANDED, String(v));
-    syncCloud({ animationsEnabled, lightMode, boardLayout, checklistExpandedByDefault: v });
+    syncCloud({ ...allSettings(), checklistExpandedByDefault: v });
   };
 
   const setAnimationsEnabled = (v: boolean) => {
     setAnimationsEnabledState(v);
     localStorage.setItem(STORAGE_KEYS.ANIMATIONS, String(v));
-    syncCloud({ animationsEnabled: v, lightMode, boardLayout, checklistExpandedByDefault });
+    syncCloud({ ...allSettings(), animationsEnabled: v });
   };
 
   const setLanguage = (v: Language) => {
     setLanguageState(v);
     localStorage.setItem(STORAGE_KEYS.LANGUAGE, v);
+    syncCloud({ ...allSettings(), language: v });
   };
 
   const setCompletedBoardId = (v: string | null) => {
     setCompletedBoardIdState(v);
     if (v === null) localStorage.removeItem(STORAGE_KEYS.DONE_BOARD_ID);
     else localStorage.setItem(STORAGE_KEYS.DONE_BOARD_ID, v);
+    syncCloud({ ...allSettings(), completedBoardId: v });
   };
 
   // Also resets animationsEnabled — light mode disables space animations.
@@ -108,7 +119,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     const newAnimations = !v;
     setAnimationsEnabledState(newAnimations);
     localStorage.setItem(STORAGE_KEYS.ANIMATIONS, String(newAnimations));
-    syncCloud({ animationsEnabled: newAnimations, lightMode: v, boardLayout, checklistExpandedByDefault });
+    syncCloud({ ...allSettings(), animationsEnabled: newAnimations, lightMode: v });
   };
 
   return (

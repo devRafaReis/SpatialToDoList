@@ -102,6 +102,25 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
     return () => clearTimeout(timer);
   }, [boards, userId, workspaceId, cloudLoadDone]);
 
+  // ── Background polling: pull remote changes from other devices ───────────
+  useEffect(() => {
+    if (!userId || !cloudLoadDone) return;
+    const poll = () => {
+      Promise.all([fetchTasks(userId, workspaceId), fetchBoards(userId, workspaceId)])
+        .then(([cloudTasks, cloudBoards]) => {
+          if (cloudBoards.length > 0) {
+            setBoards(cloudBoards);
+            storage.saveBoards(cloudBoards);
+          }
+          setTasks(cloudTasks);
+          storage.saveTasks(cloudTasks);
+        })
+        .catch(console.error);
+    };
+    const id = setInterval(poll, 15_000);
+    return () => clearInterval(id);
+  }, [userId, workspaceId, cloudLoadDone]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Manual sync ──────────────────────────────────────────────────────────
   const forceSyncNow = useCallback(async () => {
     if (!userId) return;
