@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Task, TaskStatus, ChecklistItem, TaskFilter, EMPTY_FILTER } from "@/types/task";
 import { useTasks } from "@/hooks/useTasks";
+import { useWorkspace } from "@/store/workspaceContext";
+import { STORAGE_KEYS } from "@/constants/storageKeys";
 import KanbanColumn from "@/components/KanbanColumn";
 import TaskDialog from "@/components/TaskDialog";
 import Header from "@/components/Header";
@@ -338,6 +340,7 @@ const BoardDragParticles = () => {
 
 const KanbanBoard = () => {
   const { tasks, tasksByStatus, boards, addTask, updateTask, deleteTask, archiveTask, deleteAllTasks, moveTask, reorderTasks, moveTaskBetweenColumns, addBoard, deleteBoard, renameBoard, reorderBoards, resetAll, archiveBoard, hideBoard, unhideBoard, setBoardColor } = useTasks();
+  const { activeWorkspaceId } = useWorkspace();
   const { animationsEnabled, boardLayout, setBoardLayout } = useSettings();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -351,7 +354,18 @@ const KanbanBoard = () => {
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [filter, setFilter] = useState<TaskFilter>(EMPTY_FILTER);
+  const [filter, setFilterState] = useState<TaskFilter>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.filter(activeWorkspaceId));
+      return stored ? { ...EMPTY_FILTER, ...JSON.parse(stored) } : EMPTY_FILTER;
+    } catch {
+      return EMPTY_FILTER;
+    }
+  });
+  const setFilter = useCallback((f: TaskFilter) => {
+    setFilterState(f);
+    localStorage.setItem(STORAGE_KEYS.filter(activeWorkspaceId), JSON.stringify(f));
+  }, [activeWorkspaceId]);
   const [addingBoard, setAddingBoard] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState("");
   const [addBoardDialogOpen, setAddBoardDialogOpen] = useState(false);
@@ -530,16 +544,20 @@ const KanbanBoard = () => {
         const pb = PRIORITY_ORDER[b.priority ?? ""] ?? 4;
         return pa - pb;
       }
-      // sort by startDate asc, no date at end
-      if (!a.startDate && !b.startDate) return 0;
-      if (!a.startDate) return 1;
-      if (!b.startDate) return -1;
-      const cmp = a.startDate.localeCompare(b.startDate);
+      // sort by startDate asc (falling back to endDate), no date goes to end
+      const dateA = a.startDate ?? a.endDate ?? "";
+      const timeA = a.startDate ? (a.startTime ?? "") : (a.endDate ? (a.endTime ?? "") : "");
+      const dateB = b.startDate ?? b.endDate ?? "";
+      const timeB = b.startDate ? (b.startTime ?? "") : (b.endDate ? (b.endTime ?? "") : "");
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      const cmp = dateA.localeCompare(dateB);
       if (cmp !== 0) return cmp;
-      if (!a.startTime && !b.startTime) return 0;
-      if (!a.startTime) return 1;
-      if (!b.startTime) return -1;
-      return a.startTime.localeCompare(b.startTime);
+      if (!timeA && !timeB) return 0;
+      if (!timeA) return 1;
+      if (!timeB) return -1;
+      return timeA.localeCompare(timeB);
     });
     reorderTasks(columnId, sorted.map((t) => t.id));
   };
@@ -750,6 +768,7 @@ const KanbanBoard = () => {
                             onAddTask={() => handleAddTask(board.id)}
                             onSortTasks={(sort) => handleSortTasks(board.id, sort)}
                             onRenameBoard={(title) => renameBoard(board.id, title)}
+                            destBoardName={boards.find((b) => b.id !== board.id && !b.archived)?.title ?? ""}
                             onDeleteBoard={() => deleteBoard(board.id)}
                             onArchiveBoard={() => archiveBoard(board.id)}
                             onHideBoard={() => board.hidden ? unhideBoard(board.id) : hideBoard(board.id)}

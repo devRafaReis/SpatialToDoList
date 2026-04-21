@@ -262,6 +262,7 @@ interface KanbanColumnProps {
   onAddTask: () => void;
   onSortTasks: (sort: "priority" | "date") => void;
   onRenameBoard: (title: string) => void;
+  destBoardName?: string;
   onDeleteBoard: () => void;
   onArchiveBoard: () => void;
   onHideBoard: () => void;
@@ -275,7 +276,7 @@ interface KanbanColumnProps {
 const KanbanColumn = ({
   column, tasks, dragHandleProps,
   onEditTask, onDeleteTask, onArchiveTask, onMoveTask,
-  onAddTask, onSortTasks, onRenameBoard, onDeleteBoard, onArchiveBoard, onHideBoard, onSetBoardColor, forceCollapsed,
+  onAddTask, onSortTasks, onRenameBoard, destBoardName, onDeleteBoard, onArchiveBoard, onHideBoard, onSetBoardColor, forceCollapsed,
   newTaskId, teleportedTaskId, isNew,
 }: KanbanColumnProps) => {
   const { boardLayout, animationsEnabled, privacyMode } = useSettings();
@@ -638,7 +639,7 @@ const KanbanColumn = ({
             <AlertDialogTitle>{t("deleteBoardTitle", { name: column.title })}</AlertDialogTitle>
             <AlertDialogDescription>
               {tasks.length > 0
-                ? t("deleteBoardDescWithTasks", { count: tasks.length, s: tasks.length !== 1 ? "s" : "" })
+                ? t("deleteBoardDescWithTasks", { count: tasks.length, s: tasks.length !== 1 ? "s" : "", dest: destBoardName ?? "" })
                 : t("deleteBoardDescEmpty")}
             </AlertDialogDescription>
           </AlertDialogHeader>

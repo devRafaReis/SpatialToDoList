@@ -1,4 +1,4 @@
-import { Filter } from "lucide-react";
+import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -147,9 +147,9 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
               {(filter.startDateFrom || filter.startDateTo) && (
                 <button
                   onClick={() => onChange({ ...filter, startDateFrom: "", startDateTo: "" })}
-                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-destructive transition-colors"
                 >
-                  {t("clear")}
+                  <X className="h-3 w-3" />{t("clear")}
                 </button>
               )}
             </div>
@@ -181,9 +181,9 @@ const FilterPopover = ({ filter, onChange, boards }: FilterPopoverProps) => {
               {(filter.endDateFrom || filter.endDateTo) && (
                 <button
                   onClick={() => onChange({ ...filter, endDateFrom: "", endDateTo: "" })}
-                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-destructive transition-colors"
                 >
-                  {t("clear")}
+                  <X className="h-3 w-3" />{t("clear")}
                 </button>
               )}
             </div>

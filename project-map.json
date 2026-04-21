@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-04-21T14:57:39.536Z",
-  "totalFiles": 69,
+  "generatedAt": "2026-04-21T22:35:01.936Z",
+  "totalFiles": 70,
   "files": [
     {
       "path": "src/App.tsx",
@@ -77,7 +77,19 @@
         "useSettings"
       ],
       "apiCalls": [],
-      "linesOfCode": 187
+      "linesOfCode": 211
+    },
+    {
+      "path": "src/components/HelpDialog.tsx",
+      "exports": [
+        "default:function"
+      ],
+      "hooks": [
+        "useTranslation",
+        "useState"
+      ],
+      "apiCalls": [],
+      "linesOfCode": 254
     },
     {
       "path": "src/components/KanbanBoard.tsx",
@@ -96,7 +108,7 @@
         "useMemo"
       ],
       "apiCalls": [],
-      "linesOfCode": 895
+      "linesOfCode": 900
     },
     {
       "path": "src/components/KanbanColumn.tsx",
@@ -113,7 +125,7 @@
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 661
+      "linesOfCode": 662
     },
     {
       "path": "src/components/SettingsDialog.tsx",
@@ -580,7 +592,7 @@
         "useSettings"
       ],
       "apiCalls": [],
-      "linesOfCode": 438
+      "linesOfCode": 446
     },
     {
       "path": "src/lib/__tests__/recurrenceUtils.test.ts",
@@ -676,7 +688,7 @@
       "exports": [],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 215
+      "linesOfCode": 221
     },
     {
       "path": "src/services/taskStorage.ts",
@@ -736,7 +748,7 @@
         "useEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 120
+      "linesOfCode": 131
     },
     {
       "path": "src/store/taskContext.ts",
@@ -762,7 +774,7 @@
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 281
+      "linesOfCode": 300
     },
     {
       "path": "src/store/workspaceContext.ts",

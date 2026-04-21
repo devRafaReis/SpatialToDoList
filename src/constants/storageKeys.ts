@@ -8,9 +8,11 @@ export const STORAGE_KEYS = {
   CHECKLIST_EXPANDED: "spatialTodo_checklistExpanded",
   LANGUAGE: "spatialTodo_language",
   DONE_BOARD_ID: "spatialTodo_doneBoardId",
+  PRIVACY_MODE: "spatialTodo_privacyMode",
   // Legacy keys kept for migration in workspaceStore
   LEGACY_TASKS: "kanban-tasks",
   LEGACY_BOARDS: "kanban-boards",
   tasks: (workspaceId: string) => `kanban-tasks_${workspaceId}`,
   boards: (workspaceId: string) => `kanban-boards_${workspaceId}`,
+  filter: (workspaceId: string) => `spatialTodo_filter_${workspaceId}`,
 };

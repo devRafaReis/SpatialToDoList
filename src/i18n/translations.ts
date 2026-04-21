@@ -92,7 +92,7 @@ const dict = {
     collapse: "Collapse",
     deleteBoard: "Delete board",
     deleteBoardTitle: "Delete board \"{name}\"?",
-    deleteBoardDescWithTasks: "The {count} task{s} in this board will be moved to the first available board.",
+    deleteBoardDescWithTasks: "The {count} task{s} in this board will be moved to \"{dest}\".",
     deleteBoardDescEmpty: "This board is empty and will be permanently removed.",
 
     // TaskCard
@@ -302,7 +302,7 @@ const dict = {
     collapse: "Recolher",
     deleteBoard: "Excluir quadro",
     deleteBoardTitle: "Excluir quadro \"{name}\"?",
-    deleteBoardDescWithTasks: "A{s} {count} tarefa{s} deste quadro serão movidas para o primeiro quadro disponível.",
+    deleteBoardDescWithTasks: "A{s} {count} tarefa{s} deste quadro serão movidas para \"{dest}\".",
     deleteBoardDescEmpty: "Este quadro está vazio e será removido permanentemente.",
 
     // TaskCard
