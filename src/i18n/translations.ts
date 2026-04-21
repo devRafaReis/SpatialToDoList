@@ -189,6 +189,10 @@ const dict = {
     collapseAll: "Collapse all",
     expandAll: "Expand all",
 
+    // HelpDialog
+    help: "Help",
+    helpTooltip: "Help & features guide",
+
     // AccessRequestDialog
     requestAccess: "Request access",
     requestAccessDesc: "Your email is not on the access list. Fill in your details and the admin will be notified.",
@@ -394,6 +398,10 @@ const dict = {
     colorNone: "Sem cor",
     collapseAll: "Recolher todos",
     expandAll: "Expandir todos",
+
+    // HelpDialog
+    help: "Ajuda",
+    helpTooltip: "Guia de ajuda e funcionalidades",
 
     // AccessRequestDialog
     requestAccess: "Solicitar acesso",

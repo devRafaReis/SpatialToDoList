@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { LogIn, LogOut, Loader2, CloudOff, Cloud, RefreshCw, Eye, EyeOff, Archive } from "lucide-react";
+import { LogIn, LogOut, Loader2, CloudOff, Cloud, RefreshCw, Eye, EyeOff, Archive, HelpCircle } from "lucide-react";
 import SettingsDialog from "@/components/SettingsDialog";
 import WorkspaceSwitcher from "@/components/WorkspaceSwitcher";
 import ArchiveDialog from "@/components/ArchiveDialog";
+import HelpDialog from "@/components/HelpDialog";
 import AccessRequestDialog from "@/components/AccessRequestDialog";
 import { useSettings } from "@/store/settingsContext";
 import { useAuth } from "@/store/authContext";
@@ -158,16 +159,38 @@ const ArchiveButton = () => {
   );
 };
 
+const HelpButton = () => {
+  const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => setOpen(true)}
+            className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+            aria-label={t("helpTooltip")}
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">{t("helpTooltip")}</TooltipContent>
+      </Tooltip>
+      <HelpDialog open={open} onOpenChange={setOpen} />
+    </>
+  );
+};
+
 const Header = () => {
   const { lightMode } = useSettings();
   return (
     <header className="flex items-center justify-between border-b border-border/30 glass px-4 py-3 sm:px-6 sm:py-4">
       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-        <h1 className={`font-bold text-foreground leading-tight shrink-0 ${lightMode ? "tracking-tight text-[10px] sm:text-sm" : "font-starwars text-[9px] sm:text-[13px]"}`}>
+        <h1 className={`font-bold text-foreground shrink-0 flex flex-col sm:flex-row sm:items-baseline sm:gap-[0.25em] ${lightMode ? "tracking-tight text-[10px] sm:text-2xl" : "font-starwars text-[9px] sm:text-xl"}`}>
           {lightMode ? (
-            <><span className="block">BORING</span><span className="block">TODOLIST</span></>
+            <><span>Boring</span><span>ToDoList</span></>
           ) : (
-            <><span className="block">SPATIAL</span><span className="block">TODOLIST</span></>
+            <><span>Spatial</span><span>ToDoList</span></>
           )}
         </h1>
         <WorkspaceSwitcher />
@@ -177,6 +200,7 @@ const Header = () => {
         <ArchiveButton />
         <SyncButton />
         <AuthButton />
+        <HelpButton />
         <SettingsDialog />
       </div>
     </header>

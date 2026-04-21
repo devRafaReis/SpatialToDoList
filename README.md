@@ -12,17 +12,24 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Drag-and-drop entre boards e reordenação dentro do mesmo board
 - **Reordenar cards por prioridade ou por data** em cada board individualmente
 - Mover tarefa via menu de contexto com efeito de portal animado
-- **Duplo clique** no card abre modo de visualização; atalho de edição disponível dentro da visualização
 - Menu de ações `⋯` no card — sempre visível no mobile, aparece ao passar o mouse no desktop
 - **Marcar como concluída:** botão de círculo/check no card move a tarefa automaticamente para o board configurado como "concluídas"; tarefas nesse board aparecem com título riscado e ícone verde; clicar novamente desfaz
+- **Badge de atraso:** tasks com data de vencimento no passado exibem um indicador visual "Overdue" com efeito de destaque no card
+- **Desfazer exclusão/arquivamento:** ao excluir ou arquivar uma tarefa, um toast de notificação oferece a opção "Desfazer" por alguns segundos
+- **Arquivar tarefas:** oculta a tarefa do board sem excluir; restaurável pelo diálogo de Arquivo no cabeçalho
+- **Ocultar tarefas:** esconde temporariamente a tarefa do board; toggle via menu `⋯` → Ocultar/Mostrar
 
 ### Boards
 - Criar, renomear e excluir boards customizados (além dos padrões: To Do, Doing, Done)
 - Título limitado a 20 caracteres
+- **Cores de board:** paleta de 8 cores de destaque (violeta, céu, esmeralda, âmbar, rosa, índigo, teal, laranja) para distinguir boards visualmente
 - Reordenar boards via drag-and-drop
 - Minimizar/expandir boards individualmente
+- **Recolher/expandir todos:** botões na barra de ferramentas para colapsar ou expandir todos os boards de uma vez
 - Board se expande automaticamente ao criar uma tarefa dentro dele enquanto está minimizado
 - Criação de novo board via Dialog (não quebra o layout no mobile)
+- **Arquivar boards:** oculta o board inteiro (com suas tarefas); restaurável pelo diálogo de Arquivo
+- **Ocultar boards:** esconde o board da visualização sem arquivar; toggle via menu do board
 
 ### Workspaces
 - Múltiplos workspaces independentes (ex.: pessoal, profissional)
@@ -31,9 +38,11 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Confirmação ao excluir workspace com contagem de tarefas afetadas
 - Dados existentes migrados automaticamente para o workspace padrão "Personal" na primeira abertura
 
-### Filtros
+### Busca e Filtros
+- **Busca em tempo real:** barra de pesquisa na toolbar encontra tarefas pelo título em todos os boards simultaneamente
 - Filtrar cards por: Prioridade, Board, Data de Início e Data de Vencimento
 - Badge no botão de filtro indica quantos filtros estão ativos
+- Busca e filtros funcionam em conjunto (são aditivos)
 
 ### Configurações
 - Animações (estrelas, cometas, partículas — desativável para melhor performance)
@@ -42,6 +51,11 @@ Kanban board com tema espacial. Organize tarefas em boards customizáveis com dr
 - Modo claro ("Boring ToDoList") / escuro galaxy
 - **Idioma:** Inglês (padrão) ou Português (BR) — salvo por dispositivo, não sincronizado na nuvem
 - **Board de concluídas:** escolha qual board recebe tarefas marcadas com o check — ativa o botão de círculo em todos os cards; salvo localmente (`spatialTodo_doneBoardId`)
+
+### Interface & Cabeçalho
+- **Modo privado:** botão de olho no cabeçalho desfoca títulos e nomes — útil ao compartilhar a tela
+- **Diálogo de Arquivo:** botão dedicado no cabeçalho para gerenciar boards e tarefas arquivadas (restaurar ou excluir permanentemente)
+- **Guia de ajuda:** botão `?` no cabeçalho abre um modal com todas as funcionalidades organizadas em seções colapsáveis, disponível em EN e PT-BR
 
 ### PWA (Progressive Web App)
 - Instalável como app nativo em **Android**, **iOS** e **desktop** (Chrome/Edge)
@@ -128,7 +142,7 @@ src/
   main.tsx                   # Entry point
   index.css                  # Variáveis CSS, tema galaxy, keyframes de animação
   i18n/
-    translations.ts          # Hook useTranslation() + dicionários EN/PT-BR (~120+ chaves)
+    translations.ts          # Hook useTranslation() + dicionários EN/PT-BR (~200+ chaves)
   lib/
     supabase.ts              # Cliente Supabase (anon key)
     recurrenceUtils.ts       # Funções puras: shiftDate, buildNextOccurrence
@@ -160,8 +174,10 @@ src/
     KanbanColumn.tsx         # Board droppable + animações de criação/exclusão + collapse
     TaskCard.tsx             # Card draggable + checklist inline + badge de recorrência + canvas
     TaskDialog.tsx           # Modal criação/edição (planejamento, checklist, recorrência)
-    Header.tsx               # WorkspaceSwitcher + SyncButton + AuthButton + SettingsDialog
+    Header.tsx               # WorkspaceSwitcher + SyncButton + AuthButton + HelpButton + SettingsDialog
     AccessRequestDialog.tsx  # Dialog para usuários não autorizados solicitarem acesso (inclui coleta de IP para rate limiting)
+    ArchiveDialog.tsx        # Dialog de gerenciamento de boards e tarefas arquivados (restaurar/excluir)
+    HelpDialog.tsx           # Guia de funcionalidades em modal colapsável (EN/PT-BR)
     FilterPopover.tsx        # Popover de filtros (prioridade, board, datas)
     WorkspaceSwitcher.tsx    # Seletor de workspace com CRUD
     SettingsDialog.tsx       # Dialog de configurações globais (inclui seleção de idioma)

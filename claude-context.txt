@@ -603,7 +603,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
 
 ```json
 {
-  "generatedAt": "2026-04-20T22:21:49.602Z",
+  "generatedAt": "2026-04-21T14:57:39.536Z",
   "totalFiles": 69,
   "files": [
     {
@@ -681,7 +681,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useSettings"
       ],
       "apiCalls": [],
-      "linesOfCode": 183
+      "linesOfCode": 187
     },
     {
       "path": "src/components/KanbanBoard.tsx",
@@ -700,7 +700,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useMemo"
       ],
       "apiCalls": [],
-      "linesOfCode": 881
+      "linesOfCode": 895
     },
     {
       "path": "src/components/KanbanColumn.tsx",
@@ -717,7 +717,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useLayoutEffect"
       ],
       "apiCalls": [],
-      "linesOfCode": 659
+      "linesOfCode": 661
     },
     {
       "path": "src/components/SettingsDialog.tsx",
@@ -1104,12 +1104,14 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
       ],
       "hooks": [
         "useWorkspace",
+        "useTaskContext",
         "useTranslation",
         "useSettings",
+        "useMemo",
         "useState"
       ],
       "apiCalls": [],
-      "linesOfCode": 180
+      "linesOfCode": 218
     },
     {
       "path": "src/constants/storageKeys.ts",
@@ -1182,7 +1184,7 @@ No components or hooks need to change for steps 3–4 if the `TaskStorageService
         "useSettings"
       ],
       "apiCalls": [],
-      "linesOfCode": 434
+      "linesOfCode": 438
     },
     {
       "path": "src/lib/__tests__/recurrenceUtils.test.ts",
