@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { Task, TaskPriority, TaskStatus, ChecklistItem, Column, DEFAULT_COLUMNS, Recurrence } from "@/types/task";
 import { createWorkspaceStorage } from "@/services/taskStorage";
 import {
@@ -24,6 +24,12 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
   // True after the initial cloud load finishes (success or error). Using state
   // so that effects with it in their deps re-run when the load completes.
   const [cloudLoadDone, setCloudLoadDone] = useState(!userId);
+
+  // Guards the poll: set to true immediately when local state changes (before the
+  // debounce fires), cleared in the finally block after the sync attempt completes.
+  // Prevents the poll from overwriting uncommitted local changes with stale cloud data.
+  const hasPendingTaskSync = useRef(false);
+  const hasPendingBoardSync = useRef(false);
 
   // ── Cloud load on mount ───────────────────────────────────────────────────
   useEffect(() => {
@@ -77,6 +83,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
   // ── Debounced sync tasks → Supabase ───────────────────────────────────────
   useEffect(() => {
     if (!userId || !cloudLoadDone) return;
+    hasPendingTaskSync.current = true; // mark dirty immediately — before the timer fires
     const timer = setTimeout(async () => {
       setSyncStatus("syncing");
       setSyncError(null);
@@ -88,16 +95,22 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
         setSyncError(msg);
         setSyncStatus("error");
         console.error("Cloud task sync failed:", e);
+      } finally {
+        hasPendingTaskSync.current = false;
       }
     }, 600);
     return () => clearTimeout(timer);
+    // NOTE: do NOT clear hasPendingTaskSync in cleanup — timer cancelled but local changes still exist
   }, [tasks, userId, workspaceId, workspaceName, cloudLoadDone]);
 
   // ── Debounced sync boards → Supabase ─────────────────────────────────────
   useEffect(() => {
     if (!userId || !cloudLoadDone) return;
+    hasPendingBoardSync.current = true; // mark dirty immediately
     const timer = setTimeout(() => {
-      syncBoards(userId, workspaceId, boards).catch(console.error);
+      syncBoards(userId, workspaceId, boards)
+        .catch(console.error)
+        .finally(() => { hasPendingBoardSync.current = false; });
     }, 600);
     return () => clearTimeout(timer);
   }, [boards, userId, workspaceId, cloudLoadDone]);
@@ -106,8 +119,13 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
   useEffect(() => {
     if (!userId || !cloudLoadDone) return;
     const poll = () => {
+      // Skip if we have uncommitted local changes — applying stale cloud data now
+      // would overwrite them and re-trigger a sync cycle with wrong data.
+      if (hasPendingTaskSync.current || hasPendingBoardSync.current) return;
       Promise.all([fetchTasks(userId, workspaceId), fetchBoards(userId, workspaceId)])
         .then(([cloudTasks, cloudBoards]) => {
+          // Re-check after the async fetch — a local change may have arrived while we were waiting
+          if (hasPendingTaskSync.current || hasPendingBoardSync.current) return;
           if (cloudBoards.length > 0) {
             setBoards(cloudBoards);
             storage.saveBoards(cloudBoards);
@@ -124,6 +142,8 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
   // ── Manual sync ──────────────────────────────────────────────────────────
   const forceSyncNow = useCallback(async () => {
     if (!userId) return;
+    hasPendingTaskSync.current = true;
+    hasPendingBoardSync.current = true;
     setSyncStatus("syncing");
     setSyncError(null);
     try {
@@ -135,6 +155,9 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
       setSyncError(msg);
       setSyncStatus("error");
       console.error("Force sync failed:", e);
+    } finally {
+      hasPendingTaskSync.current = false;
+      hasPendingBoardSync.current = false;
     }
   }, [userId, workspaceId, workspaceName, boards, tasks]);
 

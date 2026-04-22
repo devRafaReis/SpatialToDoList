@@ -39,14 +39,24 @@ export async function fetchBoards(userId: string, workspaceId: string): Promise<
 }
 
 export async function syncBoards(userId: string, workspaceId: string, boards: Column[]): Promise<void> {
-  await supabase.from("boards").delete().eq("workspace_id", workspaceId).eq("user_id", userId);
-  if (boards.length === 0) return;
-  // upsert instead of insert — concurrent calls with the same board IDs update rather than conflict (409)
-  const { error } = await supabase.from("boards").upsert(
+  if (boards.length === 0) {
+    const { error } = await supabase.from("boards").delete().eq("workspace_id", workspaceId).eq("user_id", userId);
+    if (error) throw error;
+    return;
+  }
+  // Upsert first — no empty window where a concurrent poll could read []
+  const { error: upsertError } = await supabase.from("boards").upsert(
     boards.map((b, i) => ({ id: b.id, workspace_id: workspaceId, user_id: userId, title: b.title, position: i, archived: b.archived ?? false, color: b.color ?? null })),
-    { onConflict: "id,workspace_id,user_id" }
+    { onConflict: "id" }
   );
-  if (error) throw error;
+  if (upsertError) throw upsertError;
+  // Remove boards deleted locally that still exist in cloud
+  const boardIds = boards.map((b) => b.id).join(",");
+  const { error: delError } = await supabase.from("boards").delete()
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .not("id", "in", `(${boardIds})`);
+  if (delError) throw delError;
 }
 
 // ── Tasks ─────────────────────────────────────────────────────────────────────
@@ -85,26 +95,37 @@ export async function deleteAllTasksRemote(userId: string, workspaceId: string):
 
 export async function syncTasks(userId: string, workspaceId: string, tasks: Task[], workspaceName?: string): Promise<void> {
   // Ensure workspace row exists before inserting tasks (guards FK constraint).
-  // ignoreDuplicates=true = DO NOTHING on conflict — preserves existing name.
   await supabase
     .from("workspaces")
     .upsert({ id: workspaceId, user_id: userId, name: workspaceName ?? workspaceId }, { onConflict: "id", ignoreDuplicates: true });
 
+  if (tasks.length === 0) {
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", userId);
+    if (error) throw error;
+    return;
+  }
+
+  // Upsert current tasks — avoids the DELETE+INSERT window where the DB is temporarily
+  // empty and a concurrent poll could read [] and cascade-delete everything.
+  // Task IDs are crypto.randomUUID() so cross-user ID collisions are astronomically unlikely.
+  const { error: upsertError } = await supabase
+    .from("tasks")
+    .upsert(tasks.map((t) => taskToDb(t, userId, workspaceId)), { onConflict: "id" });
+  if (upsertError) throw upsertError;
+
+  // Remove tasks deleted locally that still exist in cloud.
+  const taskIds = tasks.map((t) => t.id).join(",");
   const { error: delError } = await supabase
     .from("tasks")
     .delete()
     .eq("workspace_id", workspaceId)
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .not("id", "in", `(${taskIds})`);
   if (delError) throw delError;
-  if (tasks.length === 0) return;
-  // Use insert (not upsert) — all rows for this user+workspace were just deleted above,
-  // so there is nothing to conflict with. Using upsert's ON CONFLICT DO UPDATE would trigger
-  // PostgreSQL's USING check on any existing row with the same id (even from another user),
-  // causing a 403 RLS violation. Plain insert avoids this entirely.
-  const { error: insError } = await supabase
-    .from("tasks")
-    .insert(tasks.map((t) => taskToDb(t, userId, workspaceId)));
-  if (insError) throw insError;
 }
 
 interface DbTaskRow {
