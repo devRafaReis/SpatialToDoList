@@ -460,9 +460,18 @@ const KanbanBoard = () => {
 
   const totalTasks = Object.values(tasksByStatus).reduce((sum, arr) => sum + arr.length, 0);
 
+  const MAX_ACTIVE_BOARDS = 20;
+  const activeBoardCount = boards.filter((b) => !b.archived).length;
+
   const handleAddBoard = () => {
     const trimmed = newBoardTitle.trim();
     if (!trimmed) return;
+    if (activeBoardCount >= MAX_ACTIVE_BOARDS) {
+      toast(t("boardLimitReached"), { description: t("boardLimitReachedDesc", { count: MAX_ACTIVE_BOARDS }) });
+      setNewBoardTitle("");
+      setAddingBoard(false);
+      return;
+    }
     const id = addBoard(trimmed);
     setNewBoardTitle("");
     setAddingBoard(false);
@@ -477,6 +486,12 @@ const KanbanBoard = () => {
   const handleAddBoardTop = () => {
     const trimmed = newBoardTitleTop.trim();
     if (!trimmed) return;
+    if (activeBoardCount >= MAX_ACTIVE_BOARDS) {
+      toast(t("boardLimitReached"), { description: t("boardLimitReachedDesc", { count: MAX_ACTIVE_BOARDS }) });
+      setNewBoardTitleTop("");
+      setAddBoardDialogOpen(false);
+      return;
+    }
     const id = addBoard(trimmed);
     setNewBoardTitleTop("");
     setAddBoardDialogOpen(false);
@@ -742,7 +757,7 @@ const KanbanBoard = () => {
                         <div
                           ref={boardDrag.innerRef}
                           {...boardDrag.draggableProps}
-                          className={`relative ${effectiveLayout === "horizontal" ? "flex-1 min-w-72 max-w-[calc(33.333%-11px)]" : ""}`}
+                          className={`relative ${effectiveLayout === "horizontal" ? "shrink-0 w-72" : ""}`}
                           style={{
                             ...boardDrag.draggableProps.style,
                             ...(boardSnap.isDragging ? {

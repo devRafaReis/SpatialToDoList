@@ -31,7 +31,13 @@
       "Bash(bun test *)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:d[k] for k in ['scripts','devDependencies','dependencies'] if k in d}, indent=2\\)\\)\")",
       "Bash(bunx pwa-assets-generator *)",
-      "Bash(bunx tsc *)"
+      "Bash(bunx tsc *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "Bash(gh api *)",
+      "Bash(mkdir -p \"c:/Users/Rafael Reis/Desktop/Projetos e Templates/SpatialToDoList/.claude/skills/frontend-design\")",
+      "Bash(mkdir -p \"C:/Users/Rafael Reis/.claude/skills/token-efficiency\")"
     ]
   }
 }

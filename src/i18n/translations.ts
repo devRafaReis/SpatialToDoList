@@ -188,6 +188,8 @@ const dict = {
     colorNone: "No color",
     collapseAll: "Collapse all",
     expandAll: "Expand all",
+    boardLimitReached: "Board limit reached",
+    boardLimitReachedDesc: "You can have at most {count} active boards.",
 
     // HelpDialog
     help: "Help",
@@ -398,6 +400,8 @@ const dict = {
     colorNone: "Sem cor",
     collapseAll: "Recolher todos",
     expandAll: "Expandir todos",
+    boardLimitReached: "Limite de quadros atingido",
+    boardLimitReachedDesc: "Você pode ter no máximo {count} quadros ativos.",
 
     // HelpDialog
     help: "Ajuda",

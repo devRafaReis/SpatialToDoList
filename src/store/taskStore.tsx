@@ -46,8 +46,14 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
         // If boards already exist in cloud, this user has synced before —
         // cloud is authoritative even if tasks are empty (intentional delete).
         if (cloudBoards.length > 0) {
-          setBoards(cloudBoards);
-          storage.saveBoards(cloudBoards);
+          // Preserve per-device fields (hidden) and fall back to local color if cloud lacks the column
+          const localBoards = storage.getBoards();
+          const mergedBoards = cloudBoards.map((cb) => {
+            const local = localBoards.find((b) => b.id === cb.id);
+            return { ...cb, color: cb.color ?? local?.color, hidden: local?.hidden ?? false };
+          });
+          setBoards(mergedBoards);
+          storage.saveBoards(mergedBoards);
         }
         // isFirstLogin: local boards stay as-is; debounced effect syncs them after cloudLoadDone=true.
         // Direct syncBoards call here would race with that debounce and cause 409 conflicts.
@@ -127,8 +133,11 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
           // Re-check after the async fetch — a local change may have arrived while we were waiting
           if (hasPendingTaskSync.current || hasPendingBoardSync.current) return;
           if (cloudBoards.length > 0) {
-            setBoards(cloudBoards);
-            storage.saveBoards(cloudBoards);
+            // Preserve per-device fields (hidden) and fall back to local color if cloud lacks the column
+            setBoards((prev) => cloudBoards.map((cb) => {
+              const local = prev.find((b) => b.id === cb.id);
+              return { ...cb, color: cb.color ?? local?.color, hidden: local?.hidden ?? false };
+            }));
           }
           setTasks(cloudTasks);
           storage.saveTasks(cloudTasks);
@@ -195,11 +204,12 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
   const moveTask = useCallback((taskId: string, newStatus: TaskStatus, newOrder: number) => {
     setTasks((prev) => {
       const task = prev.find((t) => t.id === taskId);
-      const isLastBoard = boards.length > 0 && boards[boards.length - 1].id === newStatus;
+      const activeBoards = boards.filter((b) => !b.archived);
+      const isLastBoard = activeBoards.length > 0 && activeBoards[activeBoards.length - 1].id === newStatus;
       const shouldRecur = isLastBoard && task?.recurrence?.enabled;
       const updated = prev.map((t) => t.id === taskId ? { ...t, status: newStatus, order: newOrder, updatedAt: new Date().toISOString(), reminderDismissed: true } : t);
       if (!shouldRecur) return updated;
-      const next = buildNextOccurrence(task!, boards[0].id);
+      const next = buildNextOccurrence(task!, activeBoards[0].id);
       return next ? [...updated, next] : updated;
     });
   }, [boards]);
@@ -218,7 +228,8 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
   ) => {
     setTasks((prev) => {
       const task = prev.find((t) => t.id === taskId);
-      const isLastBoard = boards.length > 0 && boards[boards.length - 1].id === destStatus;
+      const activeBoards = boards.filter((b) => !b.archived);
+      const isLastBoard = activeBoards.length > 0 && activeBoards[activeBoards.length - 1].id === destStatus;
       const shouldRecur = isLastBoard && task?.recurrence?.enabled;
       const updated = prev.map((t) => {
         if (t.id === taskId) return { ...t, status: destStatus, order: destIndex, updatedAt: new Date().toISOString(), reminderDismissed: true };
@@ -227,7 +238,7 @@ export const TaskProvider: React.FC<{ workspaceId: string; workspaceName?: strin
         return t;
       });
       if (!shouldRecur) return updated;
-      const next = buildNextOccurrence(task!, boards[0].id);
+      const next = buildNextOccurrence(task!, activeBoards[0].id);
       return next ? [...updated, next] : updated;
     });
   }, [boards]);

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-21T22:35:01.936Z",
+  "generatedAt": "2026-04-28T14:07:09.387Z",
   "totalFiles": 70,
   "files": [
     {
@@ -100,6 +100,7 @@
         "useRef",
         "useEffect",
         "useTasks",
+        "useWorkspace",
         "useSettings",
         "useTranslation",
         "useIsMobile",
@@ -108,7 +109,7 @@
         "useMemo"
       ],
       "apiCalls": [],
-      "linesOfCode": 900
+      "linesOfCode": 914
     },
     {
       "path": "src/components/KanbanColumn.tsx",
@@ -528,7 +529,7 @@
       ],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 17
+      "linesOfCode": 19
     },
     {
       "path": "src/hooks/use-mobile.tsx",
@@ -688,7 +689,7 @@
       "exports": [],
       "hooks": [],
       "apiCalls": [],
-      "linesOfCode": 221
+      "linesOfCode": 242
     },
     {
       "path": "src/services/taskStorage.ts",
@@ -770,11 +771,12 @@
       "hooks": [
         "useMemo",
         "useState",
+        "useRef",
         "useEffect",
         "useCallback"
       ],
       "apiCalls": [],
-      "linesOfCode": 300
+      "linesOfCode": 323
     },
     {
       "path": "src/store/workspaceContext.ts",

@@ -84,7 +84,7 @@ All localStorage key strings are centralised in `src/constants/storageKeys.ts` (
 | `src/store/taskStore.tsx` | `TaskProvider` only — task + board state, CRUD, drag-drop, recurrence, cloud sync |
 | `src/i18n/translations.ts` | `useTranslation()` hook + EN/PT-BR dictionaries — see i18n section below |
 | `src/store/settingsContext.ts` | `SettingsContextType`, `SettingsContext`, `useSettings` hook, `BoardLayout` type, `Language` type |
-| `src/store/settingsStore.tsx` | `SettingsProvider` only — animations, light mode, board layout, checklist defaults, language, completedBoardId |
+| `src/store/settingsStore.tsx` | `SettingsProvider` only — animations, light mode, board layout, checklist defaults, language, privacyMode, completedBoardId |
 | `src/store/workspaceContext.ts` | `WorkspaceContextType`, `WorkspaceContext`, `useWorkspace` hook, `DEFAULT_WORKSPACE_ID` |
 | `src/store/workspaceStore.tsx` | `WorkspaceProvider` only — workspace list, active workspace, legacy migration |
 | `src/services/taskStorage.ts` | `createWorkspaceStorage(id): TaskStorageService` — localStorage layer |
@@ -95,11 +95,17 @@ All localStorage key strings are centralised in `src/constants/storageKeys.ts` (
 | `src/components/KanbanColumn.tsx` | Each board column (`Droppable`) + collapse + creation/deletion animations |
 | `src/components/TaskCard.tsx` | Individual card (`Draggable`) + inline checklist + recurrence badge + canvas fx + check button (auto-move to completed board) |
 | `src/components/TaskDialog.tsx` | Create/edit task modal — planning, checklist, recurrence sections |
-| `src/components/Header.tsx` | WorkspaceSwitcher + SyncButton + AuthButton + SettingsDialog |
+| `src/components/Header.tsx` | WorkspaceSwitcher + SyncButton + AuthButton + SettingsDialog + HelpButton |
 | `src/components/AccessRequestDialog.tsx` | Dialog for non-allowed users to request access |
 | `src/components/FilterPopover.tsx` | Filter UI (priority, board, start/end date ranges) |
 | `src/components/WorkspaceSwitcher.tsx` | Workspace dropdown with CRUD and deletion confirmation |
-| `src/components/SettingsDialog.tsx` | Settings panel (animations, layout, checklist, light mode, language, completed board) |
+| `src/components/SettingsDialog.tsx` | Settings panel (animations, layout, checklist, light mode, language, completed board, privacy mode) |
+| `src/components/ArchiveDialog.tsx` | View/restore/permanently delete archived tasks and boards |
+| `src/components/HelpDialog.tsx` | In-app help guide with feature sections, triggered from Header |
+| `src/components/SpaceEasterEggs.tsx` | Canvas-based ambient animations (supernova, UFO, nebula, X-wing, astronaut, satellite) on a timed loop |
+| `src/components/CometTrail.tsx` | Canvas comet particle effect |
+| `src/components/StarParticles.tsx` | Canvas star field background |
+| `src/components/StarWarsShip.tsx` | Canvas Star Wars ship drawing utility |
 | `src/index.css` | Global styles + CSS vars + animation keyframes (galaxy theme) |
 | `pwa-assets.config.ts` | PWA icon generation config (`@vite-pwa/assets-generator`, source: `public/favicon.svg`) |
 
@@ -121,7 +127,7 @@ t(`priority_${p.id}` as any)        // → "Low" / "Baixa"
 ```
 
 **Language type and persistence:**
-- `Language = "en" | "pt-BR"` — defined in `settingsContext.ts`
+- `Language = "en" | "pt-BR"` — defined in `translations.ts`, re-exported from `settingsContext.ts`
 - `language` and `setLanguage` come from `useSettings()`
 - Stored under `STORAGE_KEYS.LANGUAGE` (`spatialTodo_language`) in **localStorage only** — intentionally not synced to Supabase (per-device preference, avoids DB migration)
 - Default: `"en"`
@@ -134,6 +140,7 @@ Some settings are **not** synced to Supabase (no column in `public.settings`). T
 |---|---|---|---|
 | `spatialTodo_language` | `LANGUAGE` | `"en"` | UI language — per-device, avoids DB migration |
 | `spatialTodo_doneBoardId` | `DONE_BOARD_ID` | `null` | Completed board — board ID tasks auto-move to when checked; `null` disables the check button |
+| `spatialTodo_privacyMode` | (in settings store) | `false` | Hides tasks/boards flagged as `hidden` — per-device |
 
 ### Completed board feature
 
@@ -177,20 +184,38 @@ interface Task {
   status: TaskStatus;      // board id
   priority?: "low" | "medium" | "high" | "critical";
   order: number;
+  userId?: string;
+  createdAt: string;
+  updatedAt: string;
   estimatedHours?: number;
   estimatedMinutes?: number;
   startDate?: string;      // "yyyy-MM-dd"
   startTime?: string;      // "HH:mm"
   endDate?: string;        // "yyyy-MM-dd"
   endTime?: string;        // "HH:mm"
+  reminderDismissed?: boolean;
   checklist?: ChecklistItem[];
   recurrence?: Recurrence;
-  createdAt: string;
-  updatedAt: string;
+  archived?: boolean;      // true = task is in the archive (hidden from board, visible in ArchiveDialog)
+  hidden?: boolean;        // true = task is hidden in privacy mode
+}
+
+interface Column {
+  id: string;
+  title: string;
+  archived?: boolean;      // true = board is in the archive
+  hidden?: boolean;        // true = board is hidden in privacy mode
+  color?: string;          // HSL string e.g. "265,70%,65%" — stored in Supabase
 }
 ```
 
 When adding fields to `Task`, also update: `addTask` + `updateTask` signatures in `taskStore.tsx`, `onSave` in `TaskDialog.tsx`, `handleSave` in `KanbanBoard.tsx`, and display in `TaskCard.tsx`.
+
+### Archive and privacy features
+
+**Archive:** Tasks and boards can be archived via the `⋯` menu. Archived items are hidden from the board but accessible through `ArchiveDialog`. Context methods: `archiveTask`, `unarchiveTask`, `archiveBoard`, `unarchiveBoard`, `deleteArchivedBoard`, `deleteTask`.
+
+**Privacy mode:** `privacyMode` setting (in `useSettings()`) — when enabled, tasks and boards marked `hidden: true` are suppressed from view. Context methods: `hideTask`, `unhideTask`, `hideBoard`, `unhideBoard`. Toggled in `SettingsDialog`.
 
 ### Recurrence
 
